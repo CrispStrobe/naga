@@ -185,9 +185,15 @@ class _GameScreenState extends State<GameScreen> {
         aiDifficulty: AiDifficulty.values.byName(_settings.difficulty.name),
       );
     } else {
-      final effectiveWallsKill = _isClassicMode
-          ? true
-          : _settings.wallBehavior == WallBehavior.die;
+      // Classic: always walls kill. Zen: always wrap. Others: use settings.
+      final bool? wallsOverride;
+      if (_isClassicMode) {
+        wallsOverride = null; // use mode default (true)
+      } else if (widget.mode.name == 'Zen') {
+        wallsOverride = false; // Zen never kills on walls
+      } else {
+        wallsOverride = _settings.wallBehavior == WallBehavior.die;
+      }
 
       _game = SnakeGame(
         mode: widget.mode,
@@ -195,7 +201,7 @@ class _GameScreenState extends State<GameScreen> {
         onScoreChanged: (score) => setState(() => _score = score),
         gridWidth: _isClassicMode ? null : _settings.gridSize.width,
         gridHeight: _isClassicMode ? null : _settings.gridSize.height,
-        wallsKillOverride: _isClassicMode ? null : effectiveWallsKill,
+        wallsKillOverride: wallsOverride,
       );
     }
   }

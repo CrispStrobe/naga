@@ -18,13 +18,11 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   late double cellSize;
   late Vector2 boardOffset;
 
-  // Snake
+  // Snake — TURN-BASED: one move per keypress
   List<Point<int>> snakeSegments = [];
   Direction currentDirection = Direction.right;
-  Direction _nextDirection = Direction.right;
   GameState gameState = GameState.playing;
   int score = 0;
-  double _tickTimer = 0;
 
   // Dungeon state
   int _roomNumber = 1;
@@ -32,24 +30,19 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   Point<int> _exitPos = const Point(0, 0);
   bool _exitOpen = false;
 
-  // Monsters
+  // Monsters — move after player moves
   List<_Monster> _monsters = [];
-  double _monsterTickTimer = 0;
-  static const double _monsterTickInterval = 0.3;
 
   // Collectibles
   List<_Collectible> _collectibles = [];
 
   // Traps
   List<_Trap> _traps = [];
-  double _trapTimer = 0;
-  static const double _trapCycleTime = 3.0;
-  static const double _trapActiveTime = 0.5;
 
   // Attack buff
   bool _hasWeaponBuff = false;
   double _weaponBuffTimer = 0;
-  static const double _weaponBuffDuration = 10.0;
+  static const double _weaponBuffDuration = 10; // turns
 
   final Random _random = Random();
 
@@ -84,7 +77,6 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     _roomNumber = 1;
     gameState = GameState.playing;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
     _hasWeaponBuff = false;
     _weaponBuffTimer = 0;
     _generateRoom();
@@ -105,7 +97,6 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     _collectibles = [];
     _traps = [];
     _exitOpen = false;
-    _trapTimer = 0;
 
     // Carve rectangular rooms
     final roomCount = min(3 + _roomNumber ~/ 2, 5);
@@ -174,7 +165,6 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     }
 
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
 
     // Place exit in last room
     final lastRoom = rooms.last;
@@ -212,17 +202,19 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   }
 
   void _carveCorridor(int x1, int y1, int x2, int y2) {
-    // L-shaped corridor: horizontal then vertical
+    // L-shaped corridor, 2 cells wide so snake can turn
     int cx = x1;
     int cy = y1;
     final dx = x2 > x1 ? 1 : -1;
     while (cx != x2) {
       if (_inBounds(cx, cy)) _grid[cy][cx] = _CellType.floor;
+      if (_inBounds(cx, cy + 1)) _grid[cy + 1][cx] = _CellType.floor;
       cx += dx;
     }
     final dy = y2 > y1 ? 1 : -1;
     while (cy != y2) {
       if (_inBounds(cx, cy)) _grid[cy][cx] = _CellType.floor;
+      if (_inBounds(cx + 1, cy)) _grid[cy][cx + 1] = _CellType.floor;
       cy += dy;
     }
     if (_inBounds(cx, cy)) _grid[cy][cx] = _CellType.floor;
@@ -347,48 +339,27 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   // Update loop
   // ---------------------------------------------------------------------------
 
+  int _turnCount = 0;
+
   @override
   void update(double dt) {
     super.update(dt);
     if (gameState != GameState.playing) return;
 
-    // Trap cycle timer
-    _trapTimer += dt;
-    if (_trapTimer >= _trapCycleTime + _trapActiveTime) {
-      _trapTimer = 0;
-    }
-
-    // Weapon buff timer
-    if (_hasWeaponBuff) {
-      _weaponBuffTimer -= dt;
-      if (_weaponBuffTimer <= 0) {
-        _hasWeaponBuff = false;
-      }
-    }
-
-    // Snake tick
-    _tickTimer += dt;
-    if (_tickTimer >= mode.tickInterval(score)) {
-      _tickTimer = 0;
-      _tickSnake();
-    }
-
-    // Monster tick
-    _monsterTickTimer += dt;
-    if (_monsterTickTimer >= _monsterTickInterval) {
-      _monsterTickTimer = 0;
-      _tickMonsters();
-    }
+    // Trap cycle based on turn count (every 6 turns active for 1 turn)
+    // Weapon buff based on turns
   }
 
-  void _tickSnake() {
+  /// Called on each keypress — one turn of the game.
+  void _doTurn(Direction dir) {
+    if (gameState != GameState.playing) return;
     if (snakeSegments.isEmpty) return;
 
-    currentDirection = _nextDirection;
+    currentDirection = dir;
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
+    switch (dir) {
       case Direction.up:
         newHead = Point(head.x, head.y - 1);
       case Direction.down:
@@ -399,11 +370,10 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         newHead = Point(head.x + 1, head.y);
     }
 
-    // Wall collision = death
+    // Wall collision = blocked (don't move, don't waste turn)
     if (!_inBounds(newHead.x, newHead.y) ||
         _grid[newHead.y][newHead.x] == _CellType.wall) {
-      _die();
-      return;
+      return; // just don't move
     }
 
     // Self collision
@@ -480,6 +450,19 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     // Check if dead from damage
     if (snakeSegments.isEmpty) {
       _die();
+      return;
+    }
+
+    // After player moves, monsters take their turn
+    _turnCount++;
+    _tickMonsters();
+
+    // Weapon buff lasts N turns
+    if (_hasWeaponBuff) {
+      _weaponBuffTimer -= 1;
+      if (_weaponBuffTimer <= 0) {
+        _hasWeaponBuff = false;
+      }
     }
   }
 
@@ -492,7 +475,8 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   }
 
   bool _isTrapsActive() {
-    return _trapTimer >= _trapCycleTime;
+    // Traps active every 6th turn for 1 turn
+    return _turnCount % 6 == 5;
   }
 
   void _tickMonsters() {
@@ -587,12 +571,9 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     onGameOver();
   }
 
+  /// In turn-based mode, each call = one step in the given direction.
   void changeDirection(Direction dir) {
-    if (dir == Direction.up && currentDirection == Direction.down) return;
-    if (dir == Direction.down && currentDirection == Direction.up) return;
-    if (dir == Direction.left && currentDirection == Direction.right) return;
-    if (dir == Direction.right && currentDirection == Direction.left) return;
-    _nextDirection = dir;
+    _doTurn(dir);
   }
 
   @override
@@ -600,25 +581,34 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    if (event is KeyDownEvent) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        if (gameState == GameState.playing) {
+          gameState = GameState.paused;
+        } else if (gameState == GameState.paused) {
+          gameState = GameState.playing;
+        }
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
           event.logicalKey == LogicalKeyboardKey.keyW) {
-        changeDirection(Direction.up);
+        _doTurn(Direction.up);
         return KeyEventResult.handled;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
           event.logicalKey == LogicalKeyboardKey.keyS) {
-        changeDirection(Direction.down);
+        _doTurn(Direction.down);
         return KeyEventResult.handled;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
           event.logicalKey == LogicalKeyboardKey.keyA) {
-        changeDirection(Direction.left);
+        _doTurn(Direction.left);
         return KeyEventResult.handled;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
           event.logicalKey == LogicalKeyboardKey.keyD) {
-        changeDirection(Direction.right);
+        _doTurn(Direction.right);
         return KeyEventResult.handled;
       }
     }

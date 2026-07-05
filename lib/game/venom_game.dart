@@ -28,8 +28,9 @@ class VenomGame extends FlameGame with KeyboardEvents {
   GameState gameState = GameState.playing;
   int score = 0;
   double _tickTimer = 0;
-  int _movesSinceBomb = 0;
-  static const int _movesPerBomb = 8;
+  int _bombsAvailable = 3;
+  static const int _maxBombs = 3;
+  bool _dropBombRequested = false;
 
   // Walls: true = indestructible, false would not be stored
   Set<int> indestructibleWalls = {};
@@ -89,7 +90,8 @@ class VenomGame extends FlameGame with KeyboardEvents {
     _nextDirection = Direction.right;
     _bombs.clear();
     _explosions.clear();
-    _movesSinceBomb = 0;
+    _bombsAvailable = _maxBombs;
+    _dropBombRequested = false;
     _buildLevel();
   }
 
@@ -99,7 +101,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     _bombs.clear();
     _explosions.clear();
     _enemies.clear();
-    _movesSinceBomb = 0;
+    _dropBombRequested = false;
 
     // Border walls (indestructible)
     for (int x = 0; x < gridWidth; x++) {
@@ -111,9 +113,9 @@ class VenomGame extends FlameGame with KeyboardEvents {
       indestructibleWalls.add(_key(gridWidth - 1, y));
     }
 
-    // Interior indestructible walls in grid pattern (every other cell)
-    for (int x = 2; x < gridWidth - 1; x += 2) {
-      for (int y = 2; y < gridHeight - 1; y += 2) {
+    // Interior indestructible walls in grid pattern (every 3rd cell for wider corridors)
+    for (int x = 3; x < gridWidth - 1; x += 3) {
+      for (int y = 3; y < gridHeight - 1; y += 3) {
         indestructibleWalls.add(_key(x, y));
       }
     }
@@ -159,7 +161,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     }
 
     // Spawn enemies in open cells away from snake
-    final enemyCount = (2 + _level).clamp(3, 8);
+    final enemyCount = (1 + _level).clamp(2, 8);
     final enemyCandidates = <int>[];
     for (int x = 1; x < gridWidth - 1; x++) {
       for (int y = 1; y < gridHeight - 1; y++) {
@@ -200,6 +202,9 @@ class VenomGame extends FlameGame with KeyboardEvents {
   void update(double dt) {
     super.update(dt);
     if (gameState != GameState.playing) return;
+
+    // Replenish bombs over time (1 every 5 seconds if below max)
+    // (handled in _explodeBomb — bombs replenish on detonation)
 
     // Update bomb timers
     for (final bomb in _bombs) {
@@ -277,15 +282,15 @@ class VenomGame extends FlameGame with KeyboardEvents {
       snakeSegments.removeLast();
     }
 
-    // Drop bomb every N moves at tail position
-    _movesSinceBomb++;
-    if (_movesSinceBomb >= _movesPerBomb) {
-      _movesSinceBomb = 0;
-      // Drop bomb at old tail if cell is free
-      if (!_isWall(tail.x, tail.y) &&
+    // Drop bomb on request (Space key) at tail position
+    if (_dropBombRequested) {
+      _dropBombRequested = false;
+      if (_bombsAvailable > 0 &&
+          !_isWall(tail.x, tail.y) &&
           !_isBombAt(tail.x, tail.y) &&
           !snakeSegments.any((s) => s.x == tail.x && s.y == tail.y)) {
         _bombs.add(_Bomb(position: tail, timer: bombFuseTime));
+        _bombsAvailable--;
       }
     }
 
@@ -297,6 +302,10 @@ class VenomGame extends FlameGame with KeyboardEvents {
   }
 
   void _explodeBomb(_Bomb bomb) {
+    // Replenish one bomb when it explodes
+    if (_bombsAvailable < _maxBombs) {
+      _bombsAvailable++;
+    }
     final cells = _getExplosionCells(bomb.position);
 
     // Create explosion visual
@@ -428,9 +437,26 @@ class VenomGame extends FlameGame with KeyboardEvents {
     _nextDirection = dir;
   }
 
+  void togglePause() {
+    if (gameState == GameState.playing) {
+      gameState = GameState.paused;
+    } else if (gameState == GameState.paused) {
+      gameState = GameState.playing;
+    }
+  }
+
   @override
   KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        togglePause();
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.space) {
+        _dropBombRequested = true;
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyW) {
         changeDirection(Direction.up);
         return KeyEventResult.handled;
@@ -631,6 +657,22 @@ class VenomGame extends FlameGame with KeyboardEvents {
       textDirection: TextDirection.ltr,
     )..layout();
     levelTp.paint(canvas, Offset(boardOffset.x + 4, boardOffset.y - 16));
+
+    final bombTp = TextPainter(
+      text: TextSpan(
+        text: 'BOMBS: $_bombsAvailable/$_maxBombs',
+        style: TextStyle(
+          color: mode.bombColor.withOpacity(0.8),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    bombTp.paint(
+      canvas,
+      Offset(boardOffset.x + (gridWidth * cs - bombTp.width) / 2, boardOffset.y - 16),
+    );
 
     final enemyTp = TextPainter(
       text: TextSpan(

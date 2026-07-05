@@ -163,7 +163,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       return; // just don't move
     }
 
-    // Check enemy collision — eating enemies
+    // Head-first collision with enemies = eat them (score points)
     final hitEnemy = enemies.where(
       (e) => e.position.x == newHead.x && e.position.y == newHead.y,
     ).toList();
@@ -244,12 +244,26 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       }
     }
 
-    // Check if enemy landed on snake head
+    // Check if enemy marched down onto snake body (side hit = death)
+    // Enemies landing on the head are eaten; enemies on body segments kill.
     final head = snakeSegments.first;
+    final eatenByHead = enemies.where(
+      (e) => e.position.x == head.x && e.position.y == head.y,
+    ).toList();
+    for (final enemy in eatenByHead) {
+      enemies.remove(enemy);
+      score += enemy.points;
+      onScoreChanged(score);
+    }
+
+    // Enemies landing on body (not head) = death
     for (final enemy in enemies) {
-      if (enemy.position.x == head.x && enemy.position.y == head.y) {
-        _die();
-        return;
+      for (int i = 1; i < snakeSegments.length; i++) {
+        if (enemy.position.x == snakeSegments[i].x &&
+            enemy.position.y == snakeSegments[i].y) {
+          _die();
+          return;
+        }
       }
     }
   }
@@ -267,9 +281,22 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     _nextDirection = dir;
   }
 
+  void togglePause() {
+    if (gameState == GameState.playing) {
+      gameState = GameState.paused;
+    } else if (gameState == GameState.paused) {
+      gameState = GameState.playing;
+    }
+  }
+
   @override
   KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        togglePause();
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyW) {
         changeDirection(Direction.up);
         return KeyEventResult.handled;

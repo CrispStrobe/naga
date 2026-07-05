@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -26,7 +27,8 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   GameState gameState = GameState.playing;
   int score = 0;
   double _tickTimer = 0;
-  Direction _nextDirection = Direction.right;
+  final Queue<Direction> _directionQueue = Queue<Direction>();
+  static const int _maxQueuedInputs = 4;
   Direction currentDirection = Direction.right;
   final Random _random = Random();
 
@@ -86,7 +88,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     score = 0;
     _tickTimer = 0;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
     gameState = GameState.playing;
     activeBuffs.clear();
     _powerUpSpawnTimer = 0;
@@ -128,7 +130,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     removeAll(children.where((c) => c is Snake || c is Food || c is PowerUp));
     _tickTimer = 0;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
     gameState = GameState.playing;
     activeBuffs.clear();
     _currentPowerUp = null;
@@ -286,7 +288,10 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   }
 
   void _tick() {
-    currentDirection = _nextDirection;
+    // Dequeue next buffered input
+    if (_directionQueue.isNotEmpty) {
+      currentDirection = _directionQueue.removeFirst();
+    }
 
     final head = snake.segments.first;
     late Point<int> newHead;
@@ -375,16 +380,31 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   bool get isPaused => gameState == GameState.paused;
 
   void changeDirection(Direction dir) {
+    // Check against the last queued direction (or current if queue empty)
+    final lastDir = _directionQueue.isNotEmpty
+        ? _directionQueue.last
+        : currentDirection;
+
     // Prevent 180-degree turns
-    if (dir == Direction.up && currentDirection == Direction.down) return;
-    if (dir == Direction.down && currentDirection == Direction.up) return;
-    if (dir == Direction.left && currentDirection == Direction.right) return;
-    if (dir == Direction.right && currentDirection == Direction.left) return;
-    _nextDirection = dir;
-    // Reduce input lag: if we're past half the tick interval, trigger early
-    final interval = mode.tickInterval(score);
-    if (_tickTimer > interval * 0.4) {
-      _tickTimer = interval;
+    if (dir == Direction.up && lastDir == Direction.down) return;
+    if (dir == Direction.down && lastDir == Direction.up) return;
+    if (dir == Direction.left && lastDir == Direction.right) return;
+    if (dir == Direction.right && lastDir == Direction.left) return;
+
+    // Don't queue duplicate directions
+    if (dir == lastDir) return;
+
+    // Buffer up to N inputs
+    if (_directionQueue.length < _maxQueuedInputs) {
+      _directionQueue.add(dir);
+    }
+
+    // If queue was empty, trigger early tick for responsiveness
+    if (_directionQueue.length == 1) {
+      final interval = _effectiveTickInterval();
+      if (_tickTimer > interval * 0.3) {
+        _tickTimer = interval;
+      }
     }
   }
 
@@ -412,6 +432,11 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
           event.logicalKey == LogicalKeyboardKey.keyD) {
         changeDirection(Direction.right);
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        togglePause();
         return KeyEventResult.handled;
       }
     }

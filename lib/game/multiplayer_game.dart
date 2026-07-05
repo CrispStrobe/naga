@@ -28,6 +28,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
 
   // State
   bool _isGameOver = false;
+  bool _isPaused = false;
   MatchResult? matchResult;
   int p1Score = 0;
   int p2Score = 0;
@@ -91,6 +92,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     p2Score = 0;
     _tickTimer = 0;
     _isGameOver = false;
+    _isPaused = false;
     matchResult = null;
     p1Alive = true;
     p2Alive = true;
@@ -183,6 +185,12 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   ) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    if (event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.keyP) {
+      _togglePause();
+      return KeyEventResult.handled;
+    }
+
     // Player 1: WASD
     if (event.logicalKey == LogicalKeyboardKey.keyW) {
       changeDirectionP1(Direction.up);
@@ -226,10 +234,16 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   // Update / Tick
   // ------------------------------------------------------------------
 
+  void _togglePause() {
+    if (!_isGameOver) {
+      _isPaused = !_isPaused;
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
-    if (_isGameOver) return;
+    if (_isGameOver || _isPaused) return;
 
     _foodPulse += dt;
     _tickTimer += dt;

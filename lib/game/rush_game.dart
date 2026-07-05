@@ -29,7 +29,7 @@ class RushGame extends FlameGame with KeyboardEvents {
   List<_Obstacle> obstacles = [];
   List<Point<int>> food = [];
   double _scrollTimer = 0;
-  double _scrollInterval = 0.8; // how often new row spawns
+  double _scrollInterval = 2.0; // how often new row spawns
   int _distanceTraveled = 0;
 
   final Random _random = Random();
@@ -63,7 +63,7 @@ class RushGame extends FlameGame with KeyboardEvents {
   void _startNewGame() {
     score = 0;
     _distanceTraveled = 0;
-    _scrollInterval = 0.8;
+    _scrollInterval = 2.0;
     gameState = GameState.playing;
     currentDirection = Direction.up;
     _nextDirection = Direction.up;
@@ -87,8 +87,8 @@ class RushGame extends FlameGame with KeyboardEvents {
 
   void _spawnObstacleRow(int y) {
     // Create a row with random gaps
-    final gapStart = _random.nextInt(gridWidth - 5);
-    final gapWidth = 3 + _random.nextInt(4); // gap of 3-6 cells
+    final gapStart = _random.nextInt(gridWidth - 6);
+    final gapWidth = 4 + _random.nextInt(4); // gap of 4-7 cells
 
     for (int x = 0; x < gridWidth; x++) {
       if (x >= gapStart && x < gapStart + gapWidth) {
@@ -186,7 +186,7 @@ class RushGame extends FlameGame with KeyboardEvents {
     onScoreChanged(score);
 
     // Speed up gradually
-    _scrollInterval = max(0.25, 0.8 - _distanceTraveled * 0.005);
+    _scrollInterval = max(0.5, 2.0 - _distanceTraveled * 0.002);
 
     // Move everything down by 1
     for (final obs in obstacles) {
@@ -227,9 +227,22 @@ class RushGame extends FlameGame with KeyboardEvents {
     _nextDirection = dir;
   }
 
+  void togglePause() {
+    if (gameState == GameState.playing) {
+      gameState = GameState.paused;
+    } else if (gameState == GameState.paused) {
+      gameState = GameState.playing;
+    }
+  }
+
   @override
   KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        togglePause();
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyW) {
         changeDirection(Direction.up);
         return KeyEventResult.handled;

@@ -47,37 +47,37 @@ class Maze extends Component {
   void _buildLayout() {
     // W=1(wall), .=0(dot corridor), E=empty, P=3(power pellet),
     // G=4(ghost house), S=5(snake start)
-    // Well-designed Pac-Man style maze with wide corridors and open areas
-    // Symmetric left-right for proper Pac-Man feel
+    // Wide corridors (2+ cells) so the snake can always turn around.
+    // Symmetric left-right for proper Pac-Man feel.
     final List<String> rows = [
       // 01234567890123456789
       '11111111111111111111', // 0  top border
-      '1P......11.......P1', // 1  top corridors + power pellets
-      '1.1111.1.11.1.1111.1', // 2
-      '1.1111.1.11.1.1111.1', // 3
+      '1P................P1', // 1  top corridor + power pellets
+      '1..111111..111111..1', // 2  wide top blocks
+      '1..111111..111111..1', // 3
       '1..................1', // 4  full horizontal corridor
-      '1.11.111.11.111.11.1', // 5
-      '1.11.......1....11.1', // 6
-      '1....111.11.111....1', // 7
-      '1111.1EEEEEEEE1.1111', // 8  ghost house top
-      'EEEE.1E111111E1.EEEE', // 9  ghost house with walls
-      'EEEE.EEG..GEEE.EEEE', // 10 ghost starts (open sides)
-      'EEEE.1E111111E1.EEEE', // 11 ghost house bottom
-      '1111.1EEEEEEEE1.1111', // 12 ghost house exit
+      '1..................1', // 5  double-wide horizontal
+      '1..1111......1111..1', // 6  side blocks
+      '1..1111......1111..1', // 7
+      '1......EEEEEE......1', // 8  ghost house top
+      '1..11.EEEEEEEE.11..1', // 9
+      '1.....EEG..GEE.....1', // 10 ghost starts
+      '1..11.EEEEEEEE.11..1', // 11
+      '1......EEEEEE......1', // 12 ghost house exit
       '1..................1', // 13 center corridor
-      '1.1111.111111.1111.1', // 14
-      '1.1111.111111.1111.1', // 15
-      '1..................1', // 16 full horizontal
-      '1.11.1.111111.1.11.1', // 17
-      '1.11.1........1.11.1', // 18
-      '1....1.111111.1....1', // 19
-      '1.11.1........1.11.1', // 20
-      '1.11...1SSSS1...11.1', // 21 snake start area
-      '1......1....1......1', // 22
-      '1.1111.1.11.1.1111.1', // 23
-      '1.1111...11...1111.1', // 24
+      '1..................1', // 14 double-wide center
+      '1..1111......1111..1', // 15 mid blocks
+      '1..1111......1111..1', // 16
+      '1..................1', // 17 full horizontal
+      '1..................1', // 18 double-wide horizontal
+      '1..111..1111..111..1', // 19 lower blocks
+      '1..111..1111..111..1', // 20
+      '1......ESSSSE......1', // 21 snake start area
+      '1......ESSSSE......1', // 22 wide snake start
+      '1..111..1111..111..1', // 23
+      '1..111........111..1', // 24
       '1..................1', // 25
-      '1P.....111111.....P1', // 26 bottom power pellets
+      '1P................P1', // 26 bottom power pellets
       '11111111111111111111', // 27 bottom border
     ];
 

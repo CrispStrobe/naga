@@ -275,10 +275,23 @@ class FangsGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  void togglePause() {
+    if (gameState == GameState.playing) {
+      gameState = GameState.paused;
+    } else if (gameState == GameState.paused) {
+      gameState = GameState.playing;
+    }
+  }
+
   @override
   KeyEventResult onKeyEvent(
       KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        togglePause();
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
           event.logicalKey == LogicalKeyboardKey.keyA) {
         changeDirection(Direction.left);

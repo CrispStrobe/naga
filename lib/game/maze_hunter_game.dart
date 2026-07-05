@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -21,7 +22,8 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   List<Point<int>> snakeSegments = [];
   static const int _snakeLength = 4;
   Direction currentDirection = Direction.right;
-  Direction _nextDirection = Direction.right;
+  final Queue<Direction> _directionQueue = Queue<Direction>();
+  static const int _maxQueuedInputs = 4;
 
   GameState gameState = GameState.playing;
   int score = 0;
@@ -81,7 +83,7 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
     _powerTimer = 0;
     _level = 1;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
     gameState = GameState.playing;
 
     _buildLevel();
@@ -96,7 +98,7 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
       }
     }
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
     _powerMode = false;
     gameState = GameState.playing;
   }
@@ -121,7 +123,7 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
       }
 
       currentDirection = Direction.right;
-      _nextDirection = Direction.right;
+      _directionQueue.clear();
 
       // Create ghosts at their start positions (which are now in open corridors)
       ghosts = [];
@@ -182,7 +184,9 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   }
 
   void _tick() {
-    currentDirection = _nextDirection;
+    if (_directionQueue.isNotEmpty) {
+      currentDirection = _directionQueue.removeFirst();
+    }
 
     final head = snakeSegments.first;
     late Point<int> newHead;
@@ -284,11 +288,28 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    if (dir == Direction.up && currentDirection == Direction.down) return;
-    if (dir == Direction.down && currentDirection == Direction.up) return;
-    if (dir == Direction.left && currentDirection == Direction.right) return;
-    if (dir == Direction.right && currentDirection == Direction.left) return;
-    _nextDirection = dir;
+    final lastDir = _directionQueue.isNotEmpty
+        ? _directionQueue.last
+        : currentDirection;
+
+    if (dir == Direction.up && lastDir == Direction.down) return;
+    if (dir == Direction.down && lastDir == Direction.up) return;
+    if (dir == Direction.left && lastDir == Direction.right) return;
+    if (dir == Direction.right && lastDir == Direction.left) return;
+
+    if (dir == lastDir) return;
+
+    if (_directionQueue.length < _maxQueuedInputs) {
+      _directionQueue.add(dir);
+    }
+  }
+
+  void togglePause() {
+    if (gameState == GameState.playing) {
+      gameState = GameState.paused;
+    } else if (gameState == GameState.paused) {
+      gameState = GameState.playing;
+    }
   }
 
   @override
@@ -297,6 +318,11 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
     Set<LogicalKeyboardKey> keysPressed,
   ) {
     if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        togglePause();
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
           event.logicalKey == LogicalKeyboardKey.keyW) {
         changeDirection(Direction.up);

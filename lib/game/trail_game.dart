@@ -298,12 +298,25 @@ class TrailGame extends FlameGame with KeyboardEvents {
     player.changeDirection(dir);
   }
 
+  void togglePause() {
+    if (gameState == TrailGameState.playing) {
+      gameState = TrailGameState.paused;
+    } else if (gameState == TrailGameState.paused) {
+      gameState = TrailGameState.playing;
+    }
+  }
+
   @override
   KeyEventResult onKeyEvent(
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
     if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        togglePause();
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
           event.logicalKey == LogicalKeyboardKey.keyW) {
         changeDirection(Direction.up);
