@@ -113,6 +113,7 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
       getCellSize: () => cellSize,
       getBoardOffset: () => boardOffset,
     );
+    maze.setLevel(_level - 1);
     add(maze);
 
     maze.onLoad().then((_) {
@@ -275,7 +276,7 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
 
   void _nextLevel() {
     _level++;
-    maze.resetDots();
+    _buildLevel();
   }
 
   void _die() {

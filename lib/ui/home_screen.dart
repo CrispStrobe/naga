@@ -51,7 +51,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1A0D),
+      backgroundColor: const Color(0xFF142914),
       body: SafeArea(
         child: Stack(
           children: [

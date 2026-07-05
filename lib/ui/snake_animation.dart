@@ -99,15 +99,15 @@ class _JungleBackgroundPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Gradient background — dark jungle to slightly lighter canopy
+    // Gradient background — rich jungle greens
     final bgGradient = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0xFF0A1F0A),
-          Color(0xFF0D1A0D),
-          Color(0xFF122212),
+          Color(0xFF1A3320),
+          Color(0xFF14291A),
+          Color(0xFF1E3B22),
         ],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), bgGradient);
@@ -120,7 +120,7 @@ class _JungleBackgroundPainter extends CustomPainter {
 
     // Hanging vines from top
     final vinePaint = Paint()
-      ..color = const Color(0xFF1B5E20).withOpacity(0.25)
+      ..color = const Color(0xFF2E7D32).withOpacity(0.4)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -134,7 +134,7 @@ class _JungleBackgroundPainter extends CustomPainter {
         ..quadraticBezierTo(vx + sway, vineLen * 0.5, vx + sway * 0.6, vineLen);
       canvas.drawPath(path, vinePaint);
       // Leaf at tip
-      final leafPaint = Paint()..color = const Color(0xFF2E7D32).withOpacity(0.2);
+      final leafPaint = Paint()..color = const Color(0xFF4CAF50).withOpacity(0.35);
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset(vx + sway * 0.6, vineLen + 3),
@@ -145,7 +145,7 @@ class _JungleBackgroundPainter extends CustomPainter {
     }
 
     // Ground foliage at bottom
-    final foliagePaint = Paint()..color = const Color(0xFF1B5E20).withOpacity(0.2);
+    final foliagePaint = Paint()..color = const Color(0xFF388E3C).withOpacity(0.35);
     for (double x = 0; x < w; x += 12) {
       final fh = 8 + sin(x * 0.3) * 5 + cos(x * 0.7) * 3;
       final sway = sin(t * 0.3 + x * 0.1) * 3;
@@ -170,17 +170,17 @@ class _JungleBackgroundPainter extends CustomPainter {
           const Color(0xFFFFD740),
           const Color(0xFF76FF03),
           (i % 3) / 2.0,
-        )!.withOpacity(brightness * 0.15);
-      canvas.drawCircle(Offset(fx, fy), 6, glowPaint);
+        )!.withOpacity(brightness * 0.3);
+      canvas.drawCircle(Offset(fx, fy), 8, glowPaint);
       // Core
       final corePaint = Paint()
-        ..color = const Color(0xFFFFD740).withOpacity(brightness * 0.4);
-      canvas.drawCircle(Offset(fx, fy), 1.5, corePaint);
+        ..color = const Color(0xFFFFD740).withOpacity(brightness * 0.7);
+      canvas.drawCircle(Offset(fx, fy), 2, corePaint);
     }
   }
 
   void _drawTree(Canvas canvas, double x, double h, double trunkW, bool leanRight) {
-    final trunkPaint = Paint()..color = const Color(0xFF1A1A0A).withOpacity(0.3);
+    final trunkPaint = Paint()..color = const Color(0xFF3E2723).withOpacity(0.45);
     final lean = leanRight ? 1.0 : -1.0;
 
     // Trunk
@@ -200,7 +200,7 @@ class _JungleBackgroundPainter extends CustomPainter {
     canvas.drawPath(trunkPath, trunkPaint);
 
     // Canopy blobs
-    final canopyPaint = Paint()..color = const Color(0xFF1B3A1B).withOpacity(0.35);
+    final canopyPaint = Paint()..color = const Color(0xFF2E7D32).withOpacity(0.4);
     final cx = x + trunkW * 0.25 + lean * trunkW * 0.2;
     final cy = h * 0.08;
     for (final offset in [Offset(-trunkW * 0.3, 0), Offset(trunkW * 0.2, -trunkW * 0.1), Offset(0, trunkW * 0.15)]) {
