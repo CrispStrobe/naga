@@ -68,8 +68,8 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
     scrollSpeed = 120;
     _scrollOffset = 0;
     _columnTimer = 0;
-    _columnInterval = 2.2;
-    _gapHeight = 140;
+    _columnInterval = 3.0;
+    _gapHeight = 180;
     score = 0;
     gameState = GameState.playing;
     _started = false;
@@ -188,9 +188,10 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
     _bubbles.removeWhere((b) => b.y < -10);
 
     // Difficulty ramp
-    scrollSpeed = min(250, 120 + score * 2.0);
-    _columnInterval = max(1.2, 2.2 - score * 0.03);
-    _gapHeight = max(90, 140 - score * 1.5);
+    // Difficulty ramp: generous early, tight late
+    scrollSpeed = min(260, 120 + score * 1.8);
+    _columnInterval = max(1.0, 3.0 - score * 0.05);
+    _gapHeight = max(80, 180 - score * 2.0);
   }
 
   void _spawnColumn() {
