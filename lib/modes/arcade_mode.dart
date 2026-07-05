@@ -10,16 +10,16 @@ class ArcadeMode extends GameMode {
   String get description => 'Neon speed run';
 
   @override
-  Color get backgroundColor => const Color(0xFF0A0A2E);
+  Color get backgroundColor => const Color(0xFF0D3B2E);
 
   @override
-  Color get snakeColor => const Color(0xFF00FF88);
+  Color get snakeColor => const Color(0xFF76FF03);
 
   @override
-  Color get foodColor => const Color(0xFFFF0066);
+  Color get foodColor => const Color(0xFFFF1744);
 
   @override
-  Color get gridColor => const Color(0xFF1A1A4E);
+  Color get gridColor => const Color(0xFF1A4A3A);
 
   @override
   bool get wallsKill => false;

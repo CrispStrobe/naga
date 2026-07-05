@@ -10,16 +10,16 @@ class PitMode extends GameMode {
   String get description => 'Last snake standing';
 
   @override
-  Color get backgroundColor => const Color(0xFF2A0A0A);
+  Color get backgroundColor => const Color(0xFF4A1A0A);
 
   @override
-  Color get snakeColor => const Color(0xFF00E676); // Player green
+  Color get snakeColor => const Color(0xFF00E676); // Emerald green
 
   @override
   Color get foodColor => const Color(0xFFFFD740); // Gold food
 
   @override
-  Color get gridColor => const Color(0xFF3A1A1A);
+  Color get gridColor => const Color(0xFF5C2A1A);
 
   @override
   bool get wallsKill => true;

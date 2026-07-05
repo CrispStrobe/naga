@@ -51,7 +51,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1A),
+      backgroundColor: const Color(0xFF0D1A0D),
       body: SafeArea(
         child: Stack(
           children: [
@@ -69,7 +69,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 letterSpacing: 8,
-                color: Colors.green.shade700,
+                color: Colors.amber.shade600,
               ),
             ),
             const SizedBox(height: 24),

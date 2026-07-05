@@ -10,10 +10,10 @@ class MultiplayerMode extends GameMode {
   String get description => 'Local 2-player';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A1020);
+  Color get backgroundColor => const Color(0xFF1A2A1A);
 
   @override
-  Color get snakeColor => const Color(0xFF00FF66); // Player 1 bright green
+  Color get snakeColor => const Color(0xFF00E676); // Player 1 emerald
 
   /// Player 2 snake color — bright cyan.
   Color get player2Color => const Color(0xFF00FFFF);
@@ -22,7 +22,7 @@ class MultiplayerMode extends GameMode {
   Color get foodColor => const Color(0xFFFF4444);
 
   @override
-  Color get gridColor => const Color(0xFF2A2030);
+  Color get gridColor => const Color(0xFF2A3A2A);
 
   @override
   bool get wallsKill => true;

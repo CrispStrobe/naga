@@ -10,7 +10,7 @@ class TrailMode extends GameMode {
   String get description => 'Tron light cycles';
 
   @override
-  Color get backgroundColor => const Color(0xFF001A1A);
+  Color get backgroundColor => const Color(0xFF00695C);
 
   @override
   Color get snakeColor => const Color(0xFF00E5FF); // Cyan neon

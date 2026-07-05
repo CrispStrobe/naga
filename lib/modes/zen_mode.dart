@@ -10,16 +10,16 @@ class ZenMode extends GameMode {
   String get description => 'No death, just vibes';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A1A3E);
+  Color get backgroundColor => const Color(0xFF3E1A3A);
 
   @override
-  Color get snakeColor => const Color(0xFF7B68EE);
+  Color get snakeColor => const Color(0xFFFFD740);
 
   @override
-  Color get foodColor => const Color(0xFFFFD700);
+  Color get foodColor => const Color(0xFFFF80AB);
 
   @override
-  Color get gridColor => const Color(0xFF2A2A4E);
+  Color get gridColor => const Color(0xFF4E2A4A);
 
   @override
   bool get wallsKill => false;

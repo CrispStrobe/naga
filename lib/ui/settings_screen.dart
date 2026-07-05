@@ -32,10 +32,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1A),
+      backgroundColor: const Color(0xFF0D1A0D),
       appBar: AppBar(
         title: Text(s.settings),
-        backgroundColor: const Color(0xFF0A0A1A),
+        backgroundColor: const Color(0xFF0D1A0D),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

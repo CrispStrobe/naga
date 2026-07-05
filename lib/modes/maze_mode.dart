@@ -39,7 +39,7 @@ class MazeMode extends GameMode {
   int pointsPerFood(int score) => 10;
 
   // Maze wall color for rendering
-  Color get wallColor => const Color(0xFF0000FF);
+  Color get wallColor => const Color(0xFF1565C0);
 
   // Ghost colors
   static const List<Color> ghostColors = [

@@ -10,7 +10,7 @@ class StampedeMode extends GameMode {
   String get description => 'Animal race';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A3A0A);
+  Color get backgroundColor => const Color(0xFF2E7D32);
 
   @override
   Color get snakeColor => const Color(0xFF00E676); // Naga green
@@ -19,7 +19,7 @@ class StampedeMode extends GameMode {
   Color get foodColor => const Color(0xFFFFD740); // Gold boost
 
   @override
-  Color get gridColor => const Color(0xFF2A4A1A);
+  Color get gridColor => const Color(0xFF388E3C);
 
   @override
   bool get wallsKill => true;
@@ -39,9 +39,9 @@ class StampedeMode extends GameMode {
   int pointsPerFood(int score) => 10;
 
   // Track colors
-  Color get trackColor => const Color(0xFF3A3A3A);
+  Color get trackColor => const Color(0xFF5D4037);
   Color get trackLineColor => const Color(0xFFFFFF00);
-  Color get grassColor => const Color(0xFF2E7D32);
+  Color get grassColor => const Color(0xFF388E3C);
   Color get rockColor => const Color(0xFF795548);
   Color get logColor => const Color(0xFF5D4037);
 }

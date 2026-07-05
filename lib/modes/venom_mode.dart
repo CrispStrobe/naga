@@ -10,7 +10,7 @@ class VenomMode extends GameMode {
   String get description => 'Bomb and blast';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A2A0A);
+  Color get backgroundColor => const Color(0xFF1B5E20);
 
   @override
   Color get snakeColor => const Color(0xFF76FF03); // Toxic green
@@ -19,7 +19,7 @@ class VenomMode extends GameMode {
   Color get foodColor => const Color(0xFFFF9100); // Orange pickup
 
   @override
-  Color get gridColor => const Color(0xFF2A3A1A);
+  Color get gridColor => const Color(0xFF2E7D32);
 
   @override
   bool get wallsKill => true;

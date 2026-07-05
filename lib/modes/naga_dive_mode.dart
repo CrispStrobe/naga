@@ -10,7 +10,7 @@ class NagaDiveMode extends GameMode {
   String get description => 'Underwater swim';
 
   @override
-  Color get backgroundColor => const Color(0xFF0A1628);
+  Color get backgroundColor => const Color(0xFF0D2137);
 
   @override
   Color get snakeColor => const Color(0xFF00E5FF); // Bioluminescent cyan
@@ -40,6 +40,6 @@ class NagaDiveMode extends GameMode {
   Color get coralColor => const Color(0xFFFF6D00);
   Color get seaweedColor => const Color(0xFF00C853);
   Color get bubbleColor => const Color(0xFF80D8FF);
-  Color get deepWaterColor => const Color(0xFF0D47A1);
+  Color get deepWaterColor => const Color(0xFF1565C0);
   Color get fishColor => const Color(0xFFFFD740);
 }

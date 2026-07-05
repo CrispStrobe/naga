@@ -10,16 +10,16 @@ class DungeonMode extends GameMode {
   String get description => 'Roguelike crawler';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A1510);
+  Color get backgroundColor => const Color(0xFF2C1A0E);
 
   @override
-  Color get snakeColor => const Color(0xFF00FF66);
+  Color get snakeColor => const Color(0xFF00E676);
 
   @override
   Color get foodColor => const Color(0xFFFFD700);
 
   @override
-  Color get gridColor => const Color(0xFF2A2520);
+  Color get gridColor => const Color(0xFF3A2A1E);
 
   @override
   bool get wallsKill => true;
@@ -40,8 +40,8 @@ class DungeonMode extends GameMode {
   int pointsPerFood(int score) => 10;
 
   // Dungeon-specific colors
-  Color get wallColor => const Color(0xFF4A3728); // Brown stone walls
-  Color get floorColor => const Color(0xFF2A2A2A); // Dark corridor
+  Color get wallColor => const Color(0xFF5D4037); // Brown stone walls
+  Color get floorColor => const Color(0xFF3E2723); // Dark corridor
   Color get coinColor => const Color(0xFFFFD700); // Gold
   Color get potionColor => const Color(0xFFFF4444); // Red health potion
   Color get weaponColor => const Color(0xFF00BFFF); // Blue weapon pickup
