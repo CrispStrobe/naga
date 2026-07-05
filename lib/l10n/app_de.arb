@@ -92,6 +92,8 @@
     "hard": "Schwer",
     "expert": "Experte",
     "startSpeed": "Startgeschwindigkeit",
+    "crawl": "Kriechen",
+    "turtle": "Schildkröte",
     "slow": "Langsam",
     "normal": "Normal",
     "fast": "Schnell",

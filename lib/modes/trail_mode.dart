@@ -10,7 +10,7 @@ class TrailMode extends GameMode {
   String get description => 'Tron light cycles';
 
   @override
-  Color get backgroundColor => const Color(0xFF000000);
+  Color get backgroundColor => const Color(0xFF001A1A);
 
   @override
   Color get snakeColor => const Color(0xFF00E5FF); // Cyan neon
@@ -19,7 +19,7 @@ class TrailMode extends GameMode {
   Color get foodColor => const Color(0xFFFF6D00); // Orange energy
 
   @override
-  Color get gridColor => const Color(0xFF0D0D1A);
+  Color get gridColor => const Color(0xFF003333);
 
   @override
   bool get wallsKill => true;

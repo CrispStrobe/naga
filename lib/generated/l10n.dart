@@ -655,6 +655,18 @@ abstract class S {
   /// **'Start Speed'**
   String get startSpeed;
 
+  /// No description provided for @crawl.
+  ///
+  /// In en, this message translates to:
+  /// **'Crawl'**
+  String get crawl;
+
+  /// No description provided for @turtle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turtle'**
+  String get turtle;
+
   /// No description provided for @slow.
   ///
   /// In en, this message translates to:

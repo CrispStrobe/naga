@@ -29,6 +29,8 @@ enum Difficulty {
 }
 
 enum StartSpeed {
+  crawl(0.35, 'Crawl'),
+  turtle(0.50, 'Turtle'),
   slow(0.22, 'Slow'),
   normal(0.14, 'Normal'),
   fast(0.09, 'Fast'),
@@ -111,7 +113,7 @@ class SettingsService {
     final lives = prefs.getInt(_keyLives) ?? 0;
     final controlIndex = prefs.getInt(_keyControlType) ?? 0;
     final difficultyIndex = prefs.getInt(_keyDifficulty) ?? 1;
-    final startSpeedIndex = prefs.getInt(_keyStartSpeed) ?? 1;
+    final startSpeedIndex = prefs.getInt(_keyStartSpeed) ?? 3;
 
     _settings = GameSettings(
       gridSize: (gridIndex >= 0 && gridIndex < GridSize.values.length)

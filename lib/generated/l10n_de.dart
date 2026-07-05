@@ -300,6 +300,12 @@ class SDe extends S {
   String get startSpeed => 'Startgeschwindigkeit';
 
   @override
+  String get crawl => 'Kriechen';
+
+  @override
+  String get turtle => 'Schildkröte';
+
+  @override
   String get slow => 'Langsam';
 
   @override

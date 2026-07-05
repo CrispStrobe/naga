@@ -10,7 +10,7 @@ class VsAiMode extends GameMode {
   String get description => 'Challenge the bots';
 
   @override
-  Color get backgroundColor => const Color(0xFF0A0A1A);
+  Color get backgroundColor => const Color(0xFF201018);
 
   @override
   Color get snakeColor => const Color(0xFF00FF66); // Player green
@@ -19,7 +19,7 @@ class VsAiMode extends GameMode {
   Color get foodColor => const Color(0xFFFF4444);
 
   @override
-  Color get gridColor => const Color(0xFF1A1A3A);
+  Color get gridColor => const Color(0xFF302028);
 
   @override
   bool get wallsKill => true;

@@ -115,6 +115,8 @@
     "hard": "Hard",
     "expert": "Expert",
     "startSpeed": "Start Speed",
+    "crawl": "Crawl",
+    "turtle": "Turtle",
     "slow": "Slow",
     "normal": "Normal",
     "fast": "Fast",

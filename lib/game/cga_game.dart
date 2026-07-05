@@ -13,8 +13,9 @@ class CgaGame extends FlameGame with KeyboardEvents {
   final VoidCallback onGameOver;
   final ValueChanged<int> onScoreChanged;
 
-  static const int gridWidth = 20;
-  static const int gridHeight = 28;
+  final int gridWidth;
+  final int gridHeight;
+  final double? startSpeed;
   late double cellSize;
   late Vector2 boardOffset;
 
@@ -41,7 +42,11 @@ class CgaGame extends FlameGame with KeyboardEvents {
     required this.mode,
     required this.onGameOver,
     required this.onScoreChanged,
-  });
+    int? gridWidth,
+    int? gridHeight,
+    this.startSpeed,
+  })  : gridWidth = gridWidth ?? 20,
+        gridHeight = gridHeight ?? 28;
 
   @override
   Color backgroundColor() => _black;
@@ -114,7 +119,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
     if (gameState != GameState.playing) return;
 
     _tickTimer += dt;
-    if (_tickTimer >= mode.tickInterval(score)) {
+    if (_tickTimer >= (startSpeed ?? mode.tickInterval(score))) {
       _tickTimer = 0;
       _tick();
     }

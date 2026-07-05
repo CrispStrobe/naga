@@ -10,7 +10,7 @@ class SwarmMode extends GameMode {
   String get description => 'Eat the invaders';
 
   @override
-  Color get backgroundColor => const Color(0xFF000A14);
+  Color get backgroundColor => const Color(0xFF0A0A28);
 
   @override
   Color get snakeColor => const Color(0xFF00FF41); // Terminal green
@@ -19,7 +19,7 @@ class SwarmMode extends GameMode {
   Color get foodColor => const Color(0xFFFF6D00); // Orange power-up
 
   @override
-  Color get gridColor => const Color(0xFF001428);
+  Color get gridColor => const Color(0xFF1A1A3A);
 
   @override
   bool get wallsKill => true;

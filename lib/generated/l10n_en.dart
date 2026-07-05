@@ -299,6 +299,12 @@ class SEn extends S {
   String get startSpeed => 'Start Speed';
 
   @override
+  String get crawl => 'Crawl';
+
+  @override
+  String get turtle => 'Turtle';
+
+  @override
   String get slow => 'Slow';
 
   @override

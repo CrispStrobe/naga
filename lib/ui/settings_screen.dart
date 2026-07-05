@@ -234,6 +234,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildStartSpeedSelector(S s) {
     final labels = {
+      StartSpeed.crawl: s.crawl,
+      StartSpeed.turtle: s.turtle,
       StartSpeed.slow: s.slow,
       StartSpeed.normal: s.normal,
       StartSpeed.fast: s.fast,

@@ -429,6 +429,11 @@ class VenomGame extends FlameGame with KeyboardEvents {
     onGameOver();
   }
 
+  /// Public method to drop a bomb (called from d-pad action button)
+  void dropBomb() {
+    _dropBombRequested = true;
+  }
+
   void changeDirection(Direction dir) {
     if (dir == Direction.up && currentDirection == Direction.down) return;
     if (dir == Direction.down && currentDirection == Direction.up) return;

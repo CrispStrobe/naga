@@ -10,7 +10,7 @@ class DungeonMode extends GameMode {
   String get description => 'Roguelike crawler';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A1A1A);
+  Color get backgroundColor => const Color(0xFF1A1510);
 
   @override
   Color get snakeColor => const Color(0xFF00FF66);
@@ -19,7 +19,7 @@ class DungeonMode extends GameMode {
   Color get foodColor => const Color(0xFFFFD700);
 
   @override
-  Color get gridColor => const Color(0xFF1A1A1A);
+  Color get gridColor => const Color(0xFF2A2520);
 
   @override
   bool get wallsKill => true;

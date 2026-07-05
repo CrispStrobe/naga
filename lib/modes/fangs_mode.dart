@@ -10,7 +10,7 @@ class FangsMode extends GameMode {
   String get description => 'Breakout with a bite';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A0A2E);
+  Color get backgroundColor => const Color(0xFF2A0A3E);
 
   @override
   Color get snakeColor => const Color(0xFFE040FB); // Purple neon
@@ -19,7 +19,7 @@ class FangsMode extends GameMode {
   Color get foodColor => const Color(0xFFFFEB3B); // Yellow ball
 
   @override
-  Color get gridColor => const Color(0xFF2A1A3E);
+  Color get gridColor => const Color(0xFF3A1A4E);
 
   @override
   bool get wallsKill => true;

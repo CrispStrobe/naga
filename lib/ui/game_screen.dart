@@ -145,24 +145,36 @@ class _GameScreenState extends State<GameScreen> {
         mode: widget.mode as Snake2Mode,
         onGameOver: _handleDeath,
         onScoreChanged: (score) => setState(() => _score = score),
+        gridWidth: _settings.gridSize.width,
+        gridHeight: _settings.gridSize.height,
+        startSpeed: _settings.startSpeed.baseInterval,
       );
     } else if (_isAsciiMode) {
       _game = AsciiGame(
         mode: widget.mode as AsciiMode,
         onGameOver: _handleDeath,
         onScoreChanged: (score) => setState(() => _score = score),
+        gridWidth: _settings.gridSize.width,
+        gridHeight: _settings.gridSize.height,
+        startSpeed: _settings.startSpeed.baseInterval,
       );
     } else if (_isCgaMode) {
       _game = CgaGame(
         mode: widget.mode as CgaMode,
         onGameOver: _handleDeath,
         onScoreChanged: (score) => setState(() => _score = score),
+        gridWidth: _settings.gridSize.width,
+        gridHeight: _settings.gridSize.height,
+        startSpeed: _settings.startSpeed.baseInterval,
       );
     } else if (_isNibblesMode) {
       _game = NibblesGame(
         mode: widget.mode as NibblesMode,
         onGameOver: _handleDeath,
         onScoreChanged: (score) => setState(() => _score = score),
+        gridWidth: _settings.gridSize.width,
+        gridHeight: _settings.gridSize.height,
+        startSpeed: _settings.startSpeed.baseInterval,
       );
     } else if (_isMultiplayerMode) {
       _game = MultiplayerGame(
@@ -211,7 +223,15 @@ class _GameScreenState extends State<GameScreen> {
     if (!_isClassicMode && _livesRemaining > 0) {
       setState(() => _livesRemaining--);
       // Respawn — keep score and remaining lives
-      if (!_isMazeMode && !_isTrailMode) {
+      if (_isSnake2Mode) {
+        (_game as Snake2Game).respawn();
+      } else if (_isAsciiMode) {
+        (_game as AsciiGame).respawn();
+      } else if (_isCgaMode) {
+        (_game as CgaGame).respawn();
+      } else if (_isNibblesMode) {
+        (_game as NibblesGame).respawn();
+      } else if (!_isMazeMode && !_isTrailMode) {
         (_game as SnakeGame).respawn();
       }
       // Maze and Trail modes: for now just treat as game over
@@ -436,6 +456,24 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _triggerAction() {
+    if (_isVenomMode) {
+      (_game as VenomGame).dropBomb();
+    }
+  }
+
+  bool get _hasActionButton => _isVenomMode;
+
+  String get _actionLabel {
+    if (_isVenomMode) return 'BOMB';
+    return '';
+  }
+
+  IconData get _actionIcon {
+    if (_isVenomMode) return Icons.local_fire_department;
+    return Icons.circle;
+  }
+
   Widget _buildDPad() {
     return Container(
       padding: const EdgeInsets.only(bottom: 12, top: 8),
@@ -443,7 +481,17 @@ class _GameScreenState extends State<GameScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(width: 48),
+          // Action button (left side) — only for modes that need it
+          SizedBox(
+            width: 72,
+            child: _hasActionButton
+                ? _ActionButton(
+                    icon: _actionIcon,
+                    label: _actionLabel,
+                    onPressed: _triggerAction,
+                  )
+                : null,
+          ),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -471,7 +519,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ],
           ),
-          const SizedBox(width: 48),
+          const SizedBox(width: 72),
         ],
       ),
     );
@@ -576,6 +624,48 @@ class _DPadButton extends StatelessWidget {
           border: Border.all(color: Colors.green.withOpacity(0.3)),
         ),
         child: Icon(icon, color: Colors.green.shade400, size: 36),
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => onPressed(),
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: Colors.red.withOpacity(0.5), width: 2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.red.shade300, size: 24),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.red.shade300,
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

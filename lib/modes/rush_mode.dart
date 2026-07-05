@@ -10,7 +10,7 @@ class RushMode extends GameMode {
   String get description => 'Endless auto-scroll';
 
   @override
-  Color get backgroundColor => const Color(0xFF0A0A0A);
+  Color get backgroundColor => const Color(0xFF1A1208);
 
   @override
   Color get snakeColor => const Color(0xFFFF6F00); // Orange fire
@@ -19,7 +19,7 @@ class RushMode extends GameMode {
   Color get foodColor => const Color(0xFF00E5FF); // Cyan pickup
 
   @override
-  Color get gridColor => const Color(0xFF1A1A1A);
+  Color get gridColor => const Color(0xFF2A2218);
 
   @override
   bool get wallsKill => true;
