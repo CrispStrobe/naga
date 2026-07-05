@@ -12,6 +12,7 @@ import '../game/snake2_game.dart';
 import '../game/ascii_game.dart';
 import '../game/cga_game.dart';
 import '../game/nibbles_game.dart';
+import '../game/multiplayer_game.dart';
 import '../modes/game_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
@@ -25,6 +26,7 @@ import '../modes/snake2_mode.dart';
 import '../modes/ascii_mode.dart';
 import '../modes/cga_mode.dart';
 import '../modes/nibbles_mode.dart';
+import '../modes/multiplayer_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/high_score_service.dart';
@@ -54,6 +56,7 @@ class _GameScreenState extends State<GameScreen> {
   int _livesRemaining = 0;
   bool _isGameOver = false;
   bool _isNewHighScore = false;
+  bool _isPaused = false;
   late bool _useButtons;
 
   bool get _isMazeMode => widget.mode is MazeMode;
@@ -68,6 +71,7 @@ class _GameScreenState extends State<GameScreen> {
   bool get _isAsciiMode => widget.mode is AsciiMode;
   bool get _isCgaMode => widget.mode is CgaMode;
   bool get _isNibblesMode => widget.mode is NibblesMode;
+  bool get _isMultiplayerMode => widget.mode is MultiplayerMode;
 
   GameSettings get _settings => widget.settingsService.settings;
 
@@ -153,6 +157,13 @@ class _GameScreenState extends State<GameScreen> {
         onGameOver: _handleDeath,
         onScoreChanged: (score) => setState(() => _score = score),
       );
+    } else if (_isMultiplayerMode) {
+      _game = MultiplayerGame(
+        mode: widget.mode as MultiplayerMode,
+        onGameOver: _handleDeath,
+        onP1ScoreChanged: (score) => setState(() => _score = score),
+        onP2ScoreChanged: (_) {},
+      );
     } else {
       final effectiveWallsKill = _isClassicMode
           ? true
@@ -186,6 +197,24 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  void _togglePause() {
+    if (_isGameOver) return;
+    // Only SnakeGame has togglePause — other modes just freeze the FlameGame
+    if (!_isMazeMode && !_isTrailMode && !_isSwarmMode && !_isRushMode &&
+        !_isFangsMode && !_isVenomMode && !_isPitMode && !_isSnake2Mode &&
+        !_isAsciiMode && !_isCgaMode && !_isNibblesMode && !_isMultiplayerMode) {
+      (_game as SnakeGame).togglePause();
+    } else {
+      // For other game types, pause/resume the Flame engine
+      if (_isPaused) {
+        _game.resumeEngine();
+      } else {
+        _game.pauseEngine();
+      }
+    }
+    setState(() => _isPaused = !_isPaused);
+  }
+
   void _onGameOver() async {
     widget.audioService.playDie();
     final isNew = await widget.highScoreService
@@ -209,7 +238,8 @@ class _GameScreenState extends State<GameScreen> {
               child: Stack(
                 children: [
                   GameWidget(game: _game),
-                  if (!_useButtons) _buildSwipeControls(),
+                  if (!_useButtons && !_isPaused) _buildSwipeControls(),
+                  if (_isPaused && !_isGameOver) _buildPauseOverlay(),
                   if (_isGameOver) _buildGameOverOverlay(s),
                 ],
               ),
@@ -269,19 +299,14 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
           const Spacer(),
-          // Toggle controls button
+          // Pause button
           IconButton(
             icon: Icon(
-              _useButtons ? Icons.swipe : Icons.gamepad,
-              color: textColor.withOpacity(0.5),
-              size: 20,
+              _isPaused ? Icons.play_arrow : Icons.pause,
+              color: textColor,
+              size: 22,
             ),
-            onPressed: () {
-              setState(() => _useButtons = !_useButtons);
-              widget.settingsService.setControlType(
-                _useButtons ? ControlType.buttons : ControlType.swipe,
-              );
-            },
+            onPressed: _togglePause,
           ),
         ],
       ),
@@ -313,9 +338,50 @@ class _GameScreenState extends State<GameScreen> {
       (_game as CgaGame).changeDirection(dir);
     } else if (_isNibblesMode) {
       (_game as NibblesGame).changeDirection(dir);
+    } else if (_isMultiplayerMode) {
+      // P1 uses the main direction controls (swipe/d-pad)
+      (_game as MultiplayerGame).changeDirectionP1(dir);
     } else {
       (_game as SnakeGame).changeDirection(dir);
     }
+  }
+
+  Widget _buildPauseOverlay() {
+    return Positioned.fill(
+      child: GestureDetector(
+        onTap: _togglePause,
+        child: Container(
+          color: Colors.black54,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.pause_circle_outline,
+                    size: 64, color: Colors.green.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'PAUSED',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade300,
+                    letterSpacing: 6,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Tap to resume',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSwipeControls() {

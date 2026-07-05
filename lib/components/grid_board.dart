@@ -22,18 +22,20 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
     }
 
     // Border
-    final borderPaint = Paint()
-      ..color = _game.mode.snakeColor.withOpacity(isClassic ? 1.0 : 0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = isClassic ? 2 : 1.5;
+    if (_game.mode.showBorder) {
+      final borderPaint = Paint()
+        ..color = _game.mode.snakeColor.withOpacity(isClassic ? 1.0 : 0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isClassic ? 2 : 1.5;
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(offset.x, offset.y, cs * gw, cs * gh),
-        Radius.circular(isClassic ? 0 : 4),
-      ),
-      borderPaint,
-    );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(offset.x, offset.y, cs * gw, cs * gh),
+          Radius.circular(isClassic ? 0 : 4),
+        ),
+        borderPaint,
+      );
+    }
   }
 
   void _renderClassicGrid(Canvas canvas, double cs, Vector2 offset, int gw, int gh) {

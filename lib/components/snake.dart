@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../game/snake_game.dart';
+import 'power_up.dart';
 
 class Snake extends Component with HasGameReference<SnakeGame> {
   List<Point<int>> segments;
@@ -80,6 +81,39 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     final color = _game.mode.snakeColor;
     final paint = Paint()..color = color;
     final darkerPaint = Paint()..color = Color.lerp(color, Colors.black, 0.2)!;
+
+    // Determine buff glow color
+    Color? glowColor;
+    if (_game.shieldFlashTimer > 0) {
+      // Shield flash: bright white flash
+      glowColor = Colors.white;
+    } else if (_game.activeBuffs.containsKey(PowerUpType.shield)) {
+      glowColor = Colors.blue;
+    } else if (_game.activeBuffs.containsKey(PowerUpType.speed)) {
+      glowColor = Colors.yellow;
+    } else if (_game.activeBuffs.containsKey(PowerUpType.magnet)) {
+      glowColor = Colors.purple;
+    } else if (_game.activeBuffs.containsKey(PowerUpType.slow)) {
+      glowColor = Colors.orange;
+    }
+
+    // Draw buff glow behind the snake
+    if (glowColor != null) {
+      final glowOpacity = _game.shieldFlashTimer > 0
+          ? (_game.shieldFlashTimer / 0.5).clamp(0.0, 1.0) * 0.5
+          : 0.2;
+      final glowPaint = Paint()
+        ..color = glowColor.withOpacity(glowOpacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      for (final seg in segments) {
+        final sp = _game.gridToScreen(seg);
+        canvas.drawCircle(
+          Offset(sp.x + cs / 2, sp.y + cs / 2),
+          cs * 0.55,
+          glowPaint,
+        );
+      }
+    }
 
     for (int i = segments.length - 1; i >= 0; i--) {
       final seg = segments[i];

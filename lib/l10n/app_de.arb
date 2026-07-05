@@ -76,5 +76,10 @@
     "music": "Musik",
     "soundEffects": "Soundeffekte",
     "on": "An",
-    "off": "Aus"
+    "off": "Aus",
+    "duel": "Duell",
+    "duelDesc": "Lokaler 2-Spieler",
+    "player1Wins": "Spieler 1 gewinnt!",
+    "player2Wins": "Spieler 2 gewinnt!",
+    "draw": "Unentschieden!"
 }

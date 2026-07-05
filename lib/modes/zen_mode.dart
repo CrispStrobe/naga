@@ -28,6 +28,9 @@ class ZenMode extends GameMode {
   bool get showGrid => false;
 
   @override
+  bool get showBorder => false;
+
+  @override
   double tickInterval(int score) => 0.25; // Constant slow pace
 
   @override

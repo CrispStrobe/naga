@@ -564,6 +564,36 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Off'**
   String get off;
+
+  /// No description provided for @duel.
+  ///
+  /// In en, this message translates to:
+  /// **'Duel'**
+  String get duel;
+
+  /// No description provided for @duelDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Local 2-player'**
+  String get duelDesc;
+
+  /// No description provided for @player1Wins.
+  ///
+  /// In en, this message translates to:
+  /// **'Player 1 Wins!'**
+  String get player1Wins;
+
+  /// No description provided for @player2Wins.
+  ///
+  /// In en, this message translates to:
+  /// **'Player 2 Wins!'**
+  String get player2Wins;
+
+  /// No description provided for @draw.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw!'**
+  String get draw;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

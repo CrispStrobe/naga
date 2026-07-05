@@ -252,4 +252,19 @@ class SEn extends S {
 
   @override
   String get off => 'Off';
+
+  @override
+  String get duel => 'Duel';
+
+  @override
+  String get duelDesc => 'Local 2-player';
+
+  @override
+  String get player1Wins => 'Player 1 Wins!';
+
+  @override
+  String get player2Wins => 'Player 2 Wins!';
+
+  @override
+  String get draw => 'Draw!';
 }

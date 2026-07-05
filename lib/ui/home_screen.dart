@@ -13,6 +13,7 @@ import '../modes/snake2_mode.dart';
 import '../modes/ascii_mode.dart';
 import '../modes/cga_mode.dart';
 import '../modes/nibbles_mode.dart';
+import '../modes/multiplayer_mode.dart';
 import '../modes/game_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
@@ -190,6 +191,15 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.code,
                     accentColor: const Color(0xFFFFFF00),
                     onTap: () => _startGame(context, NibblesMode()),
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionHeader(label: 'MULTIPLAYER'),
+                  _ModeButton(
+                    label: s.duel,
+                    description: s.duelDesc,
+                    icon: Icons.people,
+                    accentColor: const Color(0xFFFF4081),
+                    onTap: () => _startGame(context, MultiplayerMode()),
                   ),
                   const SizedBox(height: 24),
                 ],

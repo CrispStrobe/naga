@@ -253,4 +253,19 @@ class SDe extends S {
 
   @override
   String get off => 'Aus';
+
+  @override
+  String get duel => 'Duell';
+
+  @override
+  String get duelDesc => 'Lokaler 2-Spieler';
+
+  @override
+  String get player1Wins => 'Spieler 1 gewinnt!';
+
+  @override
+  String get player2Wins => 'Spieler 2 gewinnt!';
+
+  @override
+  String get draw => 'Unentschieden!';
 }

@@ -9,6 +9,7 @@ abstract class GameMode {
   Color get gridColor;
   bool get wallsKill;
   bool get showGrid;
+  bool get showBorder => true;
 
   double tickInterval(int score);
   int pointsPerFood(int score);
