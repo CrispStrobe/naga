@@ -51,7 +51,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFF142914),
+      backgroundColor: const Color(0xFFF1F8E9), // bright meadow green-white
       body: SafeArea(
         child: Stack(
           children: [
@@ -69,7 +69,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 letterSpacing: 8,
-                color: Colors.amber.shade600,
+                color: const Color(0xFF2E7D32),
               ),
             ),
             const SizedBox(height: 24),
@@ -339,12 +339,12 @@ class _BottomBarButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.amber.shade300, size: 20),
+            Icon(icon, color: const Color(0xFF2E7D32), size: 20),
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(
-                color: Colors.amber.shade300,
+              style: const TextStyle(
+                color: Color(0xFF2E7D32),
                 fontSize: 10,
               ),
             ),
@@ -369,7 +369,7 @@ class _SectionHeader extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.bold,
           letterSpacing: 4,
-          color: Colors.amber.shade400,
+          color: const Color(0xFFE65100), // warm orange
         ),
       ),
     );

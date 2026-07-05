@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-/// Animated snake that slithers across the home screen background,
-/// cycling through visual styles representing different game modes.
+/// Bright, cheerful home screen background — green snake with red eyes
+/// crawling around eating red apples on a sunny meadow.
 class SnakeAnimation extends StatefulWidget {
   const SnakeAnimation({super.key});
 
@@ -14,19 +14,15 @@ class _SnakeAnimationState extends State<SnakeAnimation>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
-  static const int _segmentCount = 15;
-  static const double _speed = 0.4; // parameter increment per second
+  static const int _segmentCount = 18;
+  static const double _speed = 0.35;
 
-  // Current parametric position along the Lissajous curve
   double _t = 0;
 
-  // Style cycling
-  int _currentStyleIndex = 0;
-  double _styleCycleTimer = 0;
-  static const double _styleCycleDuration = 3.0;
-
-  // ASCII characters for ASCII style
-  static const String _asciiChars = '█▓▒░@#%&*';
+  // Apples — scattered, respawn when eaten
+  final List<Offset> _apples = [];
+  final Random _random = Random();
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -45,23 +41,15 @@ class _SnakeAnimationState extends State<SnakeAnimation>
   }
 
   void _tick() {
-    final dt = 1.0 / 60.0; // ~60fps
+    final dt = 1.0 / 60.0;
     _t += _speed * dt;
-    _styleCycleTimer += dt;
-    if (_styleCycleTimer >= _styleCycleDuration) {
-      _styleCycleTimer = 0;
-      _currentStyleIndex =
-          (_currentStyleIndex + 1) % _snakeStyles.length;
-    }
-    // No setState — CustomPaint repaints via the AnimationController's Listenable
   }
 
-  Offset _lissajousPosition(double t, Size size) {
-    // Lissajous figure that spans the screen
+  Offset _snakePosition(double t, Size size) {
     final cx = size.width * 0.5;
-    final cy = size.height * 0.35;
-    final rx = size.width * 0.38;
-    final ry = size.height * 0.2;
+    final cy = size.height * 0.32;
+    final rx = size.width * 0.36;
+    final ry = size.height * 0.18;
     final x = cx + rx * sin(2 * t + pi / 4);
     final y = cy + ry * sin(3 * t);
     return Offset(x, y);
@@ -74,12 +62,15 @@ class _SnakeAnimationState extends State<SnakeAnimation>
         child: ListenableBuilder(
           listenable: _controller,
           builder: (context, _) => CustomPaint(
-            painter: _JungleBackgroundPainter(t: _t),
-            foregroundPainter: _SnakePainter(
+            painter: _MeadowBackgroundPainter(t: _t),
+            foregroundPainter: _SnakeAndApplesPainter(
               t: _t,
               segmentCount: _segmentCount,
-              style: _snakeStyles[_currentStyleIndex],
-              lissajousPosition: _lissajousPosition,
+              snakePosition: _snakePosition,
+              apples: _apples,
+              random: _random,
+              initialized: _initialized,
+              onInitialized: () => _initialized = true,
             ),
             size: Size.infinite,
           ),
@@ -89,395 +80,351 @@ class _SnakeAnimationState extends State<SnakeAnimation>
   }
 }
 
-/// Draws a subtle jungle/forest background with trees, vines, and fireflies.
-class _JungleBackgroundPainter extends CustomPainter {
+/// Bright sunny meadow background with flowers, grass, and butterflies.
+class _MeadowBackgroundPainter extends CustomPainter {
   final double t;
-  _JungleBackgroundPainter({required this.t});
+  _MeadowBackgroundPainter({required this.t});
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
-    // Gradient background — rich jungle greens
+    // Warm sunny gradient — light yellow to soft green
     final bgGradient = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0xFF1A3320),
-          Color(0xFF14291A),
-          Color(0xFF1E3B22),
+          Color(0xFFFFF9C4), // warm sunlit yellow
+          Color(0xFFFFF3E0), // peach
+          Color(0xFFC8E6C9), // soft meadow green
+          Color(0xFFA5D6A7), // grass green
         ],
+        stops: [0.0, 0.3, 0.7, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), bgGradient);
 
-    // Tree silhouettes on left and right edges
-    _drawTree(canvas, w * 0.02, h, w * 0.15, true);
-    _drawTree(canvas, w * 0.88, h, w * 0.14, false);
-    _drawTree(canvas, w * -0.05, h, w * 0.12, true);
-    _drawTree(canvas, w * 0.93, h, w * 0.10, false);
-
-    // Hanging vines from top
-    final vinePaint = Paint()
-      ..color = const Color(0xFF2E7D32).withOpacity(0.4)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    for (int i = 0; i < 8; i++) {
-      final vx = w * (0.05 + i * 0.13);
-      final vineLen = h * (0.08 + sin(i * 1.7) * 0.06);
-      final sway = sin(t * 0.5 + i * 2.1) * 8;
-      final path = Path()
-        ..moveTo(vx, 0)
-        ..quadraticBezierTo(vx + sway, vineLen * 0.5, vx + sway * 0.6, vineLen);
-      canvas.drawPath(path, vinePaint);
-      // Leaf at tip
-      final leafPaint = Paint()..color = const Color(0xFF4CAF50).withOpacity(0.35);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(vx + sway * 0.6, vineLen + 3),
-          width: 8, height: 5,
-        ),
-        leafPaint,
-      );
-    }
-
-    // Ground foliage at bottom
-    final foliagePaint = Paint()..color = const Color(0xFF388E3C).withOpacity(0.35);
-    for (double x = 0; x < w; x += 12) {
-      final fh = 8 + sin(x * 0.3) * 5 + cos(x * 0.7) * 3;
-      final sway = sin(t * 0.3 + x * 0.1) * 3;
+    // Grass tufts along the bottom
+    for (double x = 0; x < w; x += 8) {
+      final sway = sin(t * 0.8 + x * 0.15) * 3;
+      final gh = 12 + sin(x * 0.4) * 6 + cos(x * 0.9) * 4;
+      final grassColor = Color.lerp(
+        const Color(0xFF66BB6A),
+        const Color(0xFF43A047),
+        (sin(x * 0.3) * 0.5 + 0.5),
+      )!;
+      final grassPaint = Paint()..color = grassColor.withOpacity(0.6);
       final path = Path()
         ..moveTo(x, h)
-        ..quadraticBezierTo(x + sway + 3, h - fh, x + 6, h - fh - 2)
-        ..quadraticBezierTo(x + sway + 9, h - fh, x + 12, h)
+        ..quadraticBezierTo(x + sway + 2, h - gh * 0.6, x + sway, h - gh)
+        ..quadraticBezierTo(x + sway + 4, h - gh * 0.6, x + 5, h)
         ..close();
-      canvas.drawPath(path, foliagePaint);
+      canvas.drawPath(path, grassPaint);
     }
 
-    // Fireflies — small glowing dots that float
-    for (int i = 0; i < 12; i++) {
-      final fx = (i * 79.0 + sin(t * 0.7 + i * 1.3) * 30) % w;
-      final fy = (i * 53.0 + cos(t * 0.5 + i * 0.9) * 20) % (h * 0.7) + h * 0.1;
-      final brightness = (sin(t * 2.0 + i * 1.7) * 0.5 + 0.5).clamp(0.0, 1.0);
-      if (brightness < 0.3) continue;
+    // Small flowers scattered
+    final flowerColors = [
+      const Color(0xFFFF5252), // red
+      const Color(0xFFFFD740), // yellow
+      const Color(0xFFFF80AB), // pink
+      const Color(0xFFFF6E40), // orange
+      const Color(0xFFE040FB), // purple
+    ];
+    for (int i = 0; i < 20; i++) {
+      final fx = (i * 47.0 + 15) % w;
+      final fy = h - 20 - (sin(i * 2.3) * 12 + cos(i * 1.7) * 8).abs();
+      final color = flowerColors[i % flowerColors.length];
+      final sway = sin(t * 0.6 + i * 1.1) * 2;
 
-      // Glow
-      final glowPaint = Paint()
-        ..color = Color.lerp(
-          const Color(0xFFFFD740),
-          const Color(0xFF76FF03),
-          (i % 3) / 2.0,
-        )!.withOpacity(brightness * 0.3);
-      canvas.drawCircle(Offset(fx, fy), 8, glowPaint);
-      // Core
-      final corePaint = Paint()
-        ..color = const Color(0xFFFFD740).withOpacity(brightness * 0.7);
-      canvas.drawCircle(Offset(fx, fy), 2, corePaint);
-    }
-  }
+      // Stem
+      final stemPaint = Paint()
+        ..color = const Color(0xFF4CAF50).withOpacity(0.5)
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(Offset(fx + sway, fy), Offset(fx, h), stemPaint);
 
-  void _drawTree(Canvas canvas, double x, double h, double trunkW, bool leanRight) {
-    final trunkPaint = Paint()..color = const Color(0xFF3E2723).withOpacity(0.45);
-    final lean = leanRight ? 1.0 : -1.0;
-
-    // Trunk
-    final trunkPath = Path()
-      ..moveTo(x, h)
-      ..lineTo(x + trunkW * 0.3, h)
-      ..quadraticBezierTo(
-        x + trunkW * 0.4 + lean * trunkW * 0.1, h * 0.3,
-        x + trunkW * 0.35 + lean * trunkW * 0.2, h * 0.05,
-      )
-      ..lineTo(x + trunkW * 0.15 + lean * trunkW * 0.2, h * 0.05)
-      ..quadraticBezierTo(
-        x + trunkW * 0.1 + lean * trunkW * 0.05, h * 0.3,
-        x, h,
-      )
-      ..close();
-    canvas.drawPath(trunkPath, trunkPaint);
-
-    // Canopy blobs
-    final canopyPaint = Paint()..color = const Color(0xFF2E7D32).withOpacity(0.4);
-    final cx = x + trunkW * 0.25 + lean * trunkW * 0.2;
-    final cy = h * 0.08;
-    for (final offset in [Offset(-trunkW * 0.3, 0), Offset(trunkW * 0.2, -trunkW * 0.1), Offset(0, trunkW * 0.15)]) {
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(cx + offset.dx, cy + offset.dy),
-          width: trunkW * 0.8,
-          height: trunkW * 0.5,
-        ),
-        canopyPaint,
+      // Petals
+      final petalPaint = Paint()..color = color.withOpacity(0.5);
+      for (int p = 0; p < 5; p++) {
+        final angle = p * pi * 2 / 5 + t * 0.2;
+        final px = fx + sway + cos(angle) * 4;
+        final py = fy + sin(angle) * 4;
+        canvas.drawCircle(Offset(px, py), 2.5, petalPaint);
+      }
+      // Center
+      canvas.drawCircle(
+        Offset(fx + sway, fy),
+        1.5,
+        Paint()..color = const Color(0xFFFFEB3B).withOpacity(0.6),
       );
     }
+
+    // Butterflies floating around
+    for (int i = 0; i < 5; i++) {
+      final bx = (i * 89.0 + sin(t * 0.4 + i * 2.3) * 40) % w;
+      final by = h * 0.3 + sin(t * 0.6 + i * 1.5) * h * 0.15;
+      final wingFlap = sin(t * 6 + i * 2) * 0.4;
+      final bColor = flowerColors[(i + 2) % flowerColors.length];
+
+      final wingPaint = Paint()..color = bColor.withOpacity(0.35);
+      // Left wing
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(bx - 4 * cos(wingFlap), by),
+          width: 6, height: 4 * (1 + wingFlap.abs()),
+        ),
+        wingPaint,
+      );
+      // Right wing
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(bx + 4 * cos(wingFlap), by),
+          width: 6, height: 4 * (1 + wingFlap.abs()),
+        ),
+        wingPaint,
+      );
+      // Body
+      canvas.drawCircle(Offset(bx, by), 1.2, Paint()..color = Colors.brown.withOpacity(0.4));
+    }
+
+    // Subtle sun in top-right corner
+    final sunPaint = Paint()
+      ..color = const Color(0xFFFFD740).withOpacity(0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30);
+    canvas.drawCircle(Offset(w * 0.85, h * 0.05), 40, sunPaint);
+    final sunCore = Paint()..color = const Color(0xFFFFECB3).withOpacity(0.35);
+    canvas.drawCircle(Offset(w * 0.85, h * 0.05), 18, sunCore);
   }
 
   @override
-  bool shouldRepaint(covariant _JungleBackgroundPainter old) => true;
+  bool shouldRepaint(covariant _MeadowBackgroundPainter old) => true;
 }
 
-/// Visual style definitions for each game mode.
-class _SnakeStyle {
-  final String name;
-  final Color primaryColor;
-  final Color? secondaryColor;
-  final _SnakeDrawMode drawMode;
-
-  const _SnakeStyle({
-    required this.name,
-    required this.primaryColor,
-    this.secondaryColor,
-    required this.drawMode,
-  });
-}
-
-enum _SnakeDrawMode {
-  blocky, // Classic LCD squares
-  neonRounded, // Arcade neon glow
-  softGlow, // Zen smooth
-  pacman, // Maze Hunter
-  trail, // Trail with fading segments
-  dungeon, // Stone-textured
-  ascii, // Text characters
-}
-
-const List<_SnakeStyle> _snakeStyles = [
-  _SnakeStyle(
-    name: 'Classic',
-    primaryColor: Color(0xFF9BBC0F),
-    secondaryColor: Color(0xFF0F380F),
-    drawMode: _SnakeDrawMode.blocky,
-  ),
-  _SnakeStyle(
-    name: 'Arcade',
-    primaryColor: Color(0xFF00FF88),
-    drawMode: _SnakeDrawMode.neonRounded,
-  ),
-  _SnakeStyle(
-    name: 'Zen',
-    primaryColor: Color(0xFF7B68EE),
-    drawMode: _SnakeDrawMode.softGlow,
-  ),
-  _SnakeStyle(
-    name: 'Maze Hunter',
-    primaryColor: Color(0xFFFFFF00),
-    drawMode: _SnakeDrawMode.pacman,
-  ),
-  _SnakeStyle(
-    name: 'Trail',
-    primaryColor: Color(0xFF00E5FF),
-    drawMode: _SnakeDrawMode.trail,
-  ),
-  _SnakeStyle(
-    name: 'Dungeon',
-    primaryColor: Color(0xFF00FF66),
-    drawMode: _SnakeDrawMode.dungeon,
-  ),
-  _SnakeStyle(
-    name: 'ASCII',
-    primaryColor: Color(0xFF00FF00),
-    drawMode: _SnakeDrawMode.ascii,
-  ),
-];
-
-class _SnakePainter extends CustomPainter {
+/// Green snake with red eyes crawling around eating bright red apples.
+class _SnakeAndApplesPainter extends CustomPainter {
   final double t;
   final int segmentCount;
-  final _SnakeStyle style;
-  final Offset Function(double t, Size size) lissajousPosition;
+  final Offset Function(double t, Size size) snakePosition;
+  final List<Offset> apples;
+  final Random random;
+  bool initialized;
+  final VoidCallback onInitialized;
 
-  _SnakePainter({
+  _SnakeAndApplesPainter({
     required this.t,
     required this.segmentCount,
-    required this.style,
-    required this.lissajousPosition,
+    required this.snakePosition,
+    required this.apples,
+    required this.random,
+    required this.initialized,
+    required this.onInitialized,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Build segment positions by sampling the curve with delays
+    // Initialize apples once we know the size
+    if (!initialized) {
+      for (int i = 0; i < 6; i++) {
+        apples.add(Offset(
+          30 + random.nextDouble() * (size.width - 60),
+          40 + random.nextDouble() * (size.height * 0.5 - 40),
+        ));
+      }
+      onInitialized();
+    }
+
+    // Build snake segment positions
     final positions = <Offset>[];
-    const segmentDelay = 0.07;
+    const segmentDelay = 0.06;
     for (int i = 0; i < segmentCount; i++) {
-      final segT = t - i * segmentDelay;
-      positions.add(lissajousPosition(segT, size));
+      positions.add(snakePosition(t - i * segmentDelay, size));
     }
 
-    switch (style.drawMode) {
-      case _SnakeDrawMode.blocky:
-        _drawBlocky(canvas, positions);
-      case _SnakeDrawMode.neonRounded:
-        _drawNeonRounded(canvas, positions);
-      case _SnakeDrawMode.softGlow:
-        _drawSoftGlow(canvas, positions);
-      case _SnakeDrawMode.pacman:
-        _drawPacman(canvas, positions);
-      case _SnakeDrawMode.trail:
-        _drawTrail(canvas, positions);
-      case _SnakeDrawMode.dungeon:
-        _drawDungeon(canvas, positions);
-      case _SnakeDrawMode.ascii:
-        _drawAscii(canvas, positions);
-    }
-  }
+    final head = positions.first;
 
-  void _drawBlocky(Canvas canvas, List<Offset> positions) {
-    const segSize = 14.0;
-    final fillColor = style.secondaryColor ?? style.primaryColor;
-    final paint = Paint()
-      ..color = fillColor.withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-
-    for (int i = 0; i < positions.length; i++) {
-      final p = positions[i];
-      // Snap to grid for retro feel
-      final sx = (p.dx / segSize).round() * segSize;
-      final sy = (p.dy / segSize).round() * segSize;
-      canvas.drawRect(
-        Rect.fromLTWH(sx, sy, segSize - 1, segSize - 1),
-        paint,
-      );
-    }
-  }
-
-  void _drawNeonRounded(Canvas canvas, List<Offset> positions) {
-    const radius = 8.0;
-    // Glow layer
-    final glowPaint = Paint()
-      ..color = style.primaryColor.withOpacity(0.12)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-    for (final p in positions) {
-      canvas.drawCircle(p, radius + 6, glowPaint);
-    }
-    // Main segments
-    final paint = Paint()
-      ..color = style.primaryColor.withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-    for (int i = 0; i < positions.length; i++) {
-      final scale = 1.0 - (i / positions.length) * 0.4;
-      canvas.drawCircle(positions[i], radius * scale, paint);
-    }
-  }
-
-  void _drawSoftGlow(Canvas canvas, List<Offset> positions) {
-    const radius = 9.0;
-    final glowPaint = Paint()
-      ..color = style.primaryColor.withOpacity(0.1)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
-    for (final p in positions) {
-      canvas.drawCircle(p, radius + 10, glowPaint);
-    }
-    final paint = Paint()
-      ..color = style.primaryColor.withOpacity(0.25)
-      ..style = PaintingStyle.fill;
-    for (int i = 0; i < positions.length; i++) {
-      final scale = 1.0 - (i / positions.length) * 0.3;
-      canvas.drawCircle(positions[i], radius * scale, paint);
-    }
-  }
-
-  void _drawPacman(Canvas canvas, List<Offset> positions) {
-    const radius = 8.0;
-    final paint = Paint()
-      ..color = style.primaryColor.withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-
-    // Body segments as circles
-    for (int i = 1; i < positions.length; i++) {
-      final scale = 1.0 - (i / positions.length) * 0.3;
-      canvas.drawCircle(positions[i], radius * scale * 0.8, paint);
-    }
-
-    // Head as Pac-Man with animated mouth
-    if (positions.isNotEmpty) {
-      final head = positions[0];
-      final mouthAngle = (sin(t * 8) * 0.3).abs() + 0.1;
-      // Direction from head to next segment (reversed = forward direction)
-      double direction = 0;
-      if (positions.length > 1) {
-        final dx = positions[0].dx - positions[1].dx;
-        final dy = positions[0].dy - positions[1].dy;
-        direction = atan2(dy, dx);
+    // Check if head is near any apple — "eat" it
+    for (int i = apples.length - 1; i >= 0; i--) {
+      if ((apples[i] - head).distance < 18) {
+        // Respawn at random position
+        apples[i] = Offset(
+          30 + random.nextDouble() * (size.width - 60),
+          40 + random.nextDouble() * (size.height * 0.5 - 40),
+        );
       }
-      canvas.drawArc(
-        Rect.fromCircle(center: head, radius: radius),
-        direction + mouthAngle,
-        2 * pi - 2 * mouthAngle,
-        true,
-        paint,
+    }
+
+    // Draw apples
+    _drawApples(canvas);
+
+    // Draw snake body
+    _drawSnakeBody(canvas, positions);
+
+    // Draw snake head with eyes
+    _drawSnakeHead(canvas, positions);
+  }
+
+  void _drawApples(Canvas canvas) {
+    for (final apple in apples) {
+      // Apple shadow
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(apple.dx + 1, apple.dy + 2), width: 14, height: 8),
+        Paint()..color = Colors.black.withOpacity(0.08),
       );
+
+      // Apple body — bright red
+      final applePaint = Paint()..color = const Color(0xFFE53935);
+      canvas.drawCircle(apple, 7, applePaint);
+
+      // Shine
+      canvas.drawCircle(
+        Offset(apple.dx - 2, apple.dy - 2),
+        2.5,
+        Paint()..color = Colors.white.withOpacity(0.4),
+      );
+
+      // Stem
+      final stemPaint = Paint()
+        ..color = const Color(0xFF5D4037)
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(
+        Offset(apple.dx, apple.dy - 7),
+        Offset(apple.dx + 2, apple.dy - 10),
+        stemPaint,
+      );
+
+      // Tiny leaf
+      final leafPaint = Paint()..color = const Color(0xFF4CAF50);
+      final leafPath = Path()
+        ..moveTo(apple.dx + 2, apple.dy - 10)
+        ..quadraticBezierTo(apple.dx + 6, apple.dy - 12, apple.dx + 5, apple.dy - 8);
+      canvas.drawPath(leafPath, leafPaint);
     }
   }
 
-  void _drawTrail(Canvas canvas, List<Offset> positions) {
-    const radius = 7.0;
-    for (int i = positions.length - 1; i >= 0; i--) {
+  void _drawSnakeBody(Canvas canvas, List<Offset> positions) {
+    // Body segments — bright green, getting thinner toward tail
+    for (int i = positions.length - 1; i >= 1; i--) {
       final progress = 1.0 - (i / positions.length);
-      final alpha = 0.05 + progress * 0.25;
-      final paint = Paint()
-        ..color = style.primaryColor.withOpacity(alpha)
-        ..style = PaintingStyle.fill;
-      // Light trail glow on tail segments
-      if (i > positions.length ~/ 2) {
-        final trailGlow = Paint()
-          ..color = style.primaryColor.withOpacity(alpha * 0.3)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-        canvas.drawCircle(positions[i], radius + 4, trailGlow);
-      }
-      canvas.drawCircle(positions[i], radius * progress.clamp(0.3, 1.0), paint);
-    }
-  }
+      final radius = 6.0 + progress * 4.0; // 6→10
 
-  void _drawDungeon(Canvas canvas, List<Offset> positions) {
-    const segSize = 12.0;
-    final paint = Paint()
-      ..color = style.primaryColor.withOpacity(0.25)
-      ..style = PaintingStyle.fill;
-    final borderPaint = Paint()
-      ..color = style.primaryColor.withOpacity(0.15)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+      // Alternating darker/lighter green scales
+      final isEven = i % 2 == 0;
+      final color = isEven
+          ? const Color(0xFF4CAF50) // medium green
+          : const Color(0xFF388E3C); // darker green
+      final bodyPaint = Paint()..color = color.withOpacity(0.7);
+      canvas.drawCircle(positions[i], radius, bodyPaint);
 
-    for (int i = 0; i < positions.length; i++) {
-      final p = positions[i];
-      final scale = 1.0 - (i / positions.length) * 0.3;
-      final s = segSize * scale;
-      final rect = Rect.fromCenter(center: p, width: s, height: s);
-      // Slightly rounded for stone-like feel
-      final rr = RRect.fromRectAndRadius(rect, const Radius.circular(2));
-      canvas.drawRRect(rr, paint);
-      canvas.drawRRect(rr, borderPaint);
-    }
-  }
-
-  void _drawAscii(Canvas canvas, List<Offset> positions) {
-    const chars = _SnakeAnimationState._asciiChars;
-    for (int i = 0; i < positions.length; i++) {
-      final charIndex = (i + (t * 4).toInt()) % chars.length;
-      final alpha = 0.3 - (i / positions.length) * 0.15;
-      final tp = TextPainter(
-        text: TextSpan(
-          text: chars[charIndex],
-          style: TextStyle(
-            color: style.primaryColor.withOpacity(alpha.clamp(0.05, 0.3)),
-            fontSize: 16 - (i / positions.length) * 4,
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
+      // Belly highlight
+      final bellyPaint = Paint()..color = const Color(0xFFA5D6A7).withOpacity(0.3);
+      canvas.drawCircle(
+        Offset(positions[i].dx, positions[i].dy + radius * 0.3),
+        radius * 0.5,
+        bellyPaint,
       );
-      tp.layout();
-      tp.paint(
-        canvas,
-        positions[i] - Offset(tp.width / 2, tp.height / 2),
+    }
+  }
+
+  void _drawSnakeHead(Canvas canvas, List<Offset> positions) {
+    final head = positions.first;
+
+    // Direction the snake is facing
+    double angle = 0;
+    if (positions.length > 1) {
+      angle = atan2(head.dy - positions[1].dy, head.dx - positions[1].dx);
+    }
+
+    // Head — larger, bright green
+    final headPaint = Paint()..color = const Color(0xFF2E7D32).withOpacity(0.8);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: head,
+        width: 16,
+        height: 13,
+      ),
+      headPaint,
+    );
+
+    // Top of head — lighter
+    final headTopPaint = Paint()..color = const Color(0xFF66BB6A).withOpacity(0.6);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(head.dx, head.dy - 1),
+        width: 12,
+        height: 8,
+      ),
+      headTopPaint,
+    );
+
+    // Eyes — bright red with black pupils
+    final eyeOffset = 4.0;
+    final eyeForward = 2.0;
+    final e1 = Offset(
+      head.dx + cos(angle) * eyeForward + cos(angle + pi / 2) * eyeOffset,
+      head.dy + sin(angle) * eyeForward + sin(angle + pi / 2) * eyeOffset,
+    );
+    final e2 = Offset(
+      head.dx + cos(angle) * eyeForward - cos(angle + pi / 2) * eyeOffset,
+      head.dy + sin(angle) * eyeForward - sin(angle + pi / 2) * eyeOffset,
+    );
+
+    // Red eye glow
+    final eyeGlow = Paint()
+      ..color = const Color(0xFFFF1744).withOpacity(0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    canvas.drawCircle(e1, 4, eyeGlow);
+    canvas.drawCircle(e2, 4, eyeGlow);
+
+    // Eye whites
+    final eyePaint = Paint()..color = const Color(0xFFFF1744).withOpacity(0.8);
+    canvas.drawCircle(e1, 3, eyePaint);
+    canvas.drawCircle(e2, 3, eyePaint);
+
+    // Pupils — black, looking forward
+    final pupilPaint = Paint()..color = Colors.black.withOpacity(0.8);
+    final pupilDir = Offset(cos(angle) * 0.8, sin(angle) * 0.8);
+    canvas.drawCircle(e1 + pupilDir, 1.5, pupilPaint);
+    canvas.drawCircle(e2 + pupilDir, 1.5, pupilPaint);
+
+    // Forked tongue — flickers
+    final tongueOut = sin(t * 6) > 0.3;
+    if (tongueOut) {
+      final tongPaint = Paint()
+        ..color = const Color(0xFFFF1744).withOpacity(0.7)
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round;
+      final tongBase = Offset(
+        head.dx + cos(angle) * 9,
+        head.dy + sin(angle) * 9,
+      );
+      final tongTip = Offset(
+        head.dx + cos(angle) * 16,
+        head.dy + sin(angle) * 16,
+      );
+      canvas.drawLine(tongBase, tongTip, tongPaint);
+      // Fork
+      final forkLen = 4.0;
+      canvas.drawLine(
+        tongTip,
+        Offset(
+          tongTip.dx + cos(angle + 0.4) * forkLen,
+          tongTip.dy + sin(angle + 0.4) * forkLen,
+        ),
+        tongPaint,
+      );
+      canvas.drawLine(
+        tongTip,
+        Offset(
+          tongTip.dx + cos(angle - 0.4) * forkLen,
+          tongTip.dy + sin(angle - 0.4) * forkLen,
+        ),
+        tongPaint,
       );
     }
   }
 
   @override
-  bool shouldRepaint(covariant _SnakePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _SnakeAndApplesPainter oldDelegate) => true;
 }

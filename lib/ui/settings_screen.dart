@@ -32,10 +32,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1A0D),
+      backgroundColor: const Color(0xFFF1F8E9),
       appBar: AppBar(
-        title: Text(s.settings),
-        backgroundColor: const Color(0xFF0D1A0D),
+        title: Text(s.settings, style: const TextStyle(color: Color(0xFF2E7D32))),
+        backgroundColor: const Color(0xFFF1F8E9),
+        iconTheme: const IconThemeData(color: Color(0xFF2E7D32)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -84,20 +85,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.green.withOpacity(0.2)),
+              border: Border.all(color: const Color(0xFFA5D6A7)),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline,
-                    size: 16, color: Colors.green.shade800),
+                const Icon(Icons.info_outline,
+                    size: 16, color: Color(0xFF2E7D32)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     s.classicNote,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.green.shade700,
+                      color: const Color(0xFF388E3C),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -343,7 +344,7 @@ class _SectionTitle extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 3,
-          color: Colors.green.shade500,
+          color: const Color(0xFFE65100), // warm orange
         ),
       ),
     );
@@ -376,19 +377,19 @@ class _OptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border.all(
               color: selected
-                  ? Colors.green.shade400
-                  : Colors.green.withOpacity(0.1),
-              width: selected ? 1.5 : 1,
+                  ? const Color(0xFF2E7D32)
+                  : const Color(0xFFA5D6A7),
+              width: selected ? 2 : 1,
             ),
             borderRadius: BorderRadius.circular(8),
-            color: selected ? Colors.green.withOpacity(0.08) : null,
+            color: selected ? const Color(0xFFC8E6C9) : Colors.white.withOpacity(0.5),
           ),
           child: Row(
             children: [
               Icon(
                 selected ? Icons.radio_button_checked : Icons.radio_button_off,
                 size: 18,
-                color: selected ? Colors.green.shade400 : Colors.green.shade900,
+                color: selected ? const Color(0xFF2E7D32) : const Color(0xFF81C784),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -396,8 +397,8 @@ class _OptionTile extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: selected
-                        ? Colors.green.shade300
-                        : Colors.green.shade700,
+                        ? const Color(0xFF1B5E20)
+                        : const Color(0xFF558B2F),
                     fontSize: 14,
                   ),
                 ),
@@ -406,7 +407,7 @@ class _OptionTile extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.green.shade800,
+                    color: const Color(0xFF689F38),
                     fontSize: 12,
                   ),
                 ),

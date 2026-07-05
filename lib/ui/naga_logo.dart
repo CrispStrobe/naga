@@ -34,11 +34,11 @@ class _NagaLogoPainter extends CustomPainter {
     final totalW = letterW * 4 + gap * 3;
     final offsetX = (size.width - totalW) / 2;
 
-    // Colors matching the app icon
-    const mainGreen = Color(0xFF00E676);
-    const darkGreen = Color(0xFF00C853);
-    const highlightGreen = Color(0xFF69F0AE);
-    const glowGreen = Color(0xFF00E676);
+    // Colors — rich greens visible on light backgrounds
+    const mainGreen = Color(0xFF2E7D32);
+    const darkGreen = Color(0xFF1B5E20);
+    const highlightGreen = Color(0xFF4CAF50);
+    const glowGreen = Color(0xFF388E3C);
 
     // Glow paint
     final glowPaint = Paint()
@@ -155,7 +155,7 @@ class _NagaLogoPainter extends CustomPainter {
     final eyeOffX = headR * 0.38;
     final eyeY = headCy - headR * 0.2;
 
-    final eyePaint = Paint()..color = Colors.white;
+    final eyePaint = Paint()..color = const Color(0xFFFF1744); // red eyes
     final pupilPaint = Paint()..color = Colors.black;
 
     canvas.drawCircle(Offset(cx - eyeOffX, eyeY), eyeR, eyePaint);
