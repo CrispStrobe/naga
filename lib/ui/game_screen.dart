@@ -8,6 +8,10 @@ import '../game/rush_game.dart';
 import '../game/fangs_game.dart';
 import '../game/venom_game.dart';
 import '../game/pit_game.dart';
+import '../game/snake2_game.dart';
+import '../game/ascii_game.dart';
+import '../game/cga_game.dart';
+import '../game/nibbles_game.dart';
 import '../modes/game_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
@@ -17,6 +21,10 @@ import '../modes/rush_mode.dart';
 import '../modes/fangs_mode.dart';
 import '../modes/venom_mode.dart';
 import '../modes/pit_mode.dart';
+import '../modes/snake2_mode.dart';
+import '../modes/ascii_mode.dart';
+import '../modes/cga_mode.dart';
+import '../modes/nibbles_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/high_score_service.dart';
@@ -56,6 +64,10 @@ class _GameScreenState extends State<GameScreen> {
   bool get _isFangsMode => widget.mode is FangsMode;
   bool get _isVenomMode => widget.mode is VenomMode;
   bool get _isPitMode => widget.mode is PitMode;
+  bool get _isSnake2Mode => widget.mode is Snake2Mode;
+  bool get _isAsciiMode => widget.mode is AsciiMode;
+  bool get _isCgaMode => widget.mode is CgaMode;
+  bool get _isNibblesMode => widget.mode is NibblesMode;
 
   GameSettings get _settings => widget.settingsService.settings;
 
@@ -114,6 +126,30 @@ class _GameScreenState extends State<GameScreen> {
     } else if (_isPitMode) {
       _game = PitGame(
         mode: widget.mode as PitMode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => setState(() => _score = score),
+      );
+    } else if (_isSnake2Mode) {
+      _game = Snake2Game(
+        mode: widget.mode as Snake2Mode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => setState(() => _score = score),
+      );
+    } else if (_isAsciiMode) {
+      _game = AsciiGame(
+        mode: widget.mode as AsciiMode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => setState(() => _score = score),
+      );
+    } else if (_isCgaMode) {
+      _game = CgaGame(
+        mode: widget.mode as CgaMode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => setState(() => _score = score),
+      );
+    } else if (_isNibblesMode) {
+      _game = NibblesGame(
+        mode: widget.mode as NibblesMode,
         onGameOver: _handleDeath,
         onScoreChanged: (score) => setState(() => _score = score),
       );
@@ -269,6 +305,14 @@ class _GameScreenState extends State<GameScreen> {
       (_game as VenomGame).changeDirection(dir);
     } else if (_isPitMode) {
       (_game as PitGame).changeDirection(dir);
+    } else if (_isSnake2Mode) {
+      (_game as Snake2Game).changeDirection(dir);
+    } else if (_isAsciiMode) {
+      (_game as AsciiGame).changeDirection(dir);
+    } else if (_isCgaMode) {
+      (_game as CgaGame).changeDirection(dir);
+    } else if (_isNibblesMode) {
+      (_game as NibblesGame).changeDirection(dir);
     } else {
       (_game as SnakeGame).changeDirection(dir);
     }

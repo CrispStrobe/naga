@@ -75,6 +75,30 @@ class SDe extends S {
   String get rushDesc => 'Endlos-Autoscroll';
 
   @override
+  String get snake2 => 'Snake II';
+
+  @override
+  String get snake2Desc => 'Labyrinthe & Umlauf';
+
+  @override
+  String get ascii => 'ASCII';
+
+  @override
+  String get asciiDesc => 'Terminal-Textmodus';
+
+  @override
+  String get cga => 'CGA';
+
+  @override
+  String get cgaDesc => '4-Farben Retro-PC';
+
+  @override
+  String get nibbles => 'Nibbles';
+
+  @override
+  String get nibblesDesc => 'QBasic-Klassiker';
+
+  @override
   String get score => 'Punkte';
 
   @override

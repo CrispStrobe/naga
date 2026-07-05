@@ -35,17 +35,43 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     }
   }
 
-  /// Retro-style blocky rendering
+  /// Retro-style chain-link rendering (authentic retro phone look)
   void _renderClassic(Canvas canvas, double cs) {
-    final paint = Paint()..color = _game.mode.snakeColor;
-    final inset = cs * 0.05;
+    final color = _game.mode.snakeColor;
+    final fillPaint = Paint()..color = color;
+    final borderPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cs * 0.12;
+    final inset = cs * 0.12;
+    final gap = cs * 0.06;
 
-    for (final seg in segments) {
+    for (int i = 0; i < segments.length; i++) {
+      final seg = segments[i];
       final sp = _game.gridToScreen(seg);
-      canvas.drawRect(
-        Rect.fromLTWH(sp.x + inset, sp.y + inset, cs - inset * 2, cs - inset * 2),
-        paint,
-      );
+
+      if (i == 0) {
+        // Head — solid filled block, slightly larger
+        canvas.drawRect(
+          Rect.fromLTWH(sp.x + gap, sp.y + gap, cs - gap * 2, cs - gap * 2),
+          fillPaint,
+        );
+      } else {
+        // Body/tail — outlined square (chain-link look)
+        canvas.drawRect(
+          Rect.fromLTWH(sp.x + inset, sp.y + inset, cs - inset * 2, cs - inset * 2),
+          borderPaint,
+        );
+        // Small center dot for chain-link detail
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: Offset(sp.x + cs / 2, sp.y + cs / 2),
+            width: cs * 0.2,
+            height: cs * 0.2,
+          ),
+          fillPaint,
+        );
+      }
     }
   }
 

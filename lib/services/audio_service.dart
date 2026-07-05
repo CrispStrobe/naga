@@ -59,8 +59,12 @@ class AudioService {
     final prefs = await SharedPreferences.getInstance();
     _musicEnabled = prefs.getBool(_keyMusicEnabled) ?? true;
     _sfxEnabled = prefs.getBool(_keySfxEnabled) ?? true;
-    await _musicPlayer.setReleaseMode(ReleaseMode.loop);
-    await _musicPlayer.setVolume(0.4);
+    try {
+      await _musicPlayer.setReleaseMode(ReleaseMode.loop);
+      await _musicPlayer.setVolume(0.4);
+    } catch (_) {
+      // audioplayers may not be fully supported on all platforms
+    }
   }
 
   bool get musicEnabled => _musicEnabled;

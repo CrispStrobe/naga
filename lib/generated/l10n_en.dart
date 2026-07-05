@@ -75,6 +75,30 @@ class SEn extends S {
   String get rushDesc => 'Endless auto-scroll';
 
   @override
+  String get snake2 => 'Snake II';
+
+  @override
+  String get snake2Desc => 'Maze levels & wrap-around';
+
+  @override
+  String get ascii => 'ASCII';
+
+  @override
+  String get asciiDesc => 'Terminal text mode';
+
+  @override
+  String get cga => 'CGA';
+
+  @override
+  String get cgaDesc => '4-color retro PC';
+
+  @override
+  String get nibbles => 'Nibbles';
+
+  @override
+  String get nibblesDesc => 'QBasic classic';
+
+  @override
   String get score => 'Score';
 
   @override

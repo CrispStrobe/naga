@@ -9,6 +9,10 @@ import '../modes/venom_mode.dart';
 import '../modes/pit_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
+import '../modes/snake2_mode.dart';
+import '../modes/ascii_mode.dart';
+import '../modes/cga_mode.dart';
+import '../modes/nibbles_mode.dart';
 import '../modes/game_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
@@ -153,6 +157,39 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.speed,
                     accentColor: const Color(0xFFFF6F00),
                     onTap: () => _startGame(context, RushMode()),
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionHeader(label: 'LEGACY'),
+                  _ModeButton(
+                    label: s.snake2,
+                    description: s.snake2Desc,
+                    icon: Icons.phone_android,
+                    accentColor: const Color(0xFF9BBC0F),
+                    onTap: () => _startGame(context, Snake2Mode()),
+                  ),
+                  const SizedBox(height: 10),
+                  _ModeButton(
+                    label: s.ascii,
+                    description: s.asciiDesc,
+                    icon: Icons.terminal,
+                    accentColor: const Color(0xFF00FF00),
+                    onTap: () => _startGame(context, AsciiMode()),
+                  ),
+                  const SizedBox(height: 10),
+                  _ModeButton(
+                    label: s.cga,
+                    description: s.cgaDesc,
+                    icon: Icons.desktop_windows,
+                    accentColor: const Color(0xFF00AAAA),
+                    onTap: () => _startGame(context, CgaMode()),
+                  ),
+                  const SizedBox(height: 10),
+                  _ModeButton(
+                    label: s.nibbles,
+                    description: s.nibblesDesc,
+                    icon: Icons.code,
+                    accentColor: const Color(0xFFFFFF00),
+                    onTap: () => _startGame(context, NibblesMode()),
                   ),
                   const SizedBox(height: 24),
                 ],

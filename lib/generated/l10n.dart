@@ -229,6 +229,54 @@ abstract class S {
   /// **'Endless auto-scroll'**
   String get rushDesc;
 
+  /// No description provided for @snake2.
+  ///
+  /// In en, this message translates to:
+  /// **'Snake II'**
+  String get snake2;
+
+  /// No description provided for @snake2Desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Maze levels & wrap-around'**
+  String get snake2Desc;
+
+  /// No description provided for @ascii.
+  ///
+  /// In en, this message translates to:
+  /// **'ASCII'**
+  String get ascii;
+
+  /// No description provided for @asciiDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal text mode'**
+  String get asciiDesc;
+
+  /// No description provided for @cga.
+  ///
+  /// In en, this message translates to:
+  /// **'CGA'**
+  String get cga;
+
+  /// No description provided for @cgaDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'4-color retro PC'**
+  String get cgaDesc;
+
+  /// No description provided for @nibbles.
+  ///
+  /// In en, this message translates to:
+  /// **'Nibbles'**
+  String get nibbles;
+
+  /// No description provided for @nibblesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'QBasic classic'**
+  String get nibblesDesc;
+
   /// No description provided for @score.
   ///
   /// In en, this message translates to:
