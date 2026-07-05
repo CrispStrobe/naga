@@ -115,10 +115,29 @@ class VenomGame extends FlameGame with KeyboardEvents {
       indestructibleWalls.add(_key(gridWidth - 1, y));
     }
 
-    // Interior indestructible walls in grid pattern (every 4th cell for 2+ wide corridors)
-    for (int x = 4; x < gridWidth - 1; x += 4) {
-      for (int y = 4; y < gridHeight - 1; y += 4) {
-        indestructibleWalls.add(_key(x, y));
+    // Interior indestructible pillars — every 5th cell for wide corridors
+    final pillarPositions = <int>{};
+    for (int x = 5; x < gridWidth - 1; x += 5) {
+      for (int y = 5; y < gridHeight - 1; y += 5) {
+        final k = _key(x, y);
+        indestructibleWalls.add(k);
+        pillarPositions.add(k);
+      }
+    }
+
+    // Keep a 1-cell clearance around each pillar so corridors are always 3+ wide
+    final corridorCells = <int>{};
+    for (final pk in pillarPositions) {
+      final p = _fromKey(pk);
+      for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+          if (dx == 0 && dy == 0) continue;
+          final nx = p.x + dx;
+          final ny = p.y + dy;
+          if (nx > 0 && nx < gridWidth - 1 && ny > 0 && ny < gridHeight - 1) {
+            corridorCells.add(_key(nx, ny));
+          }
+        }
       }
     }
 
@@ -143,21 +162,22 @@ class VenomGame extends FlameGame with KeyboardEvents {
       }
     }
 
-    // Place destructible walls randomly
+    // Place destructible walls — never in corridor cells or reserved area
     final openCells = <int>[];
     for (int x = 1; x < gridWidth - 1; x++) {
       for (int y = 1; y < gridHeight - 1; y++) {
         final k = _key(x, y);
-        if (!indestructibleWalls.contains(k) && !reserved.contains(k)) {
+        if (!indestructibleWalls.contains(k) &&
+            !reserved.contains(k) &&
+            !corridorCells.contains(k)) {
           openCells.add(k);
         }
       }
     }
     openCells.shuffle(_random);
 
-    // Fill ~30-40% of open cells with destructible walls, more at higher levels
-    // Keep it lower so 2-wide corridors stay navigable
-    final fillRatio = (0.30 + _level * 0.02).clamp(0.30, 0.45);
+    // Fill 25-40% of eligible cells with destructible walls
+    final fillRatio = (0.25 + _level * 0.02).clamp(0.25, 0.40);
     final wallCount = (openCells.length * fillRatio).toInt();
     for (int i = 0; i < wallCount && i < openCells.length; i++) {
       destructibleWalls.add(openCells[i]);
