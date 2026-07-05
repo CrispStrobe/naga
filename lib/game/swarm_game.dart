@@ -262,6 +262,16 @@ class SwarmGame extends FlameGame with KeyboardEvents {
           return;
         }
       }
+
+      // Enemies stepped down onto snake — deadly (spikes from above)
+      if (!_isInGrace) {
+        for (final enemy in enemies) {
+          if (snakeSegments.any((s) => s.x == enemy.position.x && s.y == enemy.position.y)) {
+            _die();
+            return;
+          }
+        }
+      }
     } else {
       // Move sideways
       for (final enemy in enemies) {
@@ -270,18 +280,23 @@ class SwarmGame extends FlameGame with KeyboardEvents {
           enemy.position.y,
         );
       }
+
+      // Sideways movement onto snake head = eaten (snake eats from sides)
+      final head = snakeSegments.first;
+      final eatenByHead = enemies.where(
+        (e) => e.position.x == head.x && e.position.y == head.y,
+      ).toList();
+      for (final enemy in eatenByHead) {
+        enemies.remove(enemy);
+        score += enemy.points;
+        onScoreChanged(score);
+      }
+      // Sideways movement onto snake body — just push through, not lethal
+      // (only vertical descent is dangerous due to spikes)
     }
 
-    // Enemies marching down onto snake — always dangerous (they spike you)
-    if (!_isInGrace) {
-      for (final enemy in enemies) {
-        if (snakeSegments.any((s) => s.x == enemy.position.x && s.y == enemy.position.y)) {
-          _die();
-          return;
-        }
-      }
-    } else {
-      // During grace, eat enemies that land on head, ignore body overlap
+    // During grace period, eat any enemy on head
+    if (_isInGrace) {
       final head = snakeSegments.first;
       final eatenByHead = enemies.where(
         (e) => e.position.x == head.x && e.position.y == head.y,
