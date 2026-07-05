@@ -84,11 +84,13 @@ class SettingsService {
   static const _keyControlType = 'control_type';
   static const _keyDifficulty = 'difficulty';
   static const _keyStartSpeed = 'start_speed';
+  static const _keyLocale = 'locale';
 
   static SettingsService? _instance;
   static Future<SettingsService>? _pendingInit;
   SharedPreferences? _prefs;
   GameSettings _settings = const GameSettings();
+  String? _localeCode; // null = system default
 
   SettingsService._();
 
@@ -114,6 +116,7 @@ class SettingsService {
     final controlIndex = prefs.getInt(_keyControlType) ?? 0;
     final difficultyIndex = prefs.getInt(_keyDifficulty) ?? 1;
     final startSpeedIndex = prefs.getInt(_keyStartSpeed) ?? 3;
+    _localeCode = prefs.getString(_keyLocale);
 
     _settings = GameSettings(
       gridSize: (gridIndex >= 0 && gridIndex < GridSize.values.length)
@@ -165,5 +168,17 @@ class SettingsService {
   Future<void> setStartSpeed(StartSpeed speed) async {
     _settings = _settings.copyWith(startSpeed: speed);
     await _prefs!.setInt(_keyStartSpeed, speed.index);
+  }
+
+  /// null = follow system locale
+  String? get localeCode => _localeCode;
+
+  Future<void> setLocale(String? code) async {
+    _localeCode = code;
+    if (code == null) {
+      await _prefs!.remove(_keyLocale);
+    } else {
+      await _prefs!.setString(_keyLocale, code);
+    }
   }
 }

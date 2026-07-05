@@ -6,11 +6,13 @@ import '../services/audio_service.dart';
 class SettingsScreen extends StatefulWidget {
   final SettingsService settingsService;
   final AudioService audioService;
+  final VoidCallback? onLocaleChanged;
 
   const SettingsScreen({
     super.key,
     required this.settingsService,
     required this.audioService,
+    this.onLocaleChanged,
   });
 
   @override
@@ -38,6 +40,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Language
+          _SectionTitle(label: s.language),
+          _buildLanguageSelector(s),
+          const SizedBox(height: 24),
+
           // Grid Size
           _SectionTitle(label: s.gridSize),
           _buildGridSizeSelector(s),
@@ -100,6 +107,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLanguageSelector(S s) {
+    final current = widget.settingsService.localeCode;
+    return Column(
+      children: [
+        _OptionTile(
+          label: 'System',
+          subtitle: '',
+          selected: current == null,
+          onTap: () async {
+            await widget.settingsService.setLocale(null);
+            widget.onLocaleChanged?.call();
+          },
+        ),
+        _OptionTile(
+          label: s.languageEnglish,
+          subtitle: 'EN',
+          selected: current == 'en',
+          onTap: () async {
+            await widget.settingsService.setLocale('en');
+            widget.onLocaleChanged?.call();
+          },
+        ),
+        _OptionTile(
+          label: s.languageGerman,
+          subtitle: 'DE',
+          selected: current == 'de',
+          onTap: () async {
+            await widget.settingsService.setLocale('de');
+            widget.onLocaleChanged?.call();
+          },
+        ),
+      ],
     );
   }
 

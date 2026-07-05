@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
 import 'naga_logo.dart';
 import 'snake_animation.dart';
 import '../modes/classic_mode.dart';
@@ -253,6 +254,9 @@ class HomeScreen extends StatelessWidget {
                         builder: (_) => SettingsScreen(
                           settingsService: settingsService,
                           audioService: audioService,
+                          onLocaleChanged: () {
+                            context.findAncestorStateOfType<NagaAppState>()?.rebuildForLocale();
+                          },
                         ),
                       ),
                     ),

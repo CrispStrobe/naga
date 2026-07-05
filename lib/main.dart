@@ -30,7 +30,7 @@ void main() async {
   ));
 }
 
-class NagaApp extends StatelessWidget {
+class NagaApp extends StatefulWidget {
   final SettingsService settingsService;
   final HighScoreService highScoreService;
   final AudioService audioService;
@@ -45,12 +45,21 @@ class NagaApp extends StatelessWidget {
   });
 
   @override
+  State<NagaApp> createState() => NagaAppState();
+}
+
+class NagaAppState extends State<NagaApp> {
+  void rebuildForLocale() => setState(() {});
+
+  @override
   Widget build(BuildContext context) {
+    final localeCode = widget.settingsService.localeCode;
     return MaterialApp(
       title: 'Naga',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: S.localizationsDelegates,
       supportedLocales: S.supportedLocales,
+      locale: localeCode != null ? Locale(localeCode) : null,
       theme: ThemeData(
         brightness: Brightness.dark,
         fontFamily: 'monospace',
@@ -58,10 +67,10 @@ class NagaApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: HomeScreen(
-        settingsService: settingsService,
-        highScoreService: highScoreService,
-        audioService: audioService,
-        achievementsService: achievementsService,
+        settingsService: widget.settingsService,
+        highScoreService: widget.highScoreService,
+        audioService: widget.audioService,
+        achievementsService: widget.achievementsService,
       ),
     );
   }
