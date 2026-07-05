@@ -1,0 +1,95 @@
+{
+    "appTitle": "Naga",
+    "@appTitle": {
+        "description": "The application title"
+    },
+    "tagline": "The Snake Game",
+    "classic": "Classic",
+    "classicDesc": "Nokia legacy mode",
+    "arcade": "Arcade",
+    "arcadeDesc": "Neon speed run",
+    "zen": "Zen",
+    "zenDesc": "No death, just vibes",
+    "mazeHunter": "Maze Hunter",
+    "mazeHunterDesc": "Pac-Man meets Snake",
+    "trail": "Trail",
+    "trailDesc": "Tron light cycles",
+    "fangs": "Fangs",
+    "fangsDesc": "Breakout with a bite",
+    "venom": "Venom",
+    "venomDesc": "Bomb and blast",
+    "pit": "Pit",
+    "pitDesc": "Last snake standing",
+    "swarm": "Swarm",
+    "swarmDesc": "Eat the invaders",
+    "rush": "Rush",
+    "rushDesc": "Endless auto-scroll",
+    "score": "Score",
+    "scoreValue": "SCORE: {value}",
+    "@scoreValue": {
+        "placeholders": {
+            "value": { "type": "int" }
+        }
+    },
+    "gameOver": "GAME OVER",
+    "playAgain": "PLAY AGAIN",
+    "backToMenu": "BACK TO MENU",
+    "about": "About",
+    "serviceProvider": "Service provider",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "privacyText": "Naga runs entirely on-device. Your games, statistics and settings never leave your device — there is no account, no analytics and no contact with remote services.",
+    "disclaimer": "Disclaimer",
+    "disclaimerText": "Naga is provided \"as is\", without warranty of any kind. Use the app at your own discretion.",
+    "license": "License",
+    "licenseText": "Naga is free software, distributed under the GNU Affero General Public License version 3 or later. As the sole copyright holder, the author additionally makes official binary distributions (e.g. via the Apple App Store and Google Play) available under those stores' standard terms; this does not affect your rights to the source under AGPL-3.0.",
+    "openSourceLicenses": "Open-source licenses",
+    "settings": "Settings",
+    "language": "Language",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
+    "highScore": "High Score",
+    "highScoreValue": "HIGH SCORE: {value}",
+    "@highScoreValue": {
+        "placeholders": {
+            "value": { "type": "int" }
+        }
+    },
+    "newHighScore": "New High Score!",
+    "version": "Version",
+    "gridSize": "Grid Size",
+    "gridSmall": "Small",
+    "gridMedium": "Medium",
+    "gridLarge": "Large",
+    "wallBehavior": "Wall Behavior",
+    "wallDie": "Game Over",
+    "wallWrap": "Wrap Around",
+    "lives": "Lives",
+    "livesNone": "None (instant death)",
+    "livesCount": "{count} lives",
+    "@livesCount": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "livesRemaining": "LIVES: {count}",
+    "@livesRemaining": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "highScores": "High Scores",
+    "noHighScores": "No high scores yet",
+    "gameplay": "Gameplay",
+    "classicNote": "Classic mode always uses original Nokia rules",
+    "controls": "Controls",
+    "swipeControls": "Swipe",
+    "buttonControls": "D-Pad Buttons",
+    "controlsSwipeDesc": "Swipe to change direction",
+    "controlsButtonDesc": "On-screen directional buttons",
+    "audio": "Audio",
+    "music": "Music",
+    "soundEffects": "Sound Effects",
+    "on": "On",
+    "off": "Off"
+}
