@@ -268,4 +268,10 @@ class SDe extends S {
 
   @override
   String get draw => 'Unentschieden!';
+
+  @override
+  String get dungeon => 'Kerker';
+
+  @override
+  String get dungeonDesc => 'Roguelike-Abenteuer';
 }

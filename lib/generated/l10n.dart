@@ -594,6 +594,18 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Draw!'**
   String get draw;
+
+  /// No description provided for @dungeon.
+  ///
+  /// In en, this message translates to:
+  /// **'Dungeon'**
+  String get dungeon;
+
+  /// No description provided for @dungeonDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Roguelike crawler'**
+  String get dungeonDesc;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

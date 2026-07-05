@@ -267,4 +267,10 @@ class SEn extends S {
 
   @override
   String get draw => 'Draw!';
+
+  @override
+  String get dungeon => 'Dungeon';
+
+  @override
+  String get dungeonDesc => 'Roguelike crawler';
 }

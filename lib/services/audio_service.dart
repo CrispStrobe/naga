@@ -37,6 +37,7 @@ class AudioService {
     'CGA': 'music/arcade.ogg',
     'Nibbles': 'music/arcade.ogg',
     'Duel': 'music/pit.ogg',
+    'Dungeon': 'music/venom.ogg',
   };
 
   // SFX names

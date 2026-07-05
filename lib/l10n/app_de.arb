@@ -81,5 +81,7 @@
     "duelDesc": "Lokaler 2-Spieler",
     "player1Wins": "Spieler 1 gewinnt!",
     "player2Wins": "Spieler 2 gewinnt!",
-    "draw": "Unentschieden!"
+    "draw": "Unentschieden!",
+    "dungeon": "Kerker",
+    "dungeonDesc": "Roguelike-Abenteuer"
 }

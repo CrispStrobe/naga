@@ -13,6 +13,7 @@ import '../game/ascii_game.dart';
 import '../game/cga_game.dart';
 import '../game/nibbles_game.dart';
 import '../game/multiplayer_game.dart';
+import '../game/dungeon_game.dart';
 import '../modes/game_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
@@ -27,6 +28,7 @@ import '../modes/ascii_mode.dart';
 import '../modes/cga_mode.dart';
 import '../modes/nibbles_mode.dart';
 import '../modes/multiplayer_mode.dart';
+import '../modes/dungeon_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/high_score_service.dart';
@@ -72,6 +74,7 @@ class _GameScreenState extends State<GameScreen> {
   bool get _isCgaMode => widget.mode is CgaMode;
   bool get _isNibblesMode => widget.mode is NibblesMode;
   bool get _isMultiplayerMode => widget.mode is MultiplayerMode;
+  bool get _isDungeonMode => widget.mode is DungeonMode;
 
   GameSettings get _settings => widget.settingsService.settings;
 
@@ -163,6 +166,12 @@ class _GameScreenState extends State<GameScreen> {
         onGameOver: _handleDeath,
         onP1ScoreChanged: (score) => setState(() => _score = score),
         onP2ScoreChanged: (_) {},
+      );
+    } else if (_isDungeonMode) {
+      _game = DungeonGame(
+        mode: widget.mode as DungeonMode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => setState(() => _score = score),
       );
     } else {
       final effectiveWallsKill = _isClassicMode
@@ -339,8 +348,9 @@ class _GameScreenState extends State<GameScreen> {
     } else if (_isNibblesMode) {
       (_game as NibblesGame).changeDirection(dir);
     } else if (_isMultiplayerMode) {
-      // P1 uses the main direction controls (swipe/d-pad)
       (_game as MultiplayerGame).changeDirectionP1(dir);
+    } else if (_isDungeonMode) {
+      (_game as DungeonGame).changeDirection(dir);
     } else {
       (_game as SnakeGame).changeDirection(dir);
     }
