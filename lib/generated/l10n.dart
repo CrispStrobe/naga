@@ -606,6 +606,84 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Roguelike crawler'**
   String get dungeonDesc;
+
+  /// No description provided for @vsAi.
+  ///
+  /// In en, this message translates to:
+  /// **'VS AI'**
+  String get vsAi;
+
+  /// No description provided for @vsAiDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge the bots'**
+  String get vsAiDesc;
+
+  /// No description provided for @difficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty'**
+  String get difficulty;
+
+  /// No description provided for @easy.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get easy;
+
+  /// No description provided for @medium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get medium;
+
+  /// No description provided for @hard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get hard;
+
+  /// No description provided for @expert.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert'**
+  String get expert;
+
+  /// No description provided for @startSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Speed'**
+  String get startSpeed;
+
+  /// No description provided for @slow.
+  ///
+  /// In en, this message translates to:
+  /// **'Slow'**
+  String get slow;
+
+  /// No description provided for @normal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get normal;
+
+  /// No description provided for @fast.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast'**
+  String get fast;
+
+  /// No description provided for @insane.
+  ///
+  /// In en, this message translates to:
+  /// **'Insane'**
+  String get insane;
+
+  /// No description provided for @aiOpponents.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Opponents'**
+  String get aiOpponents;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

@@ -274,4 +274,43 @@ class SDe extends S {
 
   @override
   String get dungeonDesc => 'Roguelike-Abenteuer';
+
+  @override
+  String get vsAi => 'Gegen KI';
+
+  @override
+  String get vsAiDesc => 'Fordere die Bots heraus';
+
+  @override
+  String get difficulty => 'Schwierigkeit';
+
+  @override
+  String get easy => 'Leicht';
+
+  @override
+  String get medium => 'Mittel';
+
+  @override
+  String get hard => 'Schwer';
+
+  @override
+  String get expert => 'Experte';
+
+  @override
+  String get startSpeed => 'Startgeschwindigkeit';
+
+  @override
+  String get slow => 'Langsam';
+
+  @override
+  String get normal => 'Normal';
+
+  @override
+  String get fast => 'Schnell';
+
+  @override
+  String get insane => 'Wahnsinn';
+
+  @override
+  String get aiOpponents => 'KI-Gegner';
 }

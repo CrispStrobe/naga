@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'snake_animation.dart';
 import '../modes/classic_mode.dart';
 import '../modes/arcade_mode.dart';
 import '../modes/zen_mode.dart';
@@ -15,6 +16,7 @@ import '../modes/cga_mode.dart';
 import '../modes/nibbles_mode.dart';
 import '../modes/multiplayer_mode.dart';
 import '../modes/dungeon_mode.dart';
+import '../modes/vs_ai_mode.dart';
 import '../modes/game_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
@@ -43,7 +45,12 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A1A),
       body: SafeArea(
-        child: Column(
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: SnakeAnimation(),
+            ),
+            Column(
           children: [
             const SizedBox(height: 32),
             // Title
@@ -211,6 +218,14 @@ class HomeScreen extends StatelessWidget {
                     accentColor: const Color(0xFFFF4081),
                     onTap: () => _startGame(context, MultiplayerMode()),
                   ),
+                  const SizedBox(height: 10),
+                  _ModeButton(
+                    label: s.vsAi,
+                    description: s.vsAiDesc,
+                    icon: Icons.smart_toy,
+                    accentColor: const Color(0xFFFF6E40),
+                    onTap: () => _startGame(context, VsAiMode()),
+                  ),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -258,6 +273,8 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
         ),
+          ],
+          ),
       ),
     );
   }

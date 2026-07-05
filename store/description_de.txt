@@ -1,0 +1,39 @@
+Kurzbeschreibung:
+Snake-Spiel mit 16 Modi — vom Retro-Nokia bis zum Roguelike-Dungeon-Crawler
+
+Vollstaendige Beschreibung:
+Naga ist das ultimative Snake-Spiel — 16 einzigartige Spielmodi in einer App, vom klassischen Nokia-Retro-Erlebnis bis zum vollwertigen Roguelike-Dungeon-Crawler.
+
+SPIELMODI
+- Klassisch: Das originale Snake-Erlebnis, genau wie du es kennst.
+- Retro Nokia: Originalgetreue Nachbildung des kultigen Handyspiels.
+- Speed Run: Wettlauf gegen die Zeit — iss so schnell du kannst.
+- Endlos: Keine Waende, keine Grenzen. Wie lange ueberlebst du?
+- Labyrinth: Navigiere durch immer komplexere Irrgaerten.
+- Portal: Teleporter beamen dich quer uebers Spielfeld.
+- Unsichtbar: Die Schlange verschwindet — vertrau deinem Gedaechtnis.
+- Spiegel: Die Steuerung ist vertauscht. Links ist rechts, oben ist unten.
+- Teilung: Deine Schlange teilt sich — steuere beide gleichzeitig.
+- Wachstum: Jede Frucht laesst dich doppelt so schnell wachsen.
+- Schrumpfen: Iss spezielle Fruechte, um wieder kleiner zu werden.
+- Kampf: Tritt im Duell auf einem Geraet gegeneinander an.
+- Gift: Meide die schlechten Fruechte zwischen den guten.
+- Zeitsprung: Die Zeit verlangsamt und beschleunigt sich unberechenbar.
+- Schwerkraft: Die Schlange faellt — Platformer trifft auf Snake.
+- Dungeon: Ein vollwertiges Roguelike — erkunde Raeume, bekaempfe Gegner, sammle Beute.
+
+FEATURES
+- 16 verschiedene Spielmodi mit einzigartigen Mechaniken
+- Geschmeidige, reaktionsschnelle Touch- und Wischsteuerung
+- Dunkles, retro-inspiriertes Design
+- Lokale Highscore-Verfolgung fuer jeden Modus
+- Funktioniert offline — kein Internet noetig nach der Installation
+- Keine Werbung, keine Konten, keine Datenerfassung
+- Laeuft auf Android, iOS und im Web
+
+STEUERUNG
+- In jede Richtung wischen, um zu lenken
+- Tippen zum Starten oder Pausieren
+- Einfach, intuitiv und reaktionsschnell
+
+Schluesselwoerter: Snake-Spiel, Retro, Arcade, Puzzle, Mehrspieler, Nokia, Klassiker, Dungeon-Crawler, Roguelike, Offline, Casual

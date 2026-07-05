@@ -1,0 +1,28 @@
+App Name: Naga
+Subtitle: The Snake Game
+
+Category: Games > Casual
+Secondary Category: Entertainment
+
+Age Rating: 4+ (no objectionable content)
+Content Rating: Everyone / PEGI 3 / USK 0
+Rating Justification: No violence, no mature content, no user-generated content, no data collection.
+
+Supported Languages:
+- English (primary)
+- German
+
+Privacy Policy URL: https://[your-domain]/privacy.html
+
+Pricing: Free
+In-App Purchases: None
+Ads: None
+
+Platform Support:
+- Android (Google Play)
+- iOS (App Store)
+- Web (PWA)
+
+Permissions Required: None
+Network Access: Not required (offline capable)
+Data Collection: None

@@ -58,6 +58,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildAudioToggles(s),
           const SizedBox(height: 24),
 
+          // Difficulty
+          _SectionTitle(label: s.difficulty),
+          _buildDifficultySelector(s),
+          const SizedBox(height: 24),
+
+          // Start Speed
+          _SectionTitle(label: s.startSpeed),
+          _buildStartSpeedSelector(s),
+          const SizedBox(height: 24),
+
           // Controls
           _SectionTitle(label: s.controls),
           _buildControlTypeSelector(s),
@@ -195,6 +205,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildDifficultySelector(S s) {
+    final labels = {
+      Difficulty.easy: s.easy,
+      Difficulty.medium: s.medium,
+      Difficulty.hard: s.hard,
+      Difficulty.expert: s.expert,
+    };
+
+    return Column(
+      children: Difficulty.values.map((d) {
+        final selected = _settings.difficulty == d;
+        return _OptionTile(
+          label: labels[d]!,
+          subtitle: '',
+          selected: selected,
+          onTap: () async {
+            await widget.settingsService.setDifficulty(d);
+            setState(() => _settings = widget.settingsService.settings);
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildStartSpeedSelector(S s) {
+    final labels = {
+      StartSpeed.slow: s.slow,
+      StartSpeed.normal: s.normal,
+      StartSpeed.fast: s.fast,
+      StartSpeed.insane: s.insane,
+    };
+
+    return Column(
+      children: StartSpeed.values.map((sp) {
+        final selected = _settings.startSpeed == sp;
+        return _OptionTile(
+          label: labels[sp]!,
+          subtitle: '',
+          selected: selected,
+          onTap: () async {
+            await widget.settingsService.setStartSpeed(sp);
+            setState(() => _settings = widget.settingsService.settings);
+          },
+        );
+      }).toList(),
     );
   }
 

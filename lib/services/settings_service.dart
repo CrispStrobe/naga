@@ -21,17 +21,39 @@ enum ControlType {
   buttons;
 }
 
+enum Difficulty {
+  easy,
+  medium,
+  hard,
+  expert;
+}
+
+enum StartSpeed {
+  slow(0.22, 'Slow'),
+  normal(0.14, 'Normal'),
+  fast(0.09, 'Fast'),
+  insane(0.05, 'Insane');
+
+  final double baseInterval;
+  final String label;
+  const StartSpeed(this.baseInterval, this.label);
+}
+
 class GameSettings {
   final GridSize gridSize;
   final WallBehavior wallBehavior;
   final int lives;
   final ControlType controlType;
+  final Difficulty difficulty;
+  final StartSpeed startSpeed;
 
   const GameSettings({
     this.gridSize = GridSize.medium,
     this.wallBehavior = WallBehavior.die,
     this.lives = 0,
     this.controlType = ControlType.swipe,
+    this.difficulty = Difficulty.medium,
+    this.startSpeed = StartSpeed.normal,
   });
 
   GameSettings copyWith({
@@ -39,12 +61,16 @@ class GameSettings {
     WallBehavior? wallBehavior,
     int? lives,
     ControlType? controlType,
+    Difficulty? difficulty,
+    StartSpeed? startSpeed,
   }) {
     return GameSettings(
       gridSize: gridSize ?? this.gridSize,
       wallBehavior: wallBehavior ?? this.wallBehavior,
       lives: lives ?? this.lives,
       controlType: controlType ?? this.controlType,
+      difficulty: difficulty ?? this.difficulty,
+      startSpeed: startSpeed ?? this.startSpeed,
     );
   }
 }
@@ -54,6 +80,8 @@ class SettingsService {
   static const _keyWallBehavior = 'wall_behavior';
   static const _keyLives = 'lives';
   static const _keyControlType = 'control_type';
+  static const _keyDifficulty = 'difficulty';
+  static const _keyStartSpeed = 'start_speed';
 
   static SettingsService? _instance;
   static Future<SettingsService>? _pendingInit;
@@ -82,6 +110,8 @@ class SettingsService {
     final wallIndex = prefs.getInt(_keyWallBehavior) ?? 0;
     final lives = prefs.getInt(_keyLives) ?? 0;
     final controlIndex = prefs.getInt(_keyControlType) ?? 0;
+    final difficultyIndex = prefs.getInt(_keyDifficulty) ?? 1;
+    final startSpeedIndex = prefs.getInt(_keyStartSpeed) ?? 1;
 
     _settings = GameSettings(
       gridSize: (gridIndex >= 0 && gridIndex < GridSize.values.length)
@@ -94,6 +124,12 @@ class SettingsService {
       controlType: (controlIndex >= 0 && controlIndex < ControlType.values.length)
           ? ControlType.values[controlIndex]
           : ControlType.swipe,
+      difficulty: (difficultyIndex >= 0 && difficultyIndex < Difficulty.values.length)
+          ? Difficulty.values[difficultyIndex]
+          : Difficulty.medium,
+      startSpeed: (startSpeedIndex >= 0 && startSpeedIndex < StartSpeed.values.length)
+          ? StartSpeed.values[startSpeedIndex]
+          : StartSpeed.normal,
     );
   }
 
@@ -117,5 +153,15 @@ class SettingsService {
   Future<void> setControlType(ControlType type) async {
     _settings = _settings.copyWith(controlType: type);
     await _prefs!.setInt(_keyControlType, type.index);
+  }
+
+  Future<void> setDifficulty(Difficulty difficulty) async {
+    _settings = _settings.copyWith(difficulty: difficulty);
+    await _prefs!.setInt(_keyDifficulty, difficulty.index);
+  }
+
+  Future<void> setStartSpeed(StartSpeed speed) async {
+    _settings = _settings.copyWith(startSpeed: speed);
+    await _prefs!.setInt(_keyStartSpeed, speed.index);
   }
 }

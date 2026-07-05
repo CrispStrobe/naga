@@ -83,5 +83,18 @@
     "player2Wins": "Spieler 2 gewinnt!",
     "draw": "Unentschieden!",
     "dungeon": "Kerker",
-    "dungeonDesc": "Roguelike-Abenteuer"
+    "dungeonDesc": "Roguelike-Abenteuer",
+    "vsAi": "Gegen KI",
+    "vsAiDesc": "Fordere die Bots heraus",
+    "difficulty": "Schwierigkeit",
+    "easy": "Leicht",
+    "medium": "Mittel",
+    "hard": "Schwer",
+    "expert": "Experte",
+    "startSpeed": "Startgeschwindigkeit",
+    "slow": "Langsam",
+    "normal": "Normal",
+    "fast": "Schnell",
+    "insane": "Wahnsinn",
+    "aiOpponents": "KI-Gegner"
 }

@@ -14,6 +14,8 @@ import '../game/cga_game.dart';
 import '../game/nibbles_game.dart';
 import '../game/multiplayer_game.dart';
 import '../game/dungeon_game.dart';
+import '../game/vs_ai_game.dart';
+import '../components/snake_ai.dart' show AiDifficulty;
 import '../modes/game_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
@@ -29,6 +31,7 @@ import '../modes/cga_mode.dart';
 import '../modes/nibbles_mode.dart';
 import '../modes/multiplayer_mode.dart';
 import '../modes/dungeon_mode.dart';
+import '../modes/vs_ai_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/high_score_service.dart';
@@ -75,6 +78,7 @@ class _GameScreenState extends State<GameScreen> {
   bool get _isNibblesMode => widget.mode is NibblesMode;
   bool get _isMultiplayerMode => widget.mode is MultiplayerMode;
   bool get _isDungeonMode => widget.mode is DungeonMode;
+  bool get _isVsAiMode => widget.mode is VsAiMode;
 
   GameSettings get _settings => widget.settingsService.settings;
 
@@ -172,6 +176,13 @@ class _GameScreenState extends State<GameScreen> {
         mode: widget.mode as DungeonMode,
         onGameOver: _handleDeath,
         onScoreChanged: (score) => setState(() => _score = score),
+      );
+    } else if (_isVsAiMode) {
+      _game = VsAiGame(
+        mode: widget.mode as VsAiMode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => setState(() => _score = score),
+        aiDifficulty: AiDifficulty.values.byName(_settings.difficulty.name),
       );
     } else {
       final effectiveWallsKill = _isClassicMode
@@ -351,6 +362,8 @@ class _GameScreenState extends State<GameScreen> {
       (_game as MultiplayerGame).changeDirectionP1(dir);
     } else if (_isDungeonMode) {
       (_game as DungeonGame).changeDirection(dir);
+    } else if (_isVsAiMode) {
+      (_game as VsAiGame).changeDirection(dir);
     } else {
       (_game as SnakeGame).changeDirection(dir);
     }

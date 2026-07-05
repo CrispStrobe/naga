@@ -273,4 +273,43 @@ class SEn extends S {
 
   @override
   String get dungeonDesc => 'Roguelike crawler';
+
+  @override
+  String get vsAi => 'VS AI';
+
+  @override
+  String get vsAiDesc => 'Challenge the bots';
+
+  @override
+  String get difficulty => 'Difficulty';
+
+  @override
+  String get easy => 'Easy';
+
+  @override
+  String get medium => 'Medium';
+
+  @override
+  String get hard => 'Hard';
+
+  @override
+  String get expert => 'Expert';
+
+  @override
+  String get startSpeed => 'Start Speed';
+
+  @override
+  String get slow => 'Slow';
+
+  @override
+  String get normal => 'Normal';
+
+  @override
+  String get fast => 'Fast';
+
+  @override
+  String get insane => 'Insane';
+
+  @override
+  String get aiOpponents => 'AI Opponents';
 }

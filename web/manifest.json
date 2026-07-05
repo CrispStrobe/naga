@@ -1,13 +1,17 @@
 {
-    "name": "naga",
-    "short_name": "naga",
+    "name": "Naga",
+    "short_name": "Naga",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Naga - The Snake Game",
-    "orientation": "portrait-primary",
+    "background_color": "#0A0A1A",
+    "theme_color": "#0A0A1A",
+    "description": "The Snake Game — 16 modes from retro to roguelike",
+    "orientation": "portrait",
     "prefer_related_applications": false,
+    "categories": [
+        "games",
+        "entertainment"
+    ],
     "icons": [
         {
             "src": "icons/Icon-192.png",

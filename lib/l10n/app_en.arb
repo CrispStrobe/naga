@@ -106,5 +106,18 @@
     "player2Wins": "Player 2 Wins!",
     "draw": "Draw!",
     "dungeon": "Dungeon",
-    "dungeonDesc": "Roguelike crawler"
+    "dungeonDesc": "Roguelike crawler",
+    "vsAi": "VS AI",
+    "vsAiDesc": "Challenge the bots",
+    "difficulty": "Difficulty",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "expert": "Expert",
+    "startSpeed": "Start Speed",
+    "slow": "Slow",
+    "normal": "Normal",
+    "fast": "Fast",
+    "insane": "Insane",
+    "aiOpponents": "AI Opponents"
 }

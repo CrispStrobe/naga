@@ -1,0 +1,39 @@
+Short description:
+Snake game with 16 modes — from retro Nokia to roguelike dungeon crawler
+
+Full description:
+Naga is the ultimate snake game — 16 unique game modes packed into one app, ranging from the classic Nokia-style retro experience to a full roguelike dungeon crawler.
+
+GAME MODES
+- Classic: The original snake experience, just like you remember it.
+- Retro Nokia: Faithful recreation of the iconic mobile game.
+- Speed Run: Race against the clock — eat as fast as you can.
+- Endless: No walls, no limits. How long can you survive?
+- Maze: Navigate through increasingly complex labyrinths.
+- Portal: Teleporters warp you across the board.
+- Invisible: The snake disappears — trust your memory.
+- Mirror: Controls are reversed. Left is right, up is down.
+- Split: Your snake splits into two — control both at once.
+- Growth: Every fruit makes you grow twice as fast.
+- Shrink: Eat special fruit to shrink back down.
+- Battle: Compete head-to-head on one device.
+- Poison: Avoid the bad fruit mixed in with the good.
+- Time Warp: Time slows and speeds unpredictably.
+- Gravity: The snake falls — platformer meets snake.
+- Dungeon: A full roguelike — explore rooms, fight enemies, collect loot.
+
+FEATURES
+- 16 distinct game modes with unique mechanics
+- Smooth, responsive touch and swipe controls
+- Dark retro-inspired visual design
+- Local high score tracking for every mode
+- Works offline — no internet required after install
+- No ads, no accounts, no data collection
+- Runs on Android, iOS, and web
+
+CONTROLS
+- Swipe in any direction to steer
+- Tap to start or pause
+- Simple, intuitive, and responsive
+
+Keywords: snake game, retro, arcade, puzzle, multiplayer, nokia, classic, dungeon crawler, roguelike, offline, casual
