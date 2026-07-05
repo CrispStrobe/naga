@@ -74,7 +74,8 @@ class _SnakeAnimationState extends State<SnakeAnimation>
         child: ListenableBuilder(
           listenable: _controller,
           builder: (context, _) => CustomPaint(
-            painter: _SnakePainter(
+            painter: _JungleBackgroundPainter(t: _t),
+            foregroundPainter: _SnakePainter(
               t: _t,
               segmentCount: _segmentCount,
               style: _snakeStyles[_currentStyleIndex],
@@ -86,6 +87,136 @@ class _SnakeAnimationState extends State<SnakeAnimation>
       ),
     );
   }
+}
+
+/// Draws a subtle jungle/forest background with trees, vines, and fireflies.
+class _JungleBackgroundPainter extends CustomPainter {
+  final double t;
+  _JungleBackgroundPainter({required this.t});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Gradient background — dark jungle to slightly lighter canopy
+    final bgGradient = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF0A1F0A),
+          Color(0xFF0D1A0D),
+          Color(0xFF122212),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), bgGradient);
+
+    // Tree silhouettes on left and right edges
+    _drawTree(canvas, w * 0.02, h, w * 0.15, true);
+    _drawTree(canvas, w * 0.88, h, w * 0.14, false);
+    _drawTree(canvas, w * -0.05, h, w * 0.12, true);
+    _drawTree(canvas, w * 0.93, h, w * 0.10, false);
+
+    // Hanging vines from top
+    final vinePaint = Paint()
+      ..color = const Color(0xFF1B5E20).withOpacity(0.25)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    for (int i = 0; i < 8; i++) {
+      final vx = w * (0.05 + i * 0.13);
+      final vineLen = h * (0.08 + sin(i * 1.7) * 0.06);
+      final sway = sin(t * 0.5 + i * 2.1) * 8;
+      final path = Path()
+        ..moveTo(vx, 0)
+        ..quadraticBezierTo(vx + sway, vineLen * 0.5, vx + sway * 0.6, vineLen);
+      canvas.drawPath(path, vinePaint);
+      // Leaf at tip
+      final leafPaint = Paint()..color = const Color(0xFF2E7D32).withOpacity(0.2);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(vx + sway * 0.6, vineLen + 3),
+          width: 8, height: 5,
+        ),
+        leafPaint,
+      );
+    }
+
+    // Ground foliage at bottom
+    final foliagePaint = Paint()..color = const Color(0xFF1B5E20).withOpacity(0.2);
+    for (double x = 0; x < w; x += 12) {
+      final fh = 8 + sin(x * 0.3) * 5 + cos(x * 0.7) * 3;
+      final sway = sin(t * 0.3 + x * 0.1) * 3;
+      final path = Path()
+        ..moveTo(x, h)
+        ..quadraticBezierTo(x + sway + 3, h - fh, x + 6, h - fh - 2)
+        ..quadraticBezierTo(x + sway + 9, h - fh, x + 12, h)
+        ..close();
+      canvas.drawPath(path, foliagePaint);
+    }
+
+    // Fireflies — small glowing dots that float
+    for (int i = 0; i < 12; i++) {
+      final fx = (i * 79.0 + sin(t * 0.7 + i * 1.3) * 30) % w;
+      final fy = (i * 53.0 + cos(t * 0.5 + i * 0.9) * 20) % (h * 0.7) + h * 0.1;
+      final brightness = (sin(t * 2.0 + i * 1.7) * 0.5 + 0.5).clamp(0.0, 1.0);
+      if (brightness < 0.3) continue;
+
+      // Glow
+      final glowPaint = Paint()
+        ..color = Color.lerp(
+          const Color(0xFFFFD740),
+          const Color(0xFF76FF03),
+          (i % 3) / 2.0,
+        )!.withOpacity(brightness * 0.15);
+      canvas.drawCircle(Offset(fx, fy), 6, glowPaint);
+      // Core
+      final corePaint = Paint()
+        ..color = const Color(0xFFFFD740).withOpacity(brightness * 0.4);
+      canvas.drawCircle(Offset(fx, fy), 1.5, corePaint);
+    }
+  }
+
+  void _drawTree(Canvas canvas, double x, double h, double trunkW, bool leanRight) {
+    final trunkPaint = Paint()..color = const Color(0xFF1A1A0A).withOpacity(0.3);
+    final lean = leanRight ? 1.0 : -1.0;
+
+    // Trunk
+    final trunkPath = Path()
+      ..moveTo(x, h)
+      ..lineTo(x + trunkW * 0.3, h)
+      ..quadraticBezierTo(
+        x + trunkW * 0.4 + lean * trunkW * 0.1, h * 0.3,
+        x + trunkW * 0.35 + lean * trunkW * 0.2, h * 0.05,
+      )
+      ..lineTo(x + trunkW * 0.15 + lean * trunkW * 0.2, h * 0.05)
+      ..quadraticBezierTo(
+        x + trunkW * 0.1 + lean * trunkW * 0.05, h * 0.3,
+        x, h,
+      )
+      ..close();
+    canvas.drawPath(trunkPath, trunkPaint);
+
+    // Canopy blobs
+    final canopyPaint = Paint()..color = const Color(0xFF1B3A1B).withOpacity(0.35);
+    final cx = x + trunkW * 0.25 + lean * trunkW * 0.2;
+    final cy = h * 0.08;
+    for (final offset in [Offset(-trunkW * 0.3, 0), Offset(trunkW * 0.2, -trunkW * 0.1), Offset(0, trunkW * 0.15)]) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx + offset.dx, cy + offset.dy),
+          width: trunkW * 0.8,
+          height: trunkW * 0.5,
+        ),
+        canopyPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _JungleBackgroundPainter old) => true;
 }
 
 /// Visual style definitions for each game mode.

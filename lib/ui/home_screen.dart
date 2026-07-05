@@ -339,12 +339,12 @@ class _BottomBarButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.green.shade800, size: 20),
+            Icon(icon, color: Colors.amber.shade300, size: 20),
             const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                color: Colors.green.shade800,
+                color: Colors.amber.shade300,
                 fontSize: 10,
               ),
             ),
@@ -369,7 +369,7 @@ class _SectionHeader extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.bold,
           letterSpacing: 4,
-          color: Colors.green.shade900,
+          color: Colors.amber.shade400,
         ),
       ),
     );
@@ -402,10 +402,18 @@ class _ModeButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           decoration: BoxDecoration(
             border: Border.all(
-              color: accentColor.withOpacity(0.3),
-              width: 1,
+              color: accentColor.withOpacity(0.6),
+              width: 1.5,
             ),
             borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [
+                accentColor.withOpacity(0.15),
+                accentColor.withOpacity(0.04),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
           ),
           child: Row(
             children: [
@@ -428,14 +436,14 @@ class _ModeButton extends StatelessWidget {
                       description,
                       style: TextStyle(
                         fontSize: 11,
-                        color: accentColor.withOpacity(0.5),
+                        color: accentColor.withOpacity(0.75),
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(Icons.arrow_forward_ios,
-                  color: accentColor.withOpacity(0.3), size: 14),
+                  color: accentColor.withOpacity(0.5), size: 14),
             ],
           ),
         ),
