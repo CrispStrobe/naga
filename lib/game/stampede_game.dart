@@ -14,7 +14,7 @@ class StampedeGame extends FlameGame with KeyboardEvents {
   final ValueChanged<int> onScoreChanged;
 
   static const int laneCount = 5;
-  static const double trackWidth = 0.7; // fraction of screen width
+  static const double trackWidth = 0.55; // fraction of screen width — narrower for smaller sprites
 
   late double laneWidth;
   late double trackLeft;
@@ -68,27 +68,25 @@ class StampedeGame extends FlameGame with KeyboardEvents {
     trackLeft = (size.x - tw) / 2;
     trackRight = trackLeft + tw;
     laneWidth = tw / laneCount;
-    playerY = size.y * 0.75;
+    playerY = size.y * 0.82;
   }
 
   void _startNewGame() {
     score = 0;
     currentLane = 2;
     gameState = GameState.playing;
-    _scrollSpeed = 200;
+    _scrollSpeed = 140;
     _scrollOffset = 0;
     _distanceTraveled = 0;
     _spawnTimer = 0;
-    _spawnInterval = 0.8;
+    _spawnInterval = 1.4;
     _objects.clear();
     _racers.clear();
     _racerSpawnTimer = 0;
     _scoreTimer = 0;
 
-    // Spawn initial AI racers
-    for (int i = 0; i < 3; i++) {
-      _spawnRacer(initialSpawn: true);
-    }
+    // Start with just 1 racer, more spawn as difficulty increases
+    _spawnRacer(initialSpawn: true);
   }
 
   double _laneCenter(int lane) {
@@ -112,9 +110,10 @@ class StampedeGame extends FlameGame with KeyboardEvents {
       onScoreChanged(score);
     }
 
-    // Speed up gradually
-    _scrollSpeed = min(600, 200 + _distanceTraveled * 0.01);
-    _spawnInterval = max(0.35, 0.8 - _distanceTraveled * 0.00005);
+    // Difficulty ramp based on distance
+    final difficulty = (_distanceTraveled / 5000).clamp(0.0, 1.0); // 0→1 over ~5000px
+    _scrollSpeed = 140 + difficulty * 360; // 140→500
+    _spawnInterval = 1.4 - difficulty * 0.9; // 1.4→0.5
 
     // Spawn obstacles
     _spawnTimer += dt;
@@ -123,11 +122,12 @@ class StampedeGame extends FlameGame with KeyboardEvents {
       _spawnObject();
     }
 
-    // Spawn AI racers periodically
+    // Spawn AI racers — more as difficulty increases
+    final maxRacers = 1 + (difficulty * 5).toInt(); // 1→6
     _racerSpawnTimer += dt;
-    if (_racerSpawnTimer >= 3.0) {
+    if (_racerSpawnTimer >= (4.0 - difficulty * 2.0) && _racers.length < maxRacers) {
       _racerSpawnTimer = 0;
-      if (_racers.length < 5) _spawnRacer();
+      _spawnRacer();
     }
 
     // Move objects down
@@ -159,26 +159,32 @@ class StampedeGame extends FlameGame with KeyboardEvents {
     _racers.add(_Racer(
       lane: lane,
       y: initialSpawn
-          ? _random.nextDouble() * size.y * 0.5
+          ? _random.nextDouble() * size.y * 0.4
           : -60,
-      speed: 0.6 + _random.nextDouble() * 0.5, // relative to scroll speed
+      speed: 0.5 + _random.nextDouble() * 0.4, // relative to scroll speed
       animal: animalType,
-      changeLaneTimer: 1.0 + _random.nextDouble() * 3.0,
+      changeLaneTimer: 99, // initialized in _updateRacers based on difficulty
     ));
   }
 
   void _updateRacers(double dt) {
+    final difficulty = (_distanceTraveled / 5000).clamp(0.0, 1.0);
+
     for (final racer in _racers) {
       // Racers move slower than scroll, so they drift down relative to screen
       final relativeSpeed = _scrollSpeed * (1.0 - racer.speed);
       racer.y += relativeSpeed * dt;
 
-      // Occasionally change lanes
-      racer.changeLaneTimer -= dt;
-      if (racer.changeLaneTimer <= 0) {
-        racer.changeLaneTimer = 1.5 + _random.nextDouble() * 3.0;
-        final dir = _random.nextBool() ? 1 : -1;
-        racer.lane = (racer.lane + dir).clamp(0, laneCount - 1);
+      // Lane changes only after difficulty > 0.3 (~1500px traveled)
+      // Frequency increases with difficulty
+      if (difficulty > 0.3) {
+        racer.changeLaneTimer -= dt;
+        if (racer.changeLaneTimer <= 0) {
+          // Higher difficulty = more frequent lane changes
+          racer.changeLaneTimer = 5.0 - difficulty * 3.0 + _random.nextDouble() * 2.0;
+          final dir = _random.nextBool() ? 1 : -1;
+          racer.lane = (racer.lane + dir).clamp(0, laneCount - 1);
+        }
       }
     }
     _racers.removeWhere((r) => r.y > size.y + 80);
@@ -188,8 +194,8 @@ class StampedeGame extends FlameGame with KeyboardEvents {
     final playerCx = _laneCenter(currentLane);
     final playerRect = Rect.fromCenter(
       center: Offset(playerCx, playerY),
-      width: laneWidth * 0.6,
-      height: laneWidth * 1.2,
+      width: laneWidth * 0.35,
+      height: laneWidth * 0.6,
     );
 
     // Object collisions
@@ -197,8 +203,8 @@ class StampedeGame extends FlameGame with KeyboardEvents {
       final objCx = _laneCenter(obj.lane);
       final objRect = Rect.fromCenter(
         center: Offset(objCx, obj.y),
-        width: laneWidth * 0.5,
-        height: laneWidth * 0.5,
+        width: laneWidth * 0.3,
+        height: laneWidth * 0.3,
       );
 
       if (playerRect.overlaps(objRect)) {
@@ -218,8 +224,8 @@ class StampedeGame extends FlameGame with KeyboardEvents {
       final racerCx = _laneCenter(racer.lane);
       final racerRect = Rect.fromCenter(
         center: Offset(racerCx, racer.y),
-        width: laneWidth * 0.5,
-        height: laneWidth * 0.8,
+        width: laneWidth * 0.3,
+        height: laneWidth * 0.5,
       );
 
       if (playerRect.overlaps(racerRect)) {
@@ -343,7 +349,7 @@ class StampedeGame extends FlameGame with KeyboardEvents {
   void _renderObjects(Canvas canvas) {
     for (final obj in _objects) {
       final cx = _laneCenter(obj.lane);
-      final halfW = laneWidth * 0.3;
+      final halfW = laneWidth * 0.18;
 
       if (obj.type == _ObjectType.rock) {
         // Rock: gray irregular shape
@@ -389,8 +395,8 @@ class StampedeGame extends FlameGame with KeyboardEvents {
   void _renderRacers(Canvas canvas) {
     for (final racer in _racers) {
       final cx = _laneCenter(racer.lane);
-      final hw = laneWidth * 0.3;
-      final hh = laneWidth * 0.45;
+      final hw = laneWidth * 0.2;
+      final hh = laneWidth * 0.3;
 
       switch (racer.animal) {
         case _AnimalType.frog:
@@ -550,8 +556,8 @@ class StampedeGame extends FlameGame with KeyboardEvents {
 
   void _renderPlayer(Canvas canvas) {
     final cx = _laneCenter(currentLane);
-    final hw = laneWidth * 0.3;
-    final hh = laneWidth * 0.5;
+    final hw = laneWidth * 0.2;
+    final hh = laneWidth * 0.35;
 
     // Snake body segments trailing behind
     final bodyPaint = Paint()..color = mode.snakeColor;
