@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import '../modes/fangs_mode.dart';
 import 'snake_game.dart' show Direction, GameState;
 
-/// Breakout/Arkanoid-inspired mode — the snake is a paddle, bounce the ball
-/// to destroy blocks.
+/// Breakout/Arkanoid-inspired mode — the snake moves freely in the bottom
+/// 5 rows and bounces the ball to destroy blocks.
 class FangsGame extends FlameGame with KeyboardEvents {
   final FangsMode mode;
   final VoidCallback onGameOver;
@@ -15,16 +15,18 @@ class FangsGame extends FlameGame with KeyboardEvents {
 
   static const int gridWidth = 20;
   static const int gridHeight = 28;
+  /// The snake is confined to the bottom 5 rows.
+  static const int _snakeZoneMinY = gridHeight - 5; // y >= 23
   late double cellSize;
   late Vector2 boardOffset;
 
-  // Snake paddle — horizontal segments near the bottom
+  // Snake — moves freely in 4 directions within the bottom zone
   List<Point<int>> snakeSegments = [];
   Direction currentDirection = Direction.right;
   Direction _nextDirection = Direction.right;
   GameState gameState = GameState.playing;
   int score = 0;
-  double _paddleTickTimer = 0;
+  double _snakeTickTimer = 0;
 
   // Ball
   late Point<int> _ballPos;
@@ -72,26 +74,25 @@ class FangsGame extends FlameGame with KeyboardEvents {
     gameState = GameState.playing;
     currentDirection = Direction.right;
     _nextDirection = Direction.right;
-    _resetPaddle();
+    _resetSnake();
     _resetBall();
     _spawnBlocks();
   }
 
-  void _resetPaddle() {
-    final startX = gridWidth ~/ 2 - 2;
-    const paddleY = 25;
+  void _resetSnake() {
+    final startX = gridWidth ~/ 2 - 1;
+    const startY = gridHeight - 3; // middle of the 5-row zone
     snakeSegments = [
-      Point(startX, paddleY),
-      Point(startX + 1, paddleY),
-      Point(startX + 2, paddleY),
-      Point(startX + 3, paddleY),
+      Point(startX, startY),
+      Point(startX - 1, startY),
+      Point(startX - 2, startY),
     ];
   }
 
   void _resetBall() {
-    // Place ball just above the paddle center
-    final paddleCenter = snakeSegments[1];
-    _ballPos = Point(paddleCenter.x, paddleCenter.y - 2);
+    // Place ball just above the snake zone
+    final head = snakeSegments.first;
+    _ballPos = Point(head.x, _snakeZoneMinY - 2);
     _ballDx = _random.nextBool() ? 1 : -1;
     _ballDy = -1;
   }
@@ -123,7 +124,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
     return colors[row % colors.length];
   }
 
-  // Ball moves faster than the paddle to create tension
+  // Ball moves faster than the snake to create tension
   double get _ballInterval {
     const base = 0.10;
     const fastest = 0.04;
@@ -131,18 +132,18 @@ class FangsGame extends FlameGame with KeyboardEvents {
     return (base - speedUp).clamp(fastest, base);
   }
 
-  double get _paddleInterval => mode.tickInterval(score);
+  double get _snakeInterval => mode.tickInterval(score);
 
   @override
   void update(double dt) {
     super.update(dt);
     if (gameState != GameState.playing) return;
 
-    // Paddle tick
-    _paddleTickTimer += dt;
-    if (_paddleTickTimer >= _paddleInterval) {
-      _paddleTickTimer = 0;
-      _tickPaddle();
+    // Snake tick
+    _snakeTickTimer += dt;
+    if (_snakeTickTimer >= _snakeInterval) {
+      _snakeTickTimer = 0;
+      _tickSnake();
     }
 
     // Ball tick
@@ -153,27 +154,40 @@ class FangsGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _tickPaddle() {
+  void _tickSnake() {
     currentDirection = _nextDirection;
-    // Only left/right movement matters
-    int dx = 0;
-    if (currentDirection == Direction.left) {
-      dx = -1;
-    } else if (currentDirection == Direction.right) {
-      dx = 1;
-    } else {
-      return; // ignore up/down
+
+    final head = snakeSegments.first;
+    late Point<int> newHead;
+
+    switch (currentDirection) {
+      case Direction.up:
+        newHead = Point(head.x, head.y - 1);
+      case Direction.down:
+        newHead = Point(head.x, head.y + 1);
+      case Direction.left:
+        newHead = Point(head.x - 1, head.y);
+      case Direction.right:
+        newHead = Point(head.x + 1, head.y);
     }
 
-    // Check bounds — paddle must stay within the playing field
-    final leftmost = snakeSegments.first.x + dx;
-    final rightmost = snakeSegments.last.x + dx;
-    if (leftmost < 0 || rightmost >= gridWidth) return;
+    // Clamp to play area horizontally and to the bottom 5 rows vertically
+    if (newHead.x < 0 || newHead.x >= gridWidth) return;
+    if (newHead.y < _snakeZoneMinY || newHead.y >= gridHeight) return;
 
-    // Move all segments
-    for (int i = 0; i < snakeSegments.length; i++) {
-      snakeSegments[i] = Point(snakeSegments[i].x + dx, snakeSegments[i].y);
-    }
+    // No self-collision (optional: could add, but breakout paddle shouldn't die)
+    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) return;
+
+    // Move: insert new head, remove tail (snake doesn't grow from movement)
+    snakeSegments.insert(0, newHead);
+    snakeSegments.removeLast();
+  }
+
+  void _growSnake() {
+    // Add a segment at the tail
+    final tail = snakeSegments.last;
+    // Duplicate the tail position — next move will separate them
+    snakeSegments.add(Point(tail.x, tail.y));
   }
 
   void _tickBall() {
@@ -190,7 +204,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
       _ballDy = -_ballDy;
     }
 
-    // Ball passes below paddle — lose life
+    // Ball passes below the play area — lose life
     if (nextY >= gridHeight - 1) {
       _lives--;
       if (_lives <= 0) {
@@ -209,13 +223,14 @@ class FangsGame extends FlameGame with KeyboardEvents {
     ).toList();
 
     if (hitBlock.isNotEmpty) {
+      final int blocksBeforeCount = blocks.length;
       for (final block in hitBlock) {
         blocks.remove(block);
         score += 5;
         onScoreChanged(score);
       }
+
       // Determine reflection axis
-      // Check if block was hit horizontally or vertically
       final sameRowBlock = blocks.any(
         (b) => b.position.x == _ballPos.x + _ballDx && b.position.y == _ballPos.y,
       );
@@ -224,14 +239,28 @@ class FangsGame extends FlameGame with KeyboardEvents {
       );
 
       if (sameRowBlock && !sameColBlock) {
-        // Hit from the side
         _ballDx = -_ballDx;
       } else if (sameColBlock && !sameRowBlock) {
-        // Hit from top/bottom
         _ballDy = -_ballDy;
       } else {
-        // Corner hit or single block — reflect vertically
         _ballDy = -_ballDy;
+      }
+
+      // Check if an entire row was cleared — grow the snake
+      // A row is cleared when blocks were removed and fewer remain
+      if (blocks.length < blocksBeforeCount) {
+        // Check each row that had blocks removed — if the row is now empty, grow
+        final clearedRows = <int>{};
+        for (final block in hitBlock) {
+          final rowY = block.position.y;
+          final remaining = blocks.where((b) => b.position.y == rowY).length;
+          if (remaining == 0) {
+            clearedRows.add(rowY);
+          }
+        }
+        for (final _ in clearedRows) {
+          _growSnake();
+        }
       }
 
       // All blocks cleared — next level
@@ -239,29 +268,28 @@ class FangsGame extends FlameGame with KeyboardEvents {
         _level++;
         score += 50; // level clear bonus
         onScoreChanged(score);
+        _growSnake(); // grow on level clear too
         _spawnBlocks();
         _resetBall();
         return;
       }
     }
 
-    // Check paddle collision
-    final paddleHit = snakeSegments.any(
+    // Check snake body collision (ball bounces off any segment)
+    final snakeHit = snakeSegments.any(
       (s) => s.x == nextPos.x && s.y == nextPos.y,
     );
 
-    if (paddleHit) {
+    if (snakeHit) {
       _ballDy = -_ballDy;
-      // Adjust horizontal direction based on which part of paddle was hit
-      final paddleCenterX =
-          snakeSegments.map((s) => s.x).reduce((a, b) => a + b) /
-              snakeSegments.length;
-      if (nextPos.x < paddleCenterX - 0.5) {
-        _ballDx = -1; // left side sends ball left
-      } else if (nextPos.x > paddleCenterX + 0.5) {
-        _ballDx = 1; // right side sends ball right
+      // Adjust horizontal direction based on which segment was hit relative to head
+      final headX = snakeSegments.first.x;
+      if (nextPos.x < headX - 1) {
+        _ballDx = -1;
+      } else if (nextPos.x > headX + 1) {
+        _ballDx = 1;
       }
-      // center keeps current dx
+      // Otherwise keep current dx
     }
 
     // Apply movement
@@ -269,10 +297,12 @@ class FangsGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    // Only left/right matter in Fangs mode
-    if (dir == Direction.left || dir == Direction.right) {
-      _nextDirection = dir;
-    }
+    // Prevent reversing direction
+    if (dir == Direction.up && currentDirection == Direction.down) return;
+    if (dir == Direction.down && currentDirection == Direction.up) return;
+    if (dir == Direction.left && currentDirection == Direction.right) return;
+    if (dir == Direction.right && currentDirection == Direction.left) return;
+    _nextDirection = dir;
   }
 
   void togglePause() {
@@ -339,6 +369,18 @@ class FangsGame extends FlameGame with KeyboardEvents {
       borderPaint,
     );
 
+    // Draw snake zone divider line
+    final zonePaint = Paint()
+      ..color = mode.snakeColor.withOpacity(0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final zoneY = boardOffset.y + _snakeZoneMinY * cs;
+    canvas.drawLine(
+      Offset(boardOffset.x, zoneY),
+      Offset(boardOffset.x + gridWidth * cs, zoneY),
+      zonePaint,
+    );
+
     // Draw blocks
     for (final block in blocks) {
       final sp = _gridToScreen(block.position);
@@ -379,17 +421,42 @@ class FangsGame extends FlameGame with KeyboardEvents {
       glowPaint,
     );
 
-    // Draw snake paddle
-    final snakePaint = Paint()..color = mode.snakeColor;
-    for (final seg in snakeSegments) {
+    // Draw snake — head is distinct, body segments are connected
+    for (int i = 0; i < snakeSegments.length; i++) {
+      final seg = snakeSegments[i];
       final sp = _gridToScreen(seg);
+      final isHead = i == 0;
+
+      final snakePaint = Paint()
+        ..color = isHead
+            ? mode.snakeColor
+            : mode.snakeColor.withOpacity(0.8);
+
+      // Draw each segment as a solid rounded rect
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(sp.x + cs * 0.03, sp.y + cs * 0.1, cs * 0.94, cs * 0.8),
-          Radius.circular(cs * 0.15),
+          Rect.fromLTWH(
+              sp.x + cs * 0.05, sp.y + cs * 0.05, cs * 0.9, cs * 0.9),
+          Radius.circular(cs * 0.2),
         ),
         snakePaint,
       );
+
+      // Head eyes
+      if (isHead) {
+        final eyePaint = Paint()..color = Colors.white;
+        final eyeR = cs * 0.08;
+        canvas.drawCircle(
+          Offset(sp.x + cs * 0.35, sp.y + cs * 0.35),
+          eyeR,
+          eyePaint,
+        );
+        canvas.drawCircle(
+          Offset(sp.x + cs * 0.65, sp.y + cs * 0.35),
+          eyeR,
+          eyePaint,
+        );
+      }
     }
 
     // HUD — level and lives

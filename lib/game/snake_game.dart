@@ -45,6 +45,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   late final int gridWidth;
   late final int gridHeight;
   final bool? wallsKillOverride;
+  final double? speedOverride; // from StartSpeed setting
   late double cellSize;
   late Vector2 boardOffset;
 
@@ -55,6 +56,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     int? gridWidth,
     int? gridHeight,
     this.wallsKillOverride,
+    this.speedOverride,
   })  : gridWidth = gridWidth ?? 20,
         gridHeight = gridHeight ?? 28;
 
@@ -183,7 +185,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   }
 
   double _effectiveTickInterval() {
-    double interval = mode.tickInterval(score);
+    double interval = speedOverride ?? mode.tickInterval(score);
     if (activeBuffs.containsKey(PowerUpType.speed)) {
       interval *= 0.6; // 40% faster
     }

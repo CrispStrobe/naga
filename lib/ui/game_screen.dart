@@ -202,6 +202,7 @@ class _GameScreenState extends State<GameScreen> {
         gridWidth: _isClassicMode ? null : _settings.gridSize.width,
         gridHeight: _isClassicMode ? null : _settings.gridSize.height,
         wallsKillOverride: wallsOverride,
+        speedOverride: _isClassicMode ? null : _settings.startSpeed.baseInterval,
       );
     }
   }

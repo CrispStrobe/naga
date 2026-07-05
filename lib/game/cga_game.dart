@@ -6,7 +6,8 @@ import 'package:flutter/services.dart';
 import '../modes/cga_mode.dart';
 import 'snake_game.dart' show Direction, GameState;
 
-/// CGA mode game — 4-color palette with chunky 2x2-looking blocks.
+/// CGA mode game — 4-color palette with chunky 2x2-looking blocks and
+/// CRT scanline effect.
 class CgaGame extends FlameGame with KeyboardEvents {
   final CgaMode mode;
   final VoidCallback onGameOver;
@@ -16,6 +17,12 @@ class CgaGame extends FlameGame with KeyboardEvents {
   static const int gridHeight = 28;
   late double cellSize;
   late Vector2 boardOffset;
+
+  // CGA palette 1 colors
+  static const Color _black = Color(0xFF000000);
+  static const Color _cyan = Color(0xFF00AAAA);
+  static const Color _magenta = Color(0xFFAA00AA);
+  static const Color _white = Color(0xFFAAAAAA);
 
   // Snake
   List<Point<int>> snakeSegments = [];
@@ -37,7 +44,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
   });
 
   @override
-  Color backgroundColor() => mode.backgroundColor;
+  Color backgroundColor() => _black;
 
   @override
   Future<void> onLoad() async {
@@ -231,9 +238,9 @@ class CgaGame extends FlameGame with KeyboardEvents {
     super.render(canvas);
     final cs = cellSize;
 
-    // ─── Chunky CGA border (white) ──────────────────────────────────
+    // ─── Thick white CGA border (3px) ───────────────────────────────
     final borderPaint = Paint()
-      ..color = mode.borderColor
+      ..color = _white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
     canvas.drawRect(
@@ -242,47 +249,84 @@ class CgaGame extends FlameGame with KeyboardEvents {
       borderPaint,
     );
 
-    // ─── Snake — chunky cyan blocks ─────────────────────────────────
-    final snakePaint = Paint()..color = mode.snakeColor;
+    // ─── Snake — chunky cyan 2x2-looking blocks ────────────────────
     for (final seg in snakeSegments) {
       final sp = _gridToScreen(seg);
-      // Chunky 2x2 look: fill the entire cell, no gaps
+      // Outer filled rectangle (full cell)
+      final snakePaint = Paint()..color = _cyan;
       canvas.drawRect(
         Rect.fromLTWH(sp.x, sp.y, cs, cs),
         snakePaint,
       );
-      // Inner highlight for chunky pixel effect
-      final highlightPaint = Paint()
-        ..color = mode.snakeColor.withOpacity(0.6);
-      final half = cs / 2;
+      // Thick inner border to create chunky 2x2 pixel block feel
+      final innerBorderPaint = Paint()
+        ..color = _black
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
       canvas.drawRect(
-        Rect.fromLTWH(sp.x, sp.y, half, half),
-        highlightPaint,
+        Rect.fromLTWH(sp.x + cs * 0.25, sp.y + cs * 0.25,
+            cs * 0.5, cs * 0.5),
+        innerBorderPaint,
       );
+      // Outer thick border on each cell
+      final outerBorderPaint = Paint()
+        ..color = _cyan.withOpacity(0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
       canvas.drawRect(
-        Rect.fromLTWH(sp.x + half, sp.y + half, half, half),
-        highlightPaint,
+        Rect.fromLTWH(sp.x, sp.y, cs, cs),
+        outerBorderPaint,
       );
     }
 
-    // ─── Food — chunky magenta block ────────────────────────────────
-    final foodPaint = Paint()..color = mode.foodColor;
+    // ─── Food — magenta diamond shape ──────────────────────────────
+    final foodPaint = Paint()..color = _magenta;
     final fsp = _gridToScreen(foodPosition);
-    canvas.drawRect(
-      Rect.fromLTWH(fsp.x, fsp.y, cs, cs),
-      foodPaint,
+    final centerX = fsp.x + cs / 2;
+    final centerY = fsp.y + cs / 2;
+    final diamondRadius = cs * 0.4;
+    final diamondPath = Path()
+      ..moveTo(centerX, centerY - diamondRadius) // top
+      ..lineTo(centerX + diamondRadius, centerY) // right
+      ..lineTo(centerX, centerY + diamondRadius) // bottom
+      ..lineTo(centerX - diamondRadius, centerY) // left
+      ..close();
+    canvas.drawPath(diamondPath, foodPaint);
+
+    // ─── Score text — blocky monospace ──────────────────────────────
+    final scoreTp = TextPainter(
+      text: TextSpan(
+        text: 'SCORE: $score',
+        style: const TextStyle(
+          color: _white,
+          fontSize: 14,
+          fontFamily: 'monospace',
+          fontWeight: FontWeight.bold,
+          letterSpacing: 2,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    scoreTp.paint(
+      canvas,
+      Offset(boardOffset.x + 4, boardOffset.y - 18),
     );
-    // Inner pixel pattern
-    final foodHighlight = Paint()
-      ..color = mode.foodColor.withOpacity(0.6);
-    final half = cs / 2;
-    canvas.drawRect(
-      Rect.fromLTWH(fsp.x + half, fsp.y, half, half),
-      foodHighlight,
+
+    // ─── CRT scanline effect ───────────────────────────────────────
+    final scanlinePaint = Paint()
+      ..color = _black.withOpacity(0.15);
+    final screenRect = Rect.fromLTWH(
+      boardOffset.x - 2,
+      boardOffset.y - 2,
+      cs * gridWidth + 4,
+      cs * gridHeight + 4,
     );
-    canvas.drawRect(
-      Rect.fromLTWH(fsp.x, fsp.y + half, half, half),
-      foodHighlight,
-    );
+    for (double y = screenRect.top; y < screenRect.bottom; y += 3) {
+      canvas.drawLine(
+        Offset(screenRect.left, y),
+        Offset(screenRect.right, y),
+        scanlinePaint,
+      );
+    }
   }
 }
