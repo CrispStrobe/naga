@@ -696,6 +696,30 @@ abstract class S {
   /// In en, this message translates to:
   /// **'AI Opponents'**
   String get aiOpponents;
+
+  /// No description provided for @stampede.
+  ///
+  /// In en, this message translates to:
+  /// **'Stampede'**
+  String get stampede;
+
+  /// No description provided for @stampedeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Animal race track'**
+  String get stampedeDesc;
+
+  /// No description provided for @nagaDive.
+  ///
+  /// In en, this message translates to:
+  /// **'Naga Dive'**
+  String get nagaDive;
+
+  /// No description provided for @nagaDiveDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Underwater swim'**
+  String get nagaDiveDesc;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

@@ -23,8 +23,14 @@ jobs:
       - name: Generate l10n
         run: flutter gen-l10n || true
 
-      - name: Build web (profile)
-        run: flutter build web --profile
+      - name: Build web (WASM)
+        run: |
+          flutter build web --wasm \
+            --dart-define=GIT_COMMIT=${{ github.sha }} \
+            --dart-define=BUILD_MODE=wasm
+
+      - name: Prepare deploy
+        run: cp vercel.json build/web/vercel.json
 
       - name: Deploy to Vercel
         env:

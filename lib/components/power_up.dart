@@ -19,6 +19,14 @@ class PowerUp extends Component with HasGameReference<SnakeGame> {
   double _pulseTimer = 0;
   static const double despawnTime = 8.0;
 
+  // Cached paint objects
+  final Paint _glowPaint = Paint()
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+  final Paint _fillPaint = Paint();
+  final Paint _borderPaint = Paint()
+    ..style = PaintingStyle.stroke;
+  final Paint _highlightPaint = Paint();
+
   PowerUp({
     required this.gridPosition,
     required this.type,
@@ -78,38 +86,33 @@ class PowerUp extends Component with HasGameReference<SnakeGame> {
         ? ((despawnTime - _lifetime) / 2.0).clamp(0.0, 1.0)
         : 1.0;
 
-    // Glow
-    final glowPaint = Paint()
-      ..color = color.withOpacity(0.25 * fadeOut)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-    canvas.drawCircle(Offset(cx, cy), cs * 0.6 * pulse, glowPaint);
+    // Glow (reuse cached paint)
+    _glowPaint.color = color.withOpacity(0.25 * fadeOut);
+    canvas.drawCircle(Offset(cx, cy), cs * 0.6 * pulse, _glowPaint);
 
     // Diamond shape
     final size = cs * 0.38 * pulse;
     final path = Path()
-      ..moveTo(cx, cy - size) // top
-      ..lineTo(cx + size, cy) // right
-      ..lineTo(cx, cy + size) // bottom
-      ..lineTo(cx - size, cy) // left
+      ..moveTo(cx, cy - size)
+      ..lineTo(cx + size, cy)
+      ..lineTo(cx, cy + size)
+      ..lineTo(cx - size, cy)
       ..close();
 
-    final fillPaint = Paint()..color = color.withOpacity(0.9 * fadeOut);
-    canvas.drawPath(path, fillPaint);
+    _fillPaint.color = color.withOpacity(0.9 * fadeOut);
+    canvas.drawPath(path, _fillPaint);
 
     // Border
-    final borderPaint = Paint()
-      ..color = Colors.white.withOpacity(0.6 * fadeOut)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = cs * 0.05;
-    canvas.drawPath(path, borderPaint);
+    _borderPaint.color = Colors.white.withOpacity(0.6 * fadeOut);
+    _borderPaint.strokeWidth = cs * 0.05;
+    canvas.drawPath(path, _borderPaint);
 
     // Inner highlight
-    final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.35 * fadeOut);
+    _highlightPaint.color = Colors.white.withOpacity(0.35 * fadeOut);
     canvas.drawCircle(
       Offset(cx - size * 0.15, cy - size * 0.15),
       size * 0.25,
-      highlightPaint,
+      _highlightPaint,
     );
   }
 }

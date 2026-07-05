@@ -121,5 +121,9 @@
     "normal": "Normal",
     "fast": "Fast",
     "insane": "Insane",
-    "aiOpponents": "AI Opponents"
+    "aiOpponents": "AI Opponents",
+    "stampede": "Stampede",
+    "stampedeDesc": "Animal race track",
+    "nagaDive": "Naga Dive",
+    "nagaDiveDesc": "Underwater swim"
 }

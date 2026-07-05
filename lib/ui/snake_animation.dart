@@ -45,16 +45,15 @@ class _SnakeAnimationState extends State<SnakeAnimation>
   }
 
   void _tick() {
-    setState(() {
-      final dt = 1.0 / 60.0; // ~60fps
-      _t += _speed * dt;
-      _styleCycleTimer += dt;
-      if (_styleCycleTimer >= _styleCycleDuration) {
-        _styleCycleTimer = 0;
-        _currentStyleIndex =
-            (_currentStyleIndex + 1) % _snakeStyles.length;
-      }
-    });
+    final dt = 1.0 / 60.0; // ~60fps
+    _t += _speed * dt;
+    _styleCycleTimer += dt;
+    if (_styleCycleTimer >= _styleCycleDuration) {
+      _styleCycleTimer = 0;
+      _currentStyleIndex =
+          (_currentStyleIndex + 1) % _snakeStyles.length;
+    }
+    // No setState — CustomPaint repaints via the AnimationController's Listenable
   }
 
   Offset _lissajousPosition(double t, Size size) {
@@ -71,14 +70,19 @@ class _SnakeAnimationState extends State<SnakeAnimation>
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: CustomPaint(
-        painter: _SnakePainter(
-          t: _t,
-          segmentCount: _segmentCount,
-          style: _snakeStyles[_currentStyleIndex],
-          lissajousPosition: _lissajousPosition,
+      child: RepaintBoundary(
+        child: ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) => CustomPaint(
+            painter: _SnakePainter(
+              t: _t,
+              segmentCount: _segmentCount,
+              style: _snakeStyles[_currentStyleIndex],
+              lissajousPosition: _lissajousPosition,
+            ),
+            size: Size.infinite,
+          ),
         ),
-        size: Size.infinite,
       ),
     );
   }

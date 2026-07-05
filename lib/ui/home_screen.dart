@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'naga_logo.dart';
 import 'snake_animation.dart';
 import '../modes/classic_mode.dart';
 import '../modes/arcade_mode.dart';
@@ -17,6 +18,8 @@ import '../modes/nibbles_mode.dart';
 import '../modes/multiplayer_mode.dart';
 import '../modes/dungeon_mode.dart';
 import '../modes/vs_ai_mode.dart';
+import '../modes/stampede_mode.dart';
+import '../modes/naga_dive_mode.dart';
 import '../modes/game_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
@@ -57,23 +60,8 @@ class HomeScreen extends StatelessWidget {
             Column(
           children: [
             const SizedBox(height: 32),
-            // Title
-            Text(
-              'NAGA',
-              style: TextStyle(
-                fontSize: 64,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 16,
-                color: Colors.green.shade400,
-                shadows: [
-                  Shadow(
-                    color: Colors.green.shade900,
-                    offset: const Offset(3, 3),
-                    blurRadius: 0,
-                  ),
-                ],
-              ),
-            ),
+            // Title — snake-tube logo matching the app icon
+            const NagaLogo(height: 100),
             const SizedBox(height: 8),
             Text(
               s.tagline.toUpperCase(),
@@ -203,6 +191,23 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.code,
                     accentColor: const Color(0xFFFFFF00),
                     onTap: () => _startGame(context, NibblesMode()),
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionHeader(label: 'MINIGAMES'),
+                  _ModeButton(
+                    label: s.stampede,
+                    description: s.stampedeDesc,
+                    icon: Icons.directions_run,
+                    accentColor: const Color(0xFF8BC34A),
+                    onTap: () => _startGame(context, StampedeMode()),
+                  ),
+                  const SizedBox(height: 10),
+                  _ModeButton(
+                    label: s.nagaDive,
+                    description: s.nagaDiveDesc,
+                    icon: Icons.water,
+                    accentColor: const Color(0xFF00E5FF),
+                    onTap: () => _startGame(context, NagaDiveMode()),
                   ),
                   const SizedBox(height: 20),
                   _SectionHeader(label: 'ADVENTURE'),

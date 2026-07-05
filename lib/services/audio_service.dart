@@ -20,6 +20,11 @@ class AudioService {
   bool _sfxEnabled = true;
   String? _currentMusicTrack;
 
+  // SFX player pool — round-robin to avoid allocating per-sound
+  static const int _sfxPoolSize = 4;
+  final List<AudioPlayer> _sfxPool = [];
+  int _sfxPoolIndex = 0;
+
   // Per-mode music mapping
   static const Map<String, String> _modeMusic = {
     'Classic': 'music/classic.ogg',
@@ -71,6 +76,25 @@ class AudioService {
     } catch (_) {
       // audioplayers may not be fully supported on all platforms
     }
+    // Initialize SFX player pool
+    for (int i = 0; i < _sfxPoolSize; i++) {
+      _sfxPool.add(AudioPlayer());
+    }
+    // Pre-load SFX assets so first play has no latency
+    _preloadSfx();
+  }
+
+  Future<void> _preloadSfx() async {
+    const sfxPaths = [sfxEat, sfxDie, sfxPowerUp, sfxLevelUp, sfxClick];
+    for (final path in sfxPaths) {
+      try {
+        final player = AudioPlayer();
+        await player.setSource(AssetSource(path));
+        await player.dispose();
+      } catch (_) {
+        // File might not exist — skip
+      }
+    }
   }
 
   bool get musicEnabled => _musicEnabled;
@@ -115,14 +139,14 @@ class AudioService {
     _currentMusicTrack = null;
   }
 
-  /// Play a sound effect.
+  /// Play a sound effect using pooled players.
   Future<void> playSfx(String sfxPath) async {
     if (!_sfxEnabled) return;
     try {
-      final player = AudioPlayer();
+      final player = _sfxPool[_sfxPoolIndex];
+      _sfxPoolIndex = (_sfxPoolIndex + 1) % _sfxPoolSize;
+      await player.stop();
       await player.play(AssetSource(sfxPath));
-      // Auto-dispose after playing
-      player.onPlayerComplete.listen((_) => player.dispose());
     } catch (_) {
       // Audio file might not exist yet — silently ignore
     }
@@ -137,5 +161,8 @@ class AudioService {
 
   void dispose() {
     _musicPlayer.dispose();
+    for (final player in _sfxPool) {
+      player.dispose();
+    }
   }
 }

@@ -7,19 +7,42 @@ import 'power_up.dart';
 class Snake extends Component with HasGameReference<SnakeGame> {
   List<Point<int>> segments;
   final SnakeGame _game;
+  final Set<int> occupiedCells = {};
 
   Snake({required List<Point<int>> initialSegments, required SnakeGame game})
       : segments = List.from(initialSegments),
-        _game = game;
+        _game = game {
+    _rebuildOccupiedSet();
+  }
+
+  void _rebuildOccupiedSet() {
+    occupiedCells.clear();
+    for (final seg in segments) {
+      occupiedCells.add(encodePos(seg));
+    }
+  }
+
+  static int encodePos(Point<int> pos) => pos.y * 10000 + pos.x;
 
   bool occupies(Point<int> pos) {
-    return segments.any((s) => s.x == pos.x && s.y == pos.y);
+    return occupiedCells.contains(encodePos(pos));
   }
 
   void move(Point<int> newHead, {bool grow = false}) {
     segments.insert(0, newHead);
+    occupiedCells.add(encodePos(newHead));
     if (!grow) {
-      segments.removeLast();
+      final removed = segments.removeLast();
+      occupiedCells.remove(encodePos(removed));
+    }
+  }
+
+  /// Remove tail segments (for shrink power-up). Keeps occupied set in sync.
+  void removeTailSegments(int count) {
+    final toRemove = count.clamp(0, segments.length - 1);
+    for (int i = 0; i < toRemove; i++) {
+      final removed = segments.removeLast();
+      occupiedCells.remove(encodePos(removed));
     }
   }
 
@@ -97,22 +120,20 @@ class Snake extends Component with HasGameReference<SnakeGame> {
       glowColor = Colors.orange;
     }
 
-    // Draw buff glow behind the snake
-    if (glowColor != null) {
+    // Draw buff glow behind head only (perf: blur is expensive)
+    if (glowColor != null && segments.isNotEmpty) {
       final glowOpacity = _game.shieldFlashTimer > 0
           ? (_game.shieldFlashTimer / 0.5).clamp(0.0, 1.0) * 0.5
-          : 0.2;
+          : 0.3;
       final glowPaint = Paint()
         ..color = glowColor.withOpacity(glowOpacity)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-      for (final seg in segments) {
-        final sp = _game.gridToScreen(seg);
-        canvas.drawCircle(
-          Offset(sp.x + cs / 2, sp.y + cs / 2),
-          cs * 0.55,
-          glowPaint,
-        );
-      }
+      final headSp = _game.gridToScreen(segments.first);
+      canvas.drawCircle(
+        Offset(headSp.x + cs / 2, headSp.y + cs / 2),
+        cs * 0.7,
+        glowPaint,
+      );
     }
 
     for (int i = segments.length - 1; i >= 0; i--) {

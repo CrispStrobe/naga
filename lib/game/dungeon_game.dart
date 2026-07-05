@@ -638,6 +638,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     _renderMonsters(canvas, cs);
     _renderSnake(canvas, cs);
     _renderHUD(canvas, cs);
+    _renderLegend(canvas, cs);
   }
 
   void _renderWallsAndFloor(Canvas canvas, double cs) {
@@ -982,7 +983,75 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       );
     }
   }
+
+  void _renderLegend(Canvas canvas, double cs) {
+    final legendX = boardOffset.x + gridWidth * cs + 6;
+    final availableWidth = size.x - legendX;
+    // Only show legend if there's room to the right of the board
+    if (availableWidth < 60) return;
+
+    final iconSize = cs * 0.7;
+    final textStyle = TextStyle(
+      color: Colors.white.withOpacity(0.7),
+      fontSize: 10,
+    );
+    final items = <(Color, String, _LegendShape)>[
+      (mode.coinColor, 'Coin', _LegendShape.circle),
+      (mode.potionColor, '+HP', _LegendShape.circle),
+      (mode.weaponColor, 'Sword', _LegendShape.diamond),
+      (mode.monsterColor, 'Enemy', _LegendShape.square),
+      (mode.trapColor, 'Trap', _LegendShape.star),
+      (mode.exitColor, 'Exit', _LegendShape.square),
+      (const Color(0xFF555555), 'Locked', _LegendShape.square),
+    ];
+
+    var y = boardOffset.y + 2;
+    for (final (color, label, shape) in items) {
+      final center = Offset(legendX + iconSize / 2, y + iconSize / 2);
+      final paint = Paint()..color = color;
+      switch (shape) {
+        case _LegendShape.circle:
+          canvas.drawCircle(center, iconSize * 0.35, paint);
+        case _LegendShape.square:
+          canvas.drawRect(
+            Rect.fromCenter(center: center, width: iconSize * 0.7, height: iconSize * 0.7),
+            paint,
+          );
+        case _LegendShape.diamond:
+          final half = iconSize * 0.35;
+          final path = Path()
+            ..moveTo(center.dx, center.dy - half)
+            ..lineTo(center.dx + half, center.dy)
+            ..lineTo(center.dx, center.dy + half)
+            ..lineTo(center.dx - half, center.dy)
+            ..close();
+          canvas.drawPath(path, paint);
+        case _LegendShape.star:
+          final half = iconSize * 0.35;
+          final path = Path()
+            ..moveTo(center.dx, center.dy - half)
+            ..lineTo(center.dx + half * 0.3, center.dy - half * 0.3)
+            ..lineTo(center.dx + half, center.dy)
+            ..lineTo(center.dx + half * 0.3, center.dy + half * 0.3)
+            ..lineTo(center.dx, center.dy + half)
+            ..lineTo(center.dx - half * 0.3, center.dy + half * 0.3)
+            ..lineTo(center.dx - half, center.dy)
+            ..lineTo(center.dx - half * 0.3, center.dy - half * 0.3)
+            ..close();
+          canvas.drawPath(path, paint);
+      }
+
+      final tp = TextPainter(
+        text: TextSpan(text: label, style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(legendX + iconSize + 4, y + (iconSize - tp.height) / 2));
+      y += iconSize + 4;
+    }
+  }
 }
+
+enum _LegendShape { circle, square, diamond, star }
 
 // ---------------------------------------------------------------------------
 // Internal data classes

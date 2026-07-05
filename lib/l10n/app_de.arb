@@ -98,5 +98,9 @@
     "normal": "Normal",
     "fast": "Schnell",
     "insane": "Wahnsinn",
-    "aiOpponents": "KI-Gegner"
+    "aiOpponents": "KI-Gegner",
+    "stampede": "Stampede",
+    "stampedeDesc": "Tierrennen",
+    "nagaDive": "Naga-Tauchgang",
+    "nagaDiveDesc": "Unterwasser-Schwimmen"
 }

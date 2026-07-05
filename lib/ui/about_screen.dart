@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../generated/l10n.dart';
+import 'naga_logo.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -13,6 +15,8 @@ class AboutScreen extends StatelessWidget {
   static const _tagline = 'The Snake Game';
 
   static const _buildVersion = String.fromEnvironment('APP_VERSION');
+  static const _gitCommit = String.fromEnvironment('GIT_COMMIT');
+  static const _buildMode = String.fromEnvironment('BUILD_MODE');
 
   @override
   Widget build(BuildContext context) {
@@ -127,16 +131,12 @@ class _AppHeader extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    Icons.pest_control, // snake-ish icon
-                    size: 28,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                  child: const NagaLogo(height: 32),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -152,6 +152,17 @@ class _AppHeader extends StatelessWidget {
                         '${S.of(context)!.version} $v',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                      if (AboutScreen._gitCommit.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Build ${AboutScreen._gitCommit.length > 7 ? AboutScreen._gitCommit.substring(0, 7) : AboutScreen._gitCommit}'
+                          '${AboutScreen._buildMode.isNotEmpty ? ' (${AboutScreen._buildMode})' : ''}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontFamily: 'monospace',
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
                         AboutScreen._tagline,

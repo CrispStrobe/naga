@@ -39,6 +39,12 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   late double _nextPowerUpSpawnTime;
   double shieldFlashTimer = 0;
 
+  // Cached Paint objects for buff indicators
+  final Paint _buffBgPaint = Paint();
+  final Paint _buffDotPaint = Paint();
+  final Map<String, TextPainter> _buffTextCache = {};
+  String _lastBuffCacheKey = '';
+
   bool get _powerUpsEnabled => mode.name != 'Classic';
 
   // Grid dimensions — configurable via settings
@@ -253,11 +259,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   }
 
   void _applyShrink() {
-    // Remove up to 2 tail segments (keep at least 1 segment — the head)
-    int toRemove = min(2, snake.segments.length - 1);
-    for (int i = 0; i < toRemove; i++) {
-      snake.segments.removeLast();
-    }
+    snake.removeTailSegments(2);
   }
 
   void _applyMagnetEffect() {
@@ -464,36 +466,47 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     for (final entry in activeBuffs.entries) {
       final color = _buffColor(entry.key);
 
-      // Background pill
-      final bgPaint = Paint()..color = color.withOpacity(0.3);
+      // Background pill (reuse Paint)
+      _buffBgPaint.color = color.withOpacity(0.3);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(x, y, 40, 14),
           const Radius.circular(7),
         ),
-        bgPaint,
+        _buffBgPaint,
       );
 
-      // Icon dot
-      final dotPaint = Paint()..color = color;
-      canvas.drawCircle(Offset(x + 8, y + 7), 4, dotPaint);
+      // Icon dot (reuse Paint)
+      _buffDotPaint.color = color;
+      canvas.drawCircle(Offset(x + 8, y + 7), 4, _buffDotPaint);
 
-      // Time text
+      // Time text — cache by displayed string
       final remaining = entry.value > 100 ? '∞' : '${entry.value.ceil()}s';
-      final tp = TextPainter(
-        text: TextSpan(
-          text: remaining,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
+      final cacheKey = '${entry.key.index}_$remaining';
+      final tp = _buffTextCache.putIfAbsent(cacheKey, () {
+        return TextPainter(
+          text: TextSpan(
+            text: remaining,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
+          textDirection: TextDirection.ltr,
+        )..layout();
+      });
       tp.paint(canvas, Offset(x + 16, y + 2));
 
       x += 46;
+    }
+
+    // Prune stale cache entries periodically
+    final newKey = activeBuffs.entries.map((e) =>
+        '${e.key.index}_${e.value > 100 ? '∞' : '${e.value.ceil()}s'}').join(',');
+    if (newKey != _lastBuffCacheKey) {
+      _lastBuffCacheKey = newKey;
+      _buffTextCache.removeWhere((k, _) => !newKey.contains(k));
     }
   }
 

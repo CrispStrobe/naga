@@ -98,8 +98,8 @@ class RushGame extends FlameGame with KeyboardEvents {
         }
         continue;
       }
-      // Only place obstacle with some probability
-      if (_random.nextDouble() < 0.6) {
+      // Only place obstacle with low probability (20%) to keep it playable
+      if (_random.nextDouble() < 0.2) {
         obstacles.add(_Obstacle(position: Point(x, y)));
       }
     }

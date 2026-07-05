@@ -15,6 +15,8 @@ import '../game/nibbles_game.dart';
 import '../game/multiplayer_game.dart';
 import '../game/dungeon_game.dart';
 import '../game/vs_ai_game.dart';
+import '../game/stampede_game.dart';
+import '../game/naga_dive_game.dart';
 import '../components/snake_ai.dart' show AiDifficulty;
 import '../modes/game_mode.dart';
 import '../modes/maze_mode.dart';
@@ -32,6 +34,8 @@ import '../modes/nibbles_mode.dart';
 import '../modes/multiplayer_mode.dart';
 import '../modes/dungeon_mode.dart';
 import '../modes/vs_ai_mode.dart';
+import '../modes/stampede_mode.dart';
+import '../modes/naga_dive_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/high_score_service.dart';
@@ -57,7 +61,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late FlameGame _game;
-  int _score = 0;
+  final ValueNotifier<int> _scoreNotifier = ValueNotifier<int>(0);
   int _livesRemaining = 0;
   bool _isGameOver = false;
   bool _isNewHighScore = false;
@@ -79,6 +83,8 @@ class _GameScreenState extends State<GameScreen> {
   bool get _isMultiplayerMode => widget.mode is MultiplayerMode;
   bool get _isDungeonMode => widget.mode is DungeonMode;
   bool get _isVsAiMode => widget.mode is VsAiMode;
+  bool get _isStampedeMode => widget.mode is StampedeMode;
+  bool get _isNagaDiveMode => widget.mode is NagaDiveMode;
 
   GameSettings get _settings => widget.settingsService.settings;
 
@@ -93,6 +99,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    _scoreNotifier.dispose();
     widget.audioService.stopMusic();
     super.dispose();
   }
@@ -102,49 +109,49 @@ class _GameScreenState extends State<GameScreen> {
       _game = MazeHunterGame(
         mode: widget.mode as MazeMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isTrailMode) {
       _game = trail.TrailGame(
         mode: widget.mode as TrailMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isSwarmMode) {
       _game = SwarmGame(
         mode: widget.mode as SwarmMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isRushMode) {
       _game = RushGame(
         mode: widget.mode as RushMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isFangsMode) {
       _game = FangsGame(
         mode: widget.mode as FangsMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isVenomMode) {
       _game = VenomGame(
         mode: widget.mode as VenomMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isPitMode) {
       _game = PitGame(
         mode: widget.mode as PitMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isSnake2Mode) {
       _game = Snake2Game(
         mode: widget.mode as Snake2Mode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
         gridWidth: _settings.gridSize.width,
         gridHeight: _settings.gridSize.height,
         startSpeed: _settings.startSpeed.baseInterval,
@@ -153,7 +160,7 @@ class _GameScreenState extends State<GameScreen> {
       _game = AsciiGame(
         mode: widget.mode as AsciiMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
         gridWidth: _settings.gridSize.width,
         gridHeight: _settings.gridSize.height,
         startSpeed: _settings.startSpeed.baseInterval,
@@ -162,7 +169,7 @@ class _GameScreenState extends State<GameScreen> {
       _game = CgaGame(
         mode: widget.mode as CgaMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
         gridWidth: _settings.gridSize.width,
         gridHeight: _settings.gridSize.height,
         startSpeed: _settings.startSpeed.baseInterval,
@@ -171,7 +178,7 @@ class _GameScreenState extends State<GameScreen> {
       _game = NibblesGame(
         mode: widget.mode as NibblesMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
         gridWidth: _settings.gridSize.width,
         gridHeight: _settings.gridSize.height,
         startSpeed: _settings.startSpeed.baseInterval,
@@ -180,20 +187,32 @@ class _GameScreenState extends State<GameScreen> {
       _game = MultiplayerGame(
         mode: widget.mode as MultiplayerMode,
         onGameOver: _handleDeath,
-        onP1ScoreChanged: (score) => setState(() => _score = score),
+        onP1ScoreChanged: (score) => _scoreNotifier.value = score,
         onP2ScoreChanged: (_) {},
       );
     } else if (_isDungeonMode) {
       _game = DungeonGame(
         mode: widget.mode as DungeonMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
+      );
+    } else if (_isStampedeMode) {
+      _game = StampedeGame(
+        mode: widget.mode as StampedeMode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => _scoreNotifier.value = score,
+      );
+    } else if (_isNagaDiveMode) {
+      _game = NagaDiveGame(
+        mode: widget.mode as NagaDiveMode,
+        onGameOver: _handleDeath,
+        onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isVsAiMode) {
       _game = VsAiGame(
         mode: widget.mode as VsAiMode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
         aiDifficulty: AiDifficulty.values.byName(_settings.difficulty.name),
       );
     } else {
@@ -210,7 +229,7 @@ class _GameScreenState extends State<GameScreen> {
       _game = SnakeGame(
         mode: widget.mode,
         onGameOver: _handleDeath,
-        onScoreChanged: (score) => setState(() => _score = score),
+        onScoreChanged: (score) => _scoreNotifier.value = score,
         gridWidth: _isClassicMode ? null : _settings.gridSize.width,
         gridHeight: _isClassicMode ? null : _settings.gridSize.height,
         wallsKillOverride: wallsOverride,
@@ -249,7 +268,8 @@ class _GameScreenState extends State<GameScreen> {
     // Only SnakeGame has togglePause — other modes just freeze the FlameGame
     if (!_isMazeMode && !_isTrailMode && !_isSwarmMode && !_isRushMode &&
         !_isFangsMode && !_isVenomMode && !_isPitMode && !_isSnake2Mode &&
-        !_isAsciiMode && !_isCgaMode && !_isNibblesMode && !_isMultiplayerMode) {
+        !_isAsciiMode && !_isCgaMode && !_isNibblesMode && !_isMultiplayerMode &&
+        !_isStampedeMode && !_isNagaDiveMode) {
       (_game as SnakeGame).togglePause();
     } else {
       // For other game types, pause/resume the Flame engine
@@ -262,10 +282,119 @@ class _GameScreenState extends State<GameScreen> {
     setState(() => _isPaused = !_isPaused);
   }
 
+  void _showInstructions() {
+    // Pause the game while showing instructions
+    if (!_isPaused && !_isGameOver) _togglePause();
+
+    final modeName = widget.mode.name;
+    final instructions = _getInstructions(modeName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(modeName),
+        content: Text(instructions),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              if (_isPaused && !_isGameOver) _togglePause();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getInstructions(String modeName) {
+    switch (modeName) {
+      case 'Classic':
+        return 'The original snake game.\n\n'
+            'Eat food to grow longer. Don\'t hit the walls or yourself.\n'
+            'No extra lives. How long can you survive?';
+      case 'Arcade':
+        return 'Fast-paced snake action.\n\n'
+            'Eat food, collect power-ups, and rack up points.\n'
+            'Power-ups: Speed, Shield, Magnet, Slow, Shrink.';
+      case 'Zen':
+        return 'Relaxed snake — no walls kill you.\n\n'
+            'Walls wrap around. Just eat and grow at your own pace.';
+      case 'Maze Hunter':
+        return 'Navigate through maze corridors.\n\n'
+            'Eat all food to complete each level. Watch out for dead ends!';
+      case 'Trail':
+        return 'Your trail is your weapon.\n\n'
+            'Leave a trail behind you. Enemies that cross it are destroyed.';
+      case 'Fangs':
+        return 'Breakout meets Snake!\n\n'
+            'Your snake is the paddle. Bounce the ball to break blocks.\n'
+            'Move fast — the snake is quick in this mode!';
+      case 'Venom':
+        return 'Bomberman meets Snake!\n\n'
+            'Drop venom bombs (Space / action button) to destroy walls and enemies.\n'
+            'Bombs explode after 3 seconds. Chain reactions possible!\n'
+            'Kill all enemies to advance. Don\'t get caught in your own blast.';
+      case 'Swarm':
+        return 'Space Invaders meets Snake!\n\n'
+            'Enemies march down in formation. Eat them by approaching from the SIDES.\n'
+            '⚠ Enemies have spikes on top and bottom — vertical contact is deadly!\n'
+            'Clear all enemies to advance. Snake resets to bottom each wave.';
+      case 'Rush':
+        return 'Endless runner!\n\n'
+            'Obstacles scroll down toward you. Dodge them and collect food.\n'
+            'Wrap around left/right edges. Speed increases over time.';
+      case 'Pit':
+        return 'Eat or be eaten!\n\n'
+            'Enemies roam the pit. Eat them head-on to score.\n'
+            'Touching an enemy with your body is deadly.';
+      case 'Dungeon':
+        return 'Turn-based roguelike!\n\n'
+            'Move with arrow keys — each step is one turn. Monsters move after you.\n\n'
+            '🟡 Coin = points\n'
+            '🔴 Potion = +1 HP (length)\n'
+            '💎 Weapon = kill without damage\n'
+            '👾 Monster = costs 1 HP to kill\n'
+            '⭐ Trap = active every 6th turn\n'
+            '🚪 Exit = opens when all monsters dead';
+      case 'Snake II':
+        return 'Nokia Snake II style.\n\n'
+            'Classic gameplay with configurable grid, speed, and wall behavior.';
+      case 'ASCII':
+        return 'Text-mode snake.\n\n'
+            'Retro ASCII art style. Same classic gameplay.';
+      case 'CGA':
+        return 'CGA graphics throwback.\n\n'
+            '4-color palette with scanline effects. Pure nostalgia.';
+      case 'Nibbles':
+        return 'QBasic NIBBLES.BAS!\n\n'
+            'Faithful recreation of the classic QBasic snake game.';
+      case 'Duel':
+        return 'Local 2-player!\n\n'
+            'Player 1: Arrow keys. Player 2: WASD.\n'
+            'Eat food to grow. Last snake standing wins!';
+      case 'VS AI':
+        return 'Battle the AI!\n\n'
+            'Compete against a computer-controlled snake.\n'
+            'AI difficulty adapts to your settings.';
+      case 'Stampede':
+        return 'Animal race!\n\n'
+            'Race down a jungle track against frogs, lizards, beetles and turtles.\n'
+            'Use LEFT/RIGHT to switch lanes. Dodge rocks, collect golden stars.\n'
+            'Speed increases the further you go!';
+      case 'Naga Dive':
+        return 'Underwater swim!\n\n'
+            'TAP the screen or press SPACE/UP to swim upward.\n'
+            'Gravity pulls you down. Navigate through gaps in coral reefs.\n'
+            'Collect fish for bonus points. How far can you dive?';
+      default:
+        return '${widget.mode.description}\n\nUse arrow keys or d-pad to move.';
+    }
+  }
+
   void _onGameOver() async {
     widget.audioService.playDie();
     final isNew = await widget.highScoreService
-        .submitScore(widget.mode.name, _score);
+        .submitScore(widget.mode.name, _scoreNotifier.value);
     setState(() {
       _isGameOver = true;
       _isNewHighScore = isNew;
@@ -323,29 +452,39 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ],
           const Spacer(),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                s.scoreValue(_score),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  letterSpacing: 2,
-                ),
-              ),
-              if (highScore > 0)
+          ValueListenableBuilder<int>(
+            valueListenable: _scoreNotifier,
+            builder: (context, score, _) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  s.highScoreValue(highScore),
+                  s.scoreValue(score),
                   style: TextStyle(
-                    fontSize: 10,
-                    color: textColor.withOpacity(0.5),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    letterSpacing: 2,
                   ),
                 ),
-            ],
+                if (highScore > 0)
+                  Text(
+                    s.highScoreValue(highScore),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: textColor.withOpacity(0.5),
+                    ),
+                  ),
+              ],
+            ),
           ),
           const Spacer(),
+          // Info button
+          IconButton(
+            icon: Icon(Icons.info_outline, color: textColor, size: 20),
+            onPressed: _showInstructions,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
           // Pause button
           IconButton(
             icon: Icon(
@@ -389,6 +528,14 @@ class _GameScreenState extends State<GameScreen> {
       (_game as MultiplayerGame).changeDirectionP1(dir);
     } else if (_isDungeonMode) {
       (_game as DungeonGame).changeDirection(dir);
+    } else if (_isStampedeMode) {
+      (_game as StampedeGame).changeDirection(dir);
+    } else if (_isNagaDiveMode) {
+      // Naga Dive uses tap/space to flap, not directions
+      // But map Up to flap for d-pad support
+      if (dir == Direction.up) {
+        // Trigger via keyboard handler in game
+      }
     } else if (_isVsAiMode) {
       (_game as VsAiGame).changeDirection(dir);
     } else {
@@ -544,7 +691,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${s.score}: $_score',
+                '${s.score}: ${_scoreNotifier.value}',
                 style: const TextStyle(
                   fontSize: 24,
                   color: Colors.white70,
@@ -567,7 +714,7 @@ class _GameScreenState extends State<GameScreen> {
                   setState(() {
                     _isGameOver = false;
                     _isNewHighScore = false;
-                    _score = 0;
+                    _scoreNotifier.value = 0;
                     _livesRemaining = _isClassicMode ? 0 : _settings.lives;
                     _createGame();
                   });

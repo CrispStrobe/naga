@@ -29,9 +29,9 @@ class FangsMode extends GameMode {
 
   @override
   double tickInterval(int score) {
-    const baseInterval = 0.16;
-    const minInterval = 0.06;
-    final speedUp = (score ~/ 80) * 0.015;
+    const baseInterval = 0.08;
+    const minInterval = 0.03;
+    final speedUp = (score ~/ 80) * 0.008;
     return (baseInterval - speedUp).clamp(minInterval, baseInterval);
   }
 

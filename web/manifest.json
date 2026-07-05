@@ -1,11 +1,12 @@
 {
-    "name": "Naga",
+    "name": "Naga — The Snake Game",
     "short_name": "Naga",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
     "background_color": "#0A0A1A",
     "theme_color": "#0A0A1A",
-    "description": "The Snake Game — 16 modes from retro to roguelike",
+    "description": "17 snake game modes from retro to roguelike. Classic, Arcade, Maze Hunter, Dungeon, and more.",
     "orientation": "portrait",
     "prefer_related_applications": false,
     "categories": [
@@ -13,6 +14,16 @@
         "entertainment"
     ],
     "icons": [
+        {
+            "src": "favicon.png",
+            "sizes": "48x48",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",

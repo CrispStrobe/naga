@@ -9,15 +9,24 @@ flutter gen-l10n              # After editing ARB files
 flutter analyze               # Check for errors
 flutter build web --profile   # Web build (profile mode — works on web)
 flutter build web --release   # Release build (smaller, verify with Playwright)
+flutter build web --wasm      # WASM build (fastest, requires modern browser)
 flutter test                  # Run tests
 ```
 
 ## Deploy
 
 ```bash
-vercel deploy --yes --prod --force build/web   # Deploy to Vercel
+flutter clean && flutter pub get              # Clean build cache (required after plugin changes)
+# Build with version info:
+flutter build web --wasm \
+  --dart-define=GIT_COMMIT=$(git rev-parse HEAD) \
+  --dart-define=BUILD_MODE=wasm
+cp vercel.json build/web/vercel.json          # Copy COOP/COEP headers config
+vercel deploy --yes --prod --force build/web  # Deploy to Vercel
 # Verify: npx playwright screenshot --browser chromium --wait-for-timeout 30000 URL /tmp/check.png
 ```
+
+**WASM requirements:** `vercel.json` must set `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` headers (already configured). Must `flutter clean` before WASM builds to regenerate plugin registrant.
 
 ## Architecture
 

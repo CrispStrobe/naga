@@ -113,9 +113,9 @@ class VenomGame extends FlameGame with KeyboardEvents {
       indestructibleWalls.add(_key(gridWidth - 1, y));
     }
 
-    // Interior indestructible walls in grid pattern (every 3rd cell for wider corridors)
-    for (int x = 3; x < gridWidth - 1; x += 3) {
-      for (int y = 3; y < gridHeight - 1; y += 3) {
+    // Interior indestructible walls in grid pattern (every 4th cell for 2+ wide corridors)
+    for (int x = 4; x < gridWidth - 1; x += 4) {
+      for (int y = 4; y < gridHeight - 1; y += 4) {
         indestructibleWalls.add(_key(x, y));
       }
     }
@@ -153,8 +153,9 @@ class VenomGame extends FlameGame with KeyboardEvents {
     }
     openCells.shuffle(_random);
 
-    // Fill ~40-50% of open cells with destructible walls, more at higher levels
-    final fillRatio = (0.45 + _level * 0.02).clamp(0.45, 0.65);
+    // Fill ~30-40% of open cells with destructible walls, more at higher levels
+    // Keep it lower so 2-wide corridors stay navigable
+    final fillRatio = (0.30 + _level * 0.02).clamp(0.30, 0.45);
     final wallCount = (openCells.length * fillRatio).toInt();
     for (int i = 0; i < wallCount && i < openCells.length; i++) {
       destructibleWalls.add(openCells[i]);

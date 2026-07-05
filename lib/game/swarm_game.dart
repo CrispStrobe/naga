@@ -35,6 +35,11 @@ class SwarmGame extends FlameGame with KeyboardEvents {
   // Power-ups dropped by enemies
   List<Point<int>> powerUps = [];
 
+  // Grace period after wave spawn — snake is invincible briefly
+  double _graceTimer = 0;
+  static const double _graceDuration = 2.0;
+  bool get _isInGrace => _graceTimer > 0;
+
   final Random _random = Random();
 
   SwarmGame({
@@ -67,10 +72,13 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     score = 0;
     _wave = 1;
     gameState = GameState.playing;
+    _resetSnakeToBottom();
+    _spawnWave();
+  }
+
+  void _resetSnakeToBottom() {
     currentDirection = Direction.right;
     _nextDirection = Direction.right;
-
-    // Snake starts at bottom center
     final startX = gridWidth ~/ 2;
     final startY = gridHeight - 3;
     snakeSegments = [
@@ -78,8 +86,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       Point(startX - 1, startY),
       Point(startX - 2, startY),
     ];
-
-    _spawnWave();
+    _graceTimer = _graceDuration;
   }
 
   void _spawnWave() {
@@ -120,6 +127,11 @@ class SwarmGame extends FlameGame with KeyboardEvents {
   void update(double dt) {
     super.update(dt);
     if (gameState != GameState.playing) return;
+
+    // Grace period countdown
+    if (_graceTimer > 0) {
+      _graceTimer -= dt;
+    }
 
     // Snake tick
     _tickTimer += dt;
@@ -163,20 +175,31 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       return; // just don't move
     }
 
-    // Head-first collision with enemies = eat them (score points)
+    // Collision with enemies — horizontal approach = eat, vertical = death
+    // (enemies have spikes on top/bottom)
     final hitEnemy = enemies.where(
       (e) => e.position.x == newHead.x && e.position.y == newHead.y,
     ).toList();
 
     bool ate = false;
     for (final enemy in hitEnemy) {
-      enemies.remove(enemy);
-      score += enemy.points;
-      ate = true;
-      onScoreChanged(score);
-      // Sometimes drop power-up
-      if (_random.nextDouble() < 0.2) {
-        powerUps.add(enemy.position);
+      final isHorizontal = currentDirection == Direction.left ||
+          currentDirection == Direction.right;
+      if (isHorizontal || _isInGrace) {
+        // Eat from the side (or during grace period)
+        enemies.remove(enemy);
+        score += enemy.points;
+        ate = true;
+        onScoreChanged(score);
+        if (_random.nextDouble() < 0.2) {
+          powerUps.add(enemy.position);
+        }
+      } else {
+        // Vertical collision — hit spikes, die
+        if (!_isInGrace) {
+          _die();
+          return;
+        }
       }
     }
 
@@ -200,6 +223,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     // All enemies killed — next wave
     if (enemies.isEmpty) {
       _wave++;
+      _resetSnakeToBottom();
       _spawnWave();
     }
   }
@@ -244,26 +268,24 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       }
     }
 
-    // Check if enemy marched down onto snake body (side hit = death)
-    // Enemies landing on the head are eaten; enemies on body segments kill.
-    final head = snakeSegments.first;
-    final eatenByHead = enemies.where(
-      (e) => e.position.x == head.x && e.position.y == head.y,
-    ).toList();
-    for (final enemy in eatenByHead) {
-      enemies.remove(enemy);
-      score += enemy.points;
-      onScoreChanged(score);
-    }
-
-    // Enemies landing on body (not head) = death
-    for (final enemy in enemies) {
-      for (int i = 1; i < snakeSegments.length; i++) {
-        if (enemy.position.x == snakeSegments[i].x &&
-            enemy.position.y == snakeSegments[i].y) {
+    // Enemies marching down onto snake — always dangerous (they spike you)
+    if (!_isInGrace) {
+      for (final enemy in enemies) {
+        if (snakeSegments.any((s) => s.x == enemy.position.x && s.y == enemy.position.y)) {
           _die();
           return;
         }
+      }
+    } else {
+      // During grace, eat enemies that land on head, ignore body overlap
+      final head = snakeSegments.first;
+      final eatenByHead = enemies.where(
+        (e) => e.position.x == head.x && e.position.y == head.y,
+      ).toList();
+      for (final enemy in eatenByHead) {
+        enemies.remove(enemy);
+        score += enemy.points;
+        onScoreChanged(score);
       }
     }
   }
@@ -339,35 +361,49 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       borderPaint,
     );
 
-    // Draw enemies
+    // Draw enemies — with spikes top/bottom to show vertical danger
+    final spikePaint = Paint()..color = Colors.white.withOpacity(0.9);
     for (final enemy in enemies) {
       final sp = _gridToScreen(enemy.position);
       final paint = Paint()..color = enemy.color;
-      // Bug shape: rounded rect with antennae
-      final bodyRect = Rect.fromLTWH(sp.x + cs * 0.1, sp.y + cs * 0.2, cs * 0.8, cs * 0.65);
+      final cx = sp.x + cs * 0.5;
+
+      // Top spikes (3 triangles pointing up)
+      for (final sx in [0.25, 0.5, 0.75]) {
+        final tipX = sp.x + cs * sx;
+        final path = Path()
+          ..moveTo(tipX, sp.y + cs * 0.02)
+          ..lineTo(tipX - cs * 0.08, sp.y + cs * 0.18)
+          ..lineTo(tipX + cs * 0.08, sp.y + cs * 0.18)
+          ..close();
+        canvas.drawPath(path, spikePaint);
+      }
+
+      // Body — rounded rect in the middle
+      final bodyRect = Rect.fromLTWH(sp.x + cs * 0.1, sp.y + cs * 0.18, cs * 0.8, cs * 0.64);
       canvas.drawRRect(
-        RRect.fromRectAndRadius(bodyRect, Radius.circular(cs * 0.15)),
+        RRect.fromRectAndRadius(bodyRect, Radius.circular(cs * 0.1)),
         paint,
       );
+
+      // Bottom spikes (3 triangles pointing down)
+      for (final sx in [0.25, 0.5, 0.75]) {
+        final tipX = sp.x + cs * sx;
+        final path = Path()
+          ..moveTo(tipX, sp.y + cs * 0.98)
+          ..lineTo(tipX - cs * 0.08, sp.y + cs * 0.82)
+          ..lineTo(tipX + cs * 0.08, sp.y + cs * 0.82)
+          ..close();
+        canvas.drawPath(path, spikePaint);
+      }
+
       // Eyes
       final eyePaint = Paint()..color = Colors.white;
-      canvas.drawCircle(Offset(sp.x + cs * 0.35, sp.y + cs * 0.35), cs * 0.08, eyePaint);
-      canvas.drawCircle(Offset(sp.x + cs * 0.65, sp.y + cs * 0.35), cs * 0.08, eyePaint);
-      // Antennae
-      final antPaint = Paint()
-        ..color = enemy.color
-        ..strokeWidth = 1.5
-        ..style = PaintingStyle.stroke;
-      canvas.drawLine(
-        Offset(sp.x + cs * 0.35, sp.y + cs * 0.2),
-        Offset(sp.x + cs * 0.25, sp.y + cs * 0.05),
-        antPaint,
-      );
-      canvas.drawLine(
-        Offset(sp.x + cs * 0.65, sp.y + cs * 0.2),
-        Offset(sp.x + cs * 0.75, sp.y + cs * 0.05),
-        antPaint,
-      );
+      final pupilPaint = Paint()..color = const Color(0xFF1A1A1A);
+      canvas.drawCircle(Offset(cx - cs * 0.15, sp.y + cs * 0.4), cs * 0.1, eyePaint);
+      canvas.drawCircle(Offset(cx + cs * 0.15, sp.y + cs * 0.4), cs * 0.1, eyePaint);
+      canvas.drawCircle(Offset(cx - cs * 0.15, sp.y + cs * 0.42), cs * 0.05, pupilPaint);
+      canvas.drawCircle(Offset(cx + cs * 0.15, sp.y + cs * 0.42), cs * 0.05, pupilPaint);
     }
 
     // Draw power-ups
@@ -377,8 +413,10 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       canvas.drawCircle(Offset(sp.x + cs / 2, sp.y + cs / 2), cs * 0.25, puPaint);
     }
 
-    // Draw snake
-    final snakePaint = Paint()..color = mode.snakeColor;
+    // Draw snake (flashes during grace period)
+    final graceFlash = _isInGrace && ((_graceTimer * 8).toInt() % 2 == 0);
+    final snakeAlpha = graceFlash ? 0.4 : 1.0;
+    final snakePaint = Paint()..color = mode.snakeColor.withOpacity(snakeAlpha);
     for (final seg in snakeSegments) {
       final sp = _gridToScreen(seg);
       canvas.drawRect(

@@ -319,4 +319,16 @@ class SDe extends S {
 
   @override
   String get aiOpponents => 'KI-Gegner';
+
+  @override
+  String get stampede => 'Stampede';
+
+  @override
+  String get stampedeDesc => 'Tierrennen';
+
+  @override
+  String get nagaDive => 'Naga-Tauchgang';
+
+  @override
+  String get nagaDiveDesc => 'Unterwasser-Schwimmen';
 }

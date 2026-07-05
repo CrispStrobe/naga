@@ -318,4 +318,16 @@ class SEn extends S {
 
   @override
   String get aiOpponents => 'AI Opponents';
+
+  @override
+  String get stampede => 'Stampede';
+
+  @override
+  String get stampedeDesc => 'Animal race track';
+
+  @override
+  String get nagaDive => 'Naga Dive';
+
+  @override
+  String get nagaDiveDesc => 'Underwater swim';
 }
