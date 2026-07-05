@@ -402,9 +402,6 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       _renderSnake(canvas, ai.segments, ai.color, ai.direction);
     }
     _renderFood(canvas);
-    if (gameState == GameState.gameOver) {
-      _renderGameOver(canvas);
-    }
   }
 
   void _renderBoard(Canvas canvas) {

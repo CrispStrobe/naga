@@ -360,9 +360,6 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     _renderSnake(canvas, _p1Segments, mode.snakeColor, _p1Direction);
     _renderSnake(canvas, _p2Segments, mode.player2Color, _p2Direction);
     _renderFood(canvas);
-    if (_isGameOver) {
-      _renderGameOver(canvas);
-    }
   }
 
   void _renderBoard(Canvas canvas) {

@@ -672,7 +672,36 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  String _getResultText(S s) {
+    if (_isVsAiMode) {
+      final won = (_game as VsAiGame).playerWon;
+      return won ? 'YOU WIN!' : s.gameOver;
+    }
+    if (_isMultiplayerMode) {
+      final result = (_game as MultiplayerGame).matchResult;
+      if (result == MatchResult.player1Wins) return s.player1Wins;
+      if (result == MatchResult.player2Wins) return s.player2Wins;
+      if (result == MatchResult.draw) return s.draw;
+    }
+    return s.gameOver;
+  }
+
+  Color _getResultColor() {
+    if (_isVsAiMode && (_game as VsAiGame).playerWon) {
+      return Colors.green.shade400;
+    }
+    if (_isMultiplayerMode) {
+      final result = (_game as MultiplayerGame).matchResult;
+      if (result == MatchResult.player1Wins) return widget.mode.snakeColor;
+      if (result == MatchResult.player2Wins) return Colors.blue.shade400;
+      if (result == MatchResult.draw) return Colors.amber;
+    }
+    return Colors.red.shade400;
+  }
+
   Widget _buildGameOverOverlay(S s) {
+    final resultText = _getResultText(s);
+    final resultColor = _getResultColor();
     return Positioned.fill(
       child: Container(
         color: Colors.black54,
@@ -681,11 +710,11 @@ class _GameScreenState extends State<GameScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                s.gameOver,
+                resultText,
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: Colors.red.shade400,
+                  color: resultColor,
                   letterSpacing: 4,
                 ),
               ),
