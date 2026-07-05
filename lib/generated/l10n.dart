@@ -118,7 +118,7 @@ abstract class S {
   /// No description provided for @classicDesc.
   ///
   /// In en, this message translates to:
-  /// **'Nokia legacy mode'**
+  /// **'Retro phone legacy'**
   String get classicDesc;
 
   /// No description provided for @arcade.
@@ -454,7 +454,7 @@ abstract class S {
   /// No description provided for @classicNote.
   ///
   /// In en, this message translates to:
-  /// **'Classic mode always uses original Nokia rules'**
+  /// **'Classic mode always uses original retro rules'**
   String get classicNote;
 
   /// No description provided for @controls.

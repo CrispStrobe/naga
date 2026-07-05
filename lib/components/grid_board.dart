@@ -13,26 +13,32 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
     final offset = _game.boardOffset;
     final gw = _game.gridWidth;
     final gh = _game.gridHeight;
+    final isClassic = _game.mode.name == 'Classic';
 
-    // Draw board border
+    if (isClassic) {
+      _renderClassicGrid(canvas, cs, offset, gw, gh);
+    } else {
+      _renderCheckerboard(canvas, cs, offset, gw, gh);
+    }
+
+    // Border
     final borderPaint = Paint()
-      ..color = _game.mode.snakeColor
+      ..color = _game.mode.snakeColor.withOpacity(isClassic ? 1.0 : 0.4)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = isClassic ? 2 : 1.5;
 
-    canvas.drawRect(
-      Rect.fromLTWH(
-        offset.x,
-        offset.y,
-        cs * gw,
-        cs * gh,
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(offset.x, offset.y, cs * gw, cs * gh),
+        Radius.circular(isClassic ? 0 : 4),
       ),
       borderPaint,
     );
+  }
 
+  void _renderClassicGrid(Canvas canvas, double cs, Vector2 offset, int gw, int gh) {
     if (!_game.mode.showGrid) return;
 
-    // Draw grid lines
     final gridPaint = Paint()
       ..color = _game.mode.gridColor
       ..strokeWidth = 0.5;
@@ -51,6 +57,28 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
         Offset(offset.x + gw * cs, offset.y + y * cs),
         gridPaint,
       );
+    }
+  }
+
+  void _renderCheckerboard(Canvas canvas, double cs, Vector2 offset, int gw, int gh) {
+    // Subtle two-tone checkerboard — no grid lines
+    final bg = _game.mode.backgroundColor;
+    final light = Color.lerp(bg, Colors.white, 0.03)!;
+    final dark = bg;
+    final lightPaint = Paint()..color = light;
+    final darkPaint = Paint()..color = dark;
+
+    for (int y = 0; y < gh; y++) {
+      for (int x = 0; x < gw; x++) {
+        final isLight = (x + y) % 2 == 0;
+        final rect = Rect.fromLTWH(
+          offset.x + x * cs,
+          offset.y + y * cs,
+          cs,
+          cs,
+        );
+        canvas.drawRect(rect, isLight ? lightPaint : darkPaint);
+      }
     }
   }
 }

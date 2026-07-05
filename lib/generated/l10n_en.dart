@@ -18,7 +18,7 @@ class SEn extends S {
   String get classic => 'Classic';
 
   @override
-  String get classicDesc => 'Nokia legacy mode';
+  String get classicDesc => 'Retro phone legacy';
 
   @override
   String get arcade => 'Arcade';
@@ -197,7 +197,7 @@ class SEn extends S {
   String get gameplay => 'Gameplay';
 
   @override
-  String get classicNote => 'Classic mode always uses original Nokia rules';
+  String get classicNote => 'Classic mode always uses original retro rules';
 
   @override
   String get controls => 'Controls';

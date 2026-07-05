@@ -22,24 +22,24 @@ class AudioService {
 
   // Per-mode music mapping
   static const Map<String, String> _modeMusic = {
-    'Classic': 'music/classic.mp3',
-    'Arcade': 'music/arcade.mp3',
-    'Zen': 'music/zen.mp3',
-    'Maze Hunter': 'music/maze.mp3',
-    'Trail': 'music/trail.mp3',
-    'Fangs': 'music/fangs.mp3',
-    'Venom': 'music/venom.mp3',
-    'Pit': 'music/pit.mp3',
-    'Swarm': 'music/swarm.mp3',
-    'Rush': 'music/rush.mp3',
+    'Classic': 'music/classic.wav',
+    'Arcade': 'music/arcade.wav',
+    'Zen': 'music/zen.wav',
+    'Maze Hunter': 'music/maze.wav',
+    'Trail': 'music/trail.wav',
+    'Fangs': 'music/fangs.wav',
+    'Venom': 'music/venom.wav',
+    'Pit': 'music/pit.wav',
+    'Swarm': 'music/swarm.wav',
+    'Rush': 'music/rush.wav',
   };
 
   // SFX names
-  static const String sfxEat = 'sfx/eat.mp3';
-  static const String sfxDie = 'sfx/die.mp3';
-  static const String sfxPowerUp = 'sfx/powerup.mp3';
-  static const String sfxLevelUp = 'sfx/levelup.mp3';
-  static const String sfxClick = 'sfx/click.mp3';
+  static const String sfxEat = 'sfx/eat.wav';
+  static const String sfxDie = 'sfx/die.wav';
+  static const String sfxPowerUp = 'sfx/powerup.wav';
+  static const String sfxLevelUp = 'sfx/levelup.wav';
+  static const String sfxClick = 'sfx/click.wav';
 
   AudioService._();
 

@@ -18,7 +18,7 @@ class SDe extends S {
   String get classic => 'Klassisch';
 
   @override
-  String get classicDesc => 'Nokia Retro-Modus';
+  String get classicDesc => 'Retro-Handy-Modus';
 
   @override
   String get arcade => 'Arcade';
@@ -198,7 +198,7 @@ class SDe extends S {
 
   @override
   String get classicNote =>
-      'Klassisch-Modus nutzt immer die original Nokia-Regeln';
+      'Klassisch-Modus nutzt immer die originalen Retro-Regeln';
 
   @override
   String get controls => 'Steuerung';
