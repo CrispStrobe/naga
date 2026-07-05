@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Tron-inspired mode — light trails, AI opponents, shrinking arena.
@@ -10,16 +11,16 @@ class TrailMode extends GameMode {
   String get description => 'Tron light cycles';
 
   @override
-  Color get backgroundColor => const Color(0xFF00695C);
+  Color get backgroundColor => NagaPalette.deepLagoon; // brighter lagoon arena
 
   @override
-  Color get snakeColor => const Color(0xFF00E5FF); // Cyan neon
+  Color get snakeColor => NagaPalette.parrotCyan; // Cyan neon
 
   @override
-  Color get foodColor => const Color(0xFFFF6D00); // Orange energy
+  Color get foodColor => NagaPalette.emberOrange; // Orange energy
 
   @override
-  Color get gridColor => const Color(0xFF003333);
+  Color get gridColor => const Color(0xFF00897B);
 
   @override
   bool get wallsKill => true;

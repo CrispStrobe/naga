@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Battle Royale — shrinking arena, multiple AI snakes, last one alive wins.
@@ -10,7 +11,7 @@ class PitMode extends GameMode {
   String get description => 'Last snake standing';
 
   @override
-  Color get backgroundColor => const Color(0xFF4A1A0A);
+  Color get backgroundColor => NagaPalette.terracotta; // sun-baked clay pit
 
   @override
   Color get snakeColor => const Color(0xFF00E676); // Emerald green
@@ -19,7 +20,7 @@ class PitMode extends GameMode {
   Color get foodColor => const Color(0xFFFFD740); // Gold food
 
   @override
-  Color get gridColor => const Color(0xFF5C2A1A);
+  Color get gridColor => const Color(0xFFF4511E);
 
   @override
   bool get wallsKill => true;

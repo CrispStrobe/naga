@@ -4,11 +4,20 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../components/snake_ai.dart';
+import '../components/snake_ai.dart' show AiDifficulty;
 import '../modes/vs_ai_mode.dart';
 import 'snake_game.dart' show Direction, GameState;
 
-/// Player vs 1-3 AI snakes — same grid, same food competition.
+/// Player vs 1-3 AI snakes.
+///
+/// Two variants:
+/// - **Shared arena** ([splitArena] = false): everyone competes on the same
+///   grid for the same food. The AI actively defends its space and tries to
+///   cut across the player's path.
+/// - **Split arena** ([splitArena] = true): an impassable vertical divider
+///   wall splits the field. The player lives in the left half, the AI
+///   snake(s) in the right half, each side with its own food. First to die
+///   loses — if the AI crashes in its half, the player wins.
 ///
 /// Score = player's food count.  Game over when the player dies.
 /// Win condition: all AI snakes are dead.
@@ -18,6 +27,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   final ValueChanged<int> onScoreChanged;
   final AiDifficulty aiDifficulty;
   final int aiCount; // 1-3
+  final bool splitArena;
 
   late final int gridWidth;
   late final int gridHeight;
@@ -43,8 +53,15 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   // AI opponents
   late List<_AiOpponent> _aiOpponents;
 
-  // Food
+  /// Final scores of AI snakes that died this round (color, score) —
+  /// kept so the HUD comparison stays visible.
+  final List<(Color, int)> _fallenAiScores = [];
+
+  // Food (player food; in split mode it lives in the left half)
   late Point<int> _foodPos;
+
+  // AI-side food (split mode only, lives in the right half)
+  Point<int>? _aiFoodPos;
 
   VsAiGame({
     required this.mode,
@@ -52,10 +69,14 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     required this.onScoreChanged,
     this.aiDifficulty = AiDifficulty.medium,
     this.aiCount = 1,
+    this.splitArena = false,
     int? gridWidth,
     int? gridHeight,
-  })  : gridWidth = gridWidth ?? 20,
+  })  : gridWidth = gridWidth ?? (splitArena ? 21 : 20),
         gridHeight = gridHeight ?? 28;
+
+  /// Column occupied by the divider wall (split arena only).
+  int get _dividerX => gridWidth ~/ 2;
 
   // ------------------------------------------------------------------
   // Lifecycle
@@ -90,8 +111,8 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     currentDirection = Direction.right;
     _directionQueue.clear();
 
-    // Player starts centre-left
-    final px = gridWidth ~/ 4;
+    // Player starts centre-left (of its half in split mode)
+    final px = splitArena ? _dividerX ~/ 2 : gridWidth ~/ 4;
     final py = gridHeight ~/ 2;
     playerSegments = [
       Point(px, py),
@@ -100,14 +121,26 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     ];
 
     // Spawn AI opponents at different positions
-    final spawnConfigs = <(Point<int>, Direction)>[
-      (Point((gridWidth * 3) ~/ 4, gridHeight ~/ 2), Direction.left),
-      (Point(gridWidth ~/ 2, gridHeight ~/ 4), Direction.down),
-      (Point(gridWidth ~/ 2, (gridHeight * 3) ~/ 4), Direction.up),
-    ];
+    final List<(Point<int>, Direction)> spawnConfigs;
+    if (splitArena) {
+      // All AI snakes live in the right half.
+      final rightMid = _dividerX + 1 + (gridWidth - _dividerX - 1) ~/ 2;
+      spawnConfigs = [
+        (Point(rightMid, gridHeight ~/ 2), Direction.left),
+        (Point(rightMid, gridHeight ~/ 4), Direction.left),
+        (Point(rightMid, (gridHeight * 3) ~/ 4), Direction.left),
+      ];
+    } else {
+      spawnConfigs = [
+        (Point((gridWidth * 3) ~/ 4, gridHeight ~/ 2), Direction.left),
+        (Point(gridWidth ~/ 2, gridHeight ~/ 4), Direction.down),
+        (Point(gridWidth ~/ 2, (gridHeight * 3) ~/ 4), Direction.up),
+      ];
+    }
 
     final count = aiCount.clamp(1, 3);
     _aiOpponents = [];
+    _fallenAiScores.clear();
     for (int i = 0; i < count; i++) {
       final (pos, dir) = spawnConfigs[i];
       final dx = dir == Direction.left
@@ -124,11 +157,11 @@ class VsAiGame extends FlameGame with KeyboardEvents {
         ],
         direction: dir,
         color: VsAiMode.aiColors[i],
-        brain: SnakeAI(difficulty: aiDifficulty),
       ));
     }
 
     _spawnFood();
+    if (splitArena) _spawnAiFood();
   }
 
   void restart() {
@@ -141,14 +174,28 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   // ------------------------------------------------------------------
 
   void _spawnFood() {
+    _foodPos = _randomFreeCell(
+      minX: 0,
+      maxX: splitArena ? _dividerX - 1 : gridWidth - 1,
+    );
+  }
+
+  void _spawnAiFood() {
+    _aiFoodPos = _randomFreeCell(minX: _dividerX + 1, maxX: gridWidth - 1);
+  }
+
+  Point<int> _randomFreeCell({required int minX, required int maxX}) {
     Point<int> pos;
     int attempts = 0;
     do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
+      pos = Point(
+        minX + _random.nextInt(maxX - minX + 1),
+        _random.nextInt(gridHeight),
+      );
       attempts++;
       if (attempts > 200) break;
     } while (_isOccupied(pos));
-    _foodPos = pos;
+    return pos;
   }
 
   bool _isOccupied(Point<int> p) {
@@ -254,18 +301,32 @@ class VsAiGame extends FlameGame with KeyboardEvents {
 
   void _tick() {
     // --- AI decisions (before movement) ---
+    final upcomingDir =
+        _directionQueue.isNotEmpty ? _directionQueue.first : currentDirection;
+    final playerNext = _advance(playerSegments.first, upcomingDir);
+
+    final allOccupied = <Point<int>>{
+      ...playerSegments,
+      for (final ai in _aiOpponents) ...ai.segments,
+    };
+
+    // Baseline of the player's reachable space (for offensive squeeze moves).
+    int basePlayerSpace = 0;
+    if (!splitArena) {
+      final blocked = Set<Point<int>>.from(allOccupied)
+        ..remove(playerSegments.last);
+      basePlayerSpace = _floodFill(playerNext, blocked);
+    }
+
     for (final ai in _aiOpponents) {
-      final otherSnakes = <List<Point<int>>>[playerSegments];
-      for (final other in _aiOpponents) {
-        if (other != ai) otherSnakes.add(other.segments);
-      }
-      final chosen = ai.brain.decideDirection(
-        ai.segments,
-        otherSnakes,
-        [_foodPos],
-        gridWidth,
-        gridHeight,
-        mode.wallsKill,
+      final food = splitArena ? _aiFoodPos : _foodPos;
+      final chosen = _decideAiDirection(
+        ai,
+        food,
+        allOccupied,
+        playerNext,
+        upcomingDir,
+        basePlayerSpace,
       );
       if (!_isOpposite(chosen, ai.direction)) {
         ai.direction = chosen;
@@ -279,7 +340,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     final playerHead = _advance(playerSegments.first, currentDirection);
 
     // Player death checks
-    if (_outOfBounds(playerHead)) {
+    if (_isWall(playerHead)) {
       _playerDies();
       return;
     }
@@ -310,7 +371,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       final newHead = _advance(ai.segments.first, ai.direction);
 
       // AI death checks
-      if (_outOfBounds(newHead)) {
+      if (_isWall(newHead)) {
         deadAi.add(ai);
         continue;
       }
@@ -342,17 +403,25 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       }
 
       // Move AI
-      final aiAte = newHead.x == _foodPos.x && newHead.y == _foodPos.y;
+      final aiFood = splitArena ? _aiFoodPos : _foodPos;
+      final aiAte =
+          aiFood != null && newHead.x == aiFood.x && newHead.y == aiFood.y;
       ai.segments.insert(0, newHead);
       if (!aiAte) ai.segments.removeLast();
 
-      if (aiAte && !playerAte) {
-        // AI ate the food — respawn (no score for AI)
-        _spawnFood();
+      if (aiAte) {
+        ai.score += mode.pointsPerFood(ai.score);
+        if (splitArena) {
+          _spawnAiFood();
+        } else if (!playerAte) {
+          // AI ate the food — respawn
+          _spawnFood();
+        }
       }
     }
 
     for (final ai in deadAi) {
+      _fallenAiScores.add((ai.color, ai.score));
       _aiOpponents.remove(ai);
     }
 
@@ -382,14 +451,210 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  bool _outOfBounds(Point<int> p) {
-    return p.x < 0 || p.x >= gridWidth || p.y < 0 || p.y >= gridHeight;
+  /// True if [p] is outside the grid or on the divider wall (split arena).
+  bool _isWall(Point<int> p) {
+    if (p.x < 0 || p.x >= gridWidth || p.y < 0 || p.y >= gridHeight) {
+      return true;
+    }
+    if (splitArena && p.x == _dividerX) return true;
+    return false;
   }
 
   void _playerDies() {
     playerWon = false;
     gameState = GameState.gameOver;
     onGameOver();
+  }
+
+  // ------------------------------------------------------------------
+  // AI brain — flood-fill survival + food seeking + path cutting
+  // ------------------------------------------------------------------
+
+  /// Chance the AI plays a random (but non-suicidal) move instead of the
+  /// best one — keeps it beatable.
+  double get _mistakeChance {
+    switch (aiDifficulty) {
+      case AiDifficulty.easy:
+        return 0.22;
+      case AiDifficulty.medium:
+        return 0.12;
+      case AiDifficulty.hard:
+        return 0.06;
+      case AiDifficulty.expert:
+        return 0.03;
+    }
+  }
+
+  /// How aggressively the AI tries to squeeze the player's space.
+  double get _offenseWeight {
+    switch (aiDifficulty) {
+      case AiDifficulty.easy:
+        return 0.0;
+      case AiDifficulty.medium:
+        return 0.5;
+      case AiDifficulty.hard:
+        return 1.0;
+      case AiDifficulty.expert:
+        return 1.5;
+    }
+  }
+
+  Direction _decideAiDirection(
+    _AiOpponent ai,
+    Point<int>? food,
+    Set<Point<int>> allOccupied,
+    Point<int> playerNext,
+    Direction playerDir,
+    int basePlayerSpace,
+  ) {
+    final head = ai.segments.first;
+    final ownLength = ai.segments.length;
+    final playerHead = playerSegments.first;
+
+    Direction? bestDir;
+    double bestScore = double.negativeInfinity;
+    // Directions that don't lead into a pocket smaller than the snake —
+    // candidates for the occasional deliberate "mistake".
+    final survivors = <Direction>[];
+
+    for (final d in Direction.values) {
+      if (_isOpposite(d, ai.direction)) continue;
+      final next = _advance(head, d);
+
+      // Instantly lethal moves are never taken.
+      if (_isWall(next) || allOccupied.contains(next)) continue;
+
+      double score = 0;
+
+      // --- Survival: flood-fill reachable space from the candidate cell.
+      // Own tail moves away next tick, so treat it as free.
+      final blocked = Set<Point<int>>.from(allOccupied)
+        ..remove(ai.segments.last);
+      final space = _floodFill(next, blocked);
+      score += min(space, 80) * 3.0;
+      if (space < ownLength + 2) {
+        // Pocket smaller than own body — near-certain death.
+        score -= 600;
+      } else {
+        survivors.add(d);
+      }
+
+      // --- Avoid head-on collisions with the player's likely next cell
+      // (a contested cell always kills the AI).
+      if (next == playerNext) {
+        score -= 500;
+      } else if ((next.x - playerHead.x).abs() +
+              (next.y - playerHead.y).abs() ==
+          1) {
+        // Adjacent to the player's head: they might turn into us.
+        score -= 90;
+      }
+
+      // --- Base drive: seek food via BFS distance.
+      if (food != null) {
+        final dist = _bfsDistance(next, food, blocked);
+        if (dist >= 0) {
+          score += (100 - dist * 3).clamp(0, 100).toDouble();
+        } else {
+          score -= 40;
+        }
+      }
+
+      // --- Offense (shared arena only): squeeze the player's reachable
+      // space and cut across their path — but never at the cost of our
+      // own breathing room.
+      if (!splitArena &&
+          _offenseWeight > 0 &&
+          space >= ownLength + 6 &&
+          next != playerNext) {
+        if (basePlayerSpace > 0) {
+          final pBlocked = Set<Point<int>>.from(allOccupied)
+            ..remove(playerSegments.last)
+            ..add(next);
+          final pSpace = _floodFill(playerNext, pBlocked);
+          final squeeze = (basePlayerSpace - pSpace).toDouble();
+          if (squeeze > 0) {
+            score += _offenseWeight * min(squeeze, 40) * 4;
+          }
+        }
+        // Bonus for claiming a cell 2-4 steps ahead of the player's head.
+        if (_cutsPlayerPath(next, playerHead, playerDir)) {
+          score += _offenseWeight * 30;
+        }
+      }
+
+      // Small jitter so play doesn't look robotic.
+      score += _random.nextDouble() * 6;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestDir = d;
+      }
+    }
+
+    if (bestDir == null) return ai.direction; // boxed in — doomed
+    if (survivors.length > 1 && _random.nextDouble() < _mistakeChance) {
+      return survivors[_random.nextInt(survivors.length)];
+    }
+    return bestDir;
+  }
+
+  /// True if [cell] lies 2-4 steps directly ahead of the player's head
+  /// along [playerDir] — occupying it cuts across the player's path.
+  bool _cutsPlayerPath(
+      Point<int> cell, Point<int> playerHead, Direction playerDir) {
+    var probe = playerHead;
+    for (int i = 0; i < 4; i++) {
+      probe = _advance(probe, playerDir);
+      if (i >= 1 && probe.x == cell.x && probe.y == cell.y) return true;
+    }
+    return false;
+  }
+
+  /// Count of free cells reachable from [start] ([blocked] and walls are
+  /// impassable). Capped — the grid is small, this runs per candidate
+  /// direction per tick.
+  int _floodFill(Point<int> start, Set<Point<int>> blocked, {int cap = 300}) {
+    if (_isWall(start) || blocked.contains(start)) return 0;
+    final visited = <int>{};
+    final stack = <Point<int>>[start];
+    int count = 0;
+    while (stack.isNotEmpty) {
+      final p = stack.removeLast();
+      final key = p.x * 1000 + p.y;
+      if (visited.contains(key)) continue;
+      if (_isWall(p) || blocked.contains(p)) continue;
+      visited.add(key);
+      count++;
+      if (count >= cap) return count;
+      stack.add(Point(p.x + 1, p.y));
+      stack.add(Point(p.x - 1, p.y));
+      stack.add(Point(p.x, p.y + 1));
+      stack.add(Point(p.x, p.y - 1));
+    }
+    return count;
+  }
+
+  /// BFS shortest-path distance from [start] to [target], or -1 if
+  /// unreachable. Walls (incl. the divider) and [blocked] are impassable.
+  int _bfsDistance(
+      Point<int> start, Point<int> target, Set<Point<int>> blocked) {
+    if (start.x == target.x && start.y == target.y) return 0;
+    final visited = <int>{start.x * 1000 + start.y};
+    final queue = Queue<(Point<int>, int)>()..add((start, 0));
+    while (queue.isNotEmpty) {
+      final (p, dist) = queue.removeFirst();
+      for (final d in Direction.values) {
+        final next = _advance(p, d);
+        if (_isWall(next) || blocked.contains(next)) continue;
+        if (next.x == target.x && next.y == target.y) return dist + 1;
+        final key = next.x * 1000 + next.y;
+        if (visited.contains(key)) continue;
+        visited.add(key);
+        queue.add((next, dist + 1));
+      }
+    }
+    return -1;
   }
 
   // ------------------------------------------------------------------
@@ -407,11 +672,60 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   void render(Canvas canvas) {
     super.render(canvas);
     _renderBoard(canvas);
+    if (splitArena) _renderDivider(canvas);
     _renderSnake(canvas, playerSegments, mode.snakeColor, currentDirection);
     for (final ai in _aiOpponents) {
       _renderSnake(canvas, ai.segments, ai.color, ai.direction);
     }
-    _renderFood(canvas);
+    _renderFood(canvas, _foodPos);
+    if (splitArena && _aiFoodPos != null) {
+      _renderFood(canvas, _aiFoodPos!);
+    }
+    _renderAiScores(canvas);
+  }
+
+  /// Draws each AI snake's score as a compact pill near the top of the
+  /// board (dead AIs stay visible, dimmed), colored per snake so the
+  /// player can compare against their own score in the app's score bar.
+  void _renderAiScores(Canvas canvas) {
+    final entries = <(Color, int, bool)>[
+      for (final ai in _aiOpponents) (ai.color, ai.score, true),
+      for (final (color, aiScore) in _fallenAiScores)
+        (color, aiScore, false),
+    ];
+    if (entries.isEmpty) return;
+
+    double x = boardOffset.x + cellSize * 0.4;
+    final y = boardOffset.y + cellSize * 0.3;
+
+    for (final (color, aiScore, alive) in entries) {
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: 'AI: $aiScore',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+            color: alive ? color : color.withOpacity(0.5),
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+
+      // Dark pill behind the text so every AI color reads on the bright
+      // river-blue board.
+      final pill = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, textPainter.width + 14, textPainter.height + 6),
+        const Radius.circular(10),
+      );
+      canvas.drawRRect(
+        pill,
+        Paint()..color = Colors.black.withOpacity(alive ? 0.45 : 0.25),
+      );
+      textPainter.paint(canvas, Offset(x + 7, y + 3));
+      x += pill.width + 8;
+    }
   }
 
   void _renderBoard(Canvas canvas) {
@@ -421,7 +735,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     final gh = gridHeight;
 
     final bg = mode.backgroundColor;
-    final light = Color.lerp(bg, Colors.white, 0.03)!;
+    final light = Color.lerp(bg, Colors.white, 0.05)!;
     final lightPaint = Paint()..color = light;
     final darkPaint = Paint()..color = bg;
 
@@ -439,7 +753,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     }
 
     final borderPaint = Paint()
-      ..color = mode.snakeColor.withOpacity(0.4)
+      ..color = Colors.white.withOpacity(0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawRRect(
@@ -449,6 +763,49 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       ),
       borderPaint,
     );
+  }
+
+  /// Draws the impassable divider wall down the middle (split arena).
+  void _renderDivider(Canvas canvas) {
+    final cs = cellSize;
+    final x = boardOffset.x + _dividerX * cs;
+    final rect = Rect.fromLTWH(x, boardOffset.y, cs, cs * gridHeight);
+
+    // Deep-blue wall column, clearly darker than the river background.
+    final wallPaint = Paint()..color = const Color(0xFF01579B);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        rect.deflate(cs * 0.08),
+        Radius.circular(cs * 0.25),
+      ),
+      wallPaint,
+    );
+
+    // Light edge highlight so the wall pops on the bright board.
+    final edgePaint = Paint()
+      ..color = Colors.white.withOpacity(0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        rect.deflate(cs * 0.08),
+        Radius.circular(cs * 0.25),
+      ),
+      edgePaint,
+    );
+
+    // Bamboo-style segment notches.
+    final notchPaint = Paint()
+      ..color = Colors.white.withOpacity(0.25)
+      ..strokeWidth = 2;
+    for (int y = 2; y < gridHeight; y += 3) {
+      final ny = boardOffset.y + y * cs;
+      canvas.drawLine(
+        Offset(x + cs * 0.18, ny),
+        Offset(x + cs * 0.82, ny),
+        notchPaint,
+      );
+    }
   }
 
   void _renderSnake(
@@ -682,9 +1039,9 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _renderFood(Canvas canvas) {
+  void _renderFood(Canvas canvas, Point<int> foodPos) {
     final cs = cellSize;
-    final sp = _gridToScreen(_foodPos);
+    final sp = _gridToScreen(foodPos);
     final x = sp.x;
     final y = sp.y;
 
@@ -694,7 +1051,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     final cy = y + cs / 2;
 
     final glowPaint = Paint()
-      ..color = mode.foodColor.withOpacity(0.15)
+      ..color = mode.foodColor.withOpacity(0.25)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawCircle(Offset(cx, cy), radius * 1.8, glowPaint);
 
@@ -709,49 +1066,6 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       highlightPaint,
     );
   }
-
-  void _renderGameOver(Canvas canvas) {
-    final overlayPaint = Paint()..color = Colors.black.withOpacity(0.6);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), overlayPaint);
-
-    final resultText = playerWon ? 'YOU WIN!' : 'GAME OVER';
-    final resultColor = playerWon ? mode.snakeColor : Colors.red;
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: resultText,
-        style: TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: resultColor,
-          letterSpacing: 4,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset((size.x - textPainter.width) / 2, size.y * 0.35),
-    );
-
-    final scorePainter = TextPainter(
-      text: TextSpan(
-        text: 'SCORE: $score',
-        style: TextStyle(
-          fontSize: 22,
-          color: mode.snakeColor,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    scorePainter.layout();
-    scorePainter.paint(
-      canvas,
-      Offset((size.x - scorePainter.width) / 2, size.y * 0.35 + 50),
-    );
-  }
 }
 
 /// Internal representation of one AI-controlled opponent.
@@ -759,12 +1073,13 @@ class _AiOpponent {
   List<Point<int>> segments;
   Direction direction;
   final Color color;
-  final SnakeAI brain;
+
+  /// Points this AI has gathered from food (shown in the HUD).
+  int score = 0;
 
   _AiOpponent({
     required this.segments,
     required this.direction,
     required this.color,
-    required this.brain,
   });
 }

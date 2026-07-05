@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/audio_service.dart';
@@ -22,6 +23,14 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late GameSettings _settings;
 
+  // Keyboard navigation: every option tile registers itself during build,
+  // arrows move the focus, Space/Enter activates the focused tile.
+  int _focusIndex = -1;
+  final FocusNode _focusNode = FocusNode();
+  final List<VoidCallback> _actions = [];
+  final List<GlobalKey> _tileKeys = [];
+  int _buildCounter = 0;
+
   @override
   void initState() {
     super.initState();
@@ -29,8 +38,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  /// Builds an option tile registered for keyboard navigation.
+  Widget _tile({
+    required String label,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final idx = _buildCounter++;
+    while (_tileKeys.length <= idx) {
+      _tileKeys.add(GlobalKey());
+    }
+    _actions.add(onTap);
+    return _OptionTile(
+      key: _tileKeys[idx],
+      label: label,
+      subtitle: subtitle,
+      selected: selected,
+      focused: _focusIndex == idx,
+      onTap: onTap,
+    );
+  }
+
+  void _moveFocus(int delta) {
+    if (_actions.isEmpty) return;
+    setState(() {
+      if (_focusIndex < 0) {
+        _focusIndex = delta > 0 ? 0 : _actions.length - 1;
+      } else {
+        _focusIndex = (_focusIndex + delta) % _actions.length;
+        if (_focusIndex < 0) _focusIndex += _actions.length;
+      }
+    });
+    final ctx = _tileKeys[_focusIndex].currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 120),
+      );
+    }
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowRight) {
+      _moveFocus(1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowLeft) {
+      _moveFocus(-1);
+      return KeyEventResult.handled;
+    }
+    if ((key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.space ||
+            key == LogicalKeyboardKey.select) &&
+        event is KeyDownEvent) {
+      if (_focusIndex >= 0 && _focusIndex < _actions.length) {
+        _actions[_focusIndex]();
+      }
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
+    _buildCounter = 0;
+    _actions.clear();
     return Scaffold(
       backgroundColor: const Color(0xFFF1F8E9),
       appBar: AppBar(
@@ -38,9 +124,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: const Color(0xFFF1F8E9),
         iconTheme: const IconThemeData(color: Color(0xFF2E7D32)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: _onKeyEvent,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
           // Language
           _SectionTitle(label: s.language),
           _buildLanguageSelector(s),
@@ -106,7 +196,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -115,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final current = widget.settingsService.localeCode;
     return Column(
       children: [
-        _OptionTile(
+        _tile(
           label: 'System',
           subtitle: '',
           selected: current == null,
@@ -124,7 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             widget.onLocaleChanged?.call();
           },
         ),
-        _OptionTile(
+        _tile(
           label: s.languageEnglish,
           subtitle: 'EN',
           selected: current == 'en',
@@ -133,7 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             widget.onLocaleChanged?.call();
           },
         ),
-        _OptionTile(
+        _tile(
           label: s.languageGerman,
           subtitle: 'DE',
           selected: current == 'de',
@@ -161,7 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: GridSize.values.map((size) {
         final selected = _settings.gridSize == size;
-        return _OptionTile(
+        return _tile(
           label: labels[size]!,
           subtitle: descriptions[size]!,
           selected: selected,
@@ -177,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildWallBehaviorSelector(S s) {
     return Column(
       children: [
-        _OptionTile(
+        _tile(
           label: s.wallDie,
           subtitle: '💀',
           selected: _settings.wallBehavior == WallBehavior.die,
@@ -186,7 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             setState(() => _settings = widget.settingsService.settings);
           },
         ),
-        _OptionTile(
+        _tile(
           label: s.wallWrap,
           subtitle: '🔄',
           selected: _settings.wallBehavior == WallBehavior.wrap,
@@ -202,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildAudioToggles(S s) {
     return Column(
       children: [
-        _OptionTile(
+        _tile(
           label: s.music,
           subtitle: widget.audioService.musicEnabled ? s.on : s.off,
           selected: widget.audioService.musicEnabled,
@@ -212,7 +303,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             setState(() {});
           },
         ),
-        _OptionTile(
+        _tile(
           label: s.soundEffects,
           subtitle: widget.audioService.sfxEnabled ? s.on : s.off,
           selected: widget.audioService.sfxEnabled,
@@ -229,7 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildControlTypeSelector(S s) {
     return Column(
       children: [
-        _OptionTile(
+        _tile(
           label: s.swipeControls,
           subtitle: s.controlsSwipeDesc,
           selected: _settings.controlType == ControlType.swipe,
@@ -238,7 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             setState(() => _settings = widget.settingsService.settings);
           },
         ),
-        _OptionTile(
+        _tile(
           label: s.buttonControls,
           subtitle: s.controlsButtonDesc,
           selected: _settings.controlType == ControlType.buttons,
@@ -262,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: Difficulty.values.map((d) {
         final selected = _settings.difficulty == d;
-        return _OptionTile(
+        return _tile(
           label: labels[d]!,
           subtitle: '',
           selected: selected,
@@ -288,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: StartSpeed.values.map((sp) {
         final selected = _settings.startSpeed == sp;
-        return _OptionTile(
+        return _tile(
           label: labels[sp]!,
           subtitle: '',
           selected: selected,
@@ -304,7 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildLivesSelector(S s) {
     return Column(
       children: [
-        _OptionTile(
+        _tile(
           label: s.livesNone,
           subtitle: '',
           selected: _settings.lives == 0,
@@ -315,7 +406,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         ...List.generate(5, (i) {
           final count = i + 1;
-          return _OptionTile(
+          return _tile(
             label: s.livesCount(count),
             subtitle: '❤️' * count,
             selected: _settings.lives == count,
@@ -355,12 +446,15 @@ class _OptionTile extends StatelessWidget {
   final String label;
   final String subtitle;
   final bool selected;
+  final bool focused;
   final VoidCallback onTap;
 
   const _OptionTile({
+    super.key,
     required this.label,
     required this.subtitle,
     required this.selected,
+    this.focused = false,
     required this.onTap,
   });
 
@@ -376,13 +470,23 @@ class _OptionTile extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 4),
           decoration: BoxDecoration(
             border: Border.all(
-              color: selected
-                  ? const Color(0xFF2E7D32)
-                  : const Color(0xFFA5D6A7),
-              width: selected ? 2 : 1,
+              color: focused
+                  ? const Color(0xFFE65100)
+                  : selected
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFFA5D6A7),
+              width: focused ? 2.5 : (selected ? 2 : 1),
             ),
             borderRadius: BorderRadius.circular(8),
             color: selected ? const Color(0xFFC8E6C9) : Colors.white.withOpacity(0.5),
+            boxShadow: focused
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFE65100).withOpacity(0.25),
+                      blurRadius: 8,
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             children: [

@@ -125,5 +125,15 @@
     "stampede": "Stampede",
     "stampedeDesc": "Animal race track",
     "nagaDive": "Naga Dive",
-    "nagaDiveDesc": "Underwater swim"
+    "nagaDiveDesc": "Underwater swim",
+    "vsAiSplit": "VS AI Split",
+    "vsAiSplitDesc": "Separate lanes duel",
+    "gameOverQuip1": "Even a Naga must watch where it slithers!",
+    "gameOverQuip2": "The jungle claims another tail…",
+    "gameOverQuip3": "Ouch! Right on the fangs.",
+    "gameOverQuip4": "That apple was SO worth it.",
+    "gameOverQuip5": "Shed your skin and try again!",
+    "gameOverQuip6": "A wise serpent naps after a feast. You… crashed.",
+    "gameOverQuip7": "The river spirits saw everything.",
+    "gameOverQuip8": "Knotted! Try slithering, not tangling."
 }

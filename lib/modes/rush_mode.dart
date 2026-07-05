@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Endless runner style — auto-scrolling level, dodge obstacles, eat food.
@@ -10,16 +11,16 @@ class RushMode extends GameMode {
   String get description => 'Endless auto-scroll';
 
   @override
-  Color get backgroundColor => const Color(0xFF3E1A00);
+  Color get backgroundColor => NagaPalette.mangoYellow; // golden savanna
 
   @override
-  Color get snakeColor => const Color(0xFFFF6F00); // Fiery orange
+  Color get snakeColor => const Color(0xFFD84315); // burnt orange, pops on gold
 
   @override
-  Color get foodColor => const Color(0xFF00E5FF); // Cyan pickup
+  Color get foodColor => const Color(0xFF00B8D4); // river-water pickup
 
   @override
-  Color get gridColor => const Color(0xFF4E2A10);
+  Color get gridColor => const Color(0xFFFFCA28);
 
   @override
   bool get wallsKill => true;

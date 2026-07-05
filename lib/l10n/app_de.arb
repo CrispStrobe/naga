@@ -102,5 +102,15 @@
     "stampede": "Stampede",
     "stampedeDesc": "Tierrennen",
     "nagaDive": "Naga-Tauchgang",
-    "nagaDiveDesc": "Unterwasser-Schwimmen"
+    "nagaDiveDesc": "Unterwasser-Schwimmen",
+    "vsAiSplit": "VS KI Getrennt",
+    "vsAiSplitDesc": "Duell auf getrennten Bahnen",
+    "gameOverQuip1": "Auch eine Naga muss schauen, wohin sie schlängelt!",
+    "gameOverQuip2": "Der Dschungel holt sich wieder einen Schwanz…",
+    "gameOverQuip3": "Autsch! Direkt auf die Fangzähne.",
+    "gameOverQuip4": "Der Apfel war es SOWAS von wert.",
+    "gameOverQuip5": "Häute dich und versuch's nochmal!",
+    "gameOverQuip6": "Eine weise Schlange döst nach dem Festmahl. Du… bist gecrasht.",
+    "gameOverQuip7": "Die Flussgeister haben alles gesehen.",
+    "gameOverQuip8": "Verknotet! Schlängeln, nicht verheddern."
 }

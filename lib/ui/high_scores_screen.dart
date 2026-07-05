@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../generated/l10n.dart';
 import '../services/high_score_service.dart';
+import '../theme/naga_palette.dart';
 
 class HighScoresScreen extends StatelessWidget {
   final HighScoreService highScoreService;
@@ -15,10 +16,12 @@ class HighScoresScreen extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1A),
+      backgroundColor: NagaPalette.menuBackground,
       appBar: AppBar(
         title: Text(s.highScores),
-        backgroundColor: const Color(0xFF0A0A1A),
+        backgroundColor: NagaPalette.menuBackground,
+        foregroundColor: NagaPalette.menuDeepGreen,
+        elevation: 0,
       ),
       body: sortedEntries.isEmpty
           ? Center(
@@ -39,20 +42,22 @@ class HighScoresScreen extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                   decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(isTop ? 0.9 : 0.6),
                     border: Border.all(
                       color: isTop
-                          ? Colors.amber.withOpacity(0.5)
-                          : Colors.green.withOpacity(0.2),
+                          ? const Color(0xFFFFB300)
+                          : Colors.green.withOpacity(0.35),
+                      width: isTop ? 2 : 1,
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
                       Text(
-                        '#${index + 1}',
+                        isTop ? '🏆' : '#${index + 1}',
                         style: TextStyle(
                           color: isTop
-                              ? Colors.amber
+                              ? const Color(0xFFB26A00)
                               : Colors.green.shade700,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -63,7 +68,7 @@ class HighScoresScreen extends StatelessWidget {
                         child: Text(
                           modeName.toUpperCase(),
                           style: TextStyle(
-                            color: Colors.green.shade300,
+                            color: Colors.green.shade800,
                             fontSize: 14,
                             letterSpacing: 1,
                           ),
@@ -73,8 +78,8 @@ class HighScoresScreen extends StatelessWidget {
                         '${entry.value}',
                         style: TextStyle(
                           color: isTop
-                              ? Colors.amber
-                              : Colors.green.shade400,
+                              ? const Color(0xFFB26A00)
+                              : NagaPalette.menuDeepGreen,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),

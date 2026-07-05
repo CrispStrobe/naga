@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Centipede inspired — enemies march down in formation, eat them before they reach you.
@@ -10,16 +11,16 @@ class SwarmMode extends GameMode {
   String get description => 'Eat the invaders';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A3A1A);
+  Color get backgroundColor => NagaPalette.leafGreen; // sunlit canopy
 
   @override
-  Color get snakeColor => const Color(0xFF00FF41); // Neon green
+  Color get snakeColor => NagaPalette.sunGold; // gold pops on green
 
   @override
-  Color get foodColor => const Color(0xFFFF6D00); // Orange power-up
+  Color get foodColor => NagaPalette.emberOrange; // Orange power-up
 
   @override
-  Color get gridColor => const Color(0xFF2A4A2A);
+  Color get gridColor => const Color(0xFF4CAF50);
 
   @override
   bool get wallsKill => true;
@@ -43,6 +44,6 @@ class SwarmMode extends GameMode {
     return 10;
   }
 
-  Color get enemyColor => const Color(0xFFFF1744);
-  Color get enemyBulletColor => const Color(0xFFFFFF00);
+  Color get enemyColor => const Color(0xFFD50000); // beetles, deep red on green
+  Color get enemyBulletColor => const Color(0xFFFFFFFF); // white so they never blend with the gold snake
 }

@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,10 @@ class PitGame extends FlameGame with KeyboardEvents {
 
   final Random _random = Random();
 
+  // Cached habitat decoration layer (board fill + clay-pit doodles).
+  ui.Picture? _decorPicture;
+  double _decorCellSize = -1;
+
   PitGame({
     required this.mode,
     required this.onGameOver,
@@ -50,7 +55,8 @@ class PitGame extends FlameGame with KeyboardEvents {
   });
 
   @override
-  Color backgroundColor() => mode.backgroundColor;
+  Color backgroundColor() =>
+      Color.lerp(mode.backgroundColor, Colors.black, 0.18)!;
 
   @override
   Future<void> onLoad() async {
@@ -499,10 +505,106 @@ class PitGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  /// Builds the cached habitat layer: bright clay board on the darker
+  /// surround, plus scattered stones, cracks and bone doodles.
+  /// Deterministic (fixed seed) and cached so render stays cheap.
+  ui.Picture _buildDecorPicture() {
+    final recorder = ui.PictureRecorder();
+    final c = Canvas(recorder);
+    final cs = cellSize;
+    final bg = mode.backgroundColor;
+    final boardRect = Rect.fromLTWH(
+        boardOffset.x, boardOffset.y, gridWidth * cs, gridHeight * cs);
+
+    // Bright play field on the darker surround
+    c.drawRect(boardRect, Paint()..color = bg);
+
+    c.save();
+    c.clipRect(boardRect);
+    final rng = Random(4242); // fixed seed: same pattern every rebuild
+
+    // Scattered stones — low-contrast ovals
+    final stoneLight = Paint()..color = Color.lerp(bg, Colors.white, 0.10)!;
+    final stoneDark = Paint()..color = Color.lerp(bg, Colors.black, 0.08)!;
+    final stoneCount = (gridWidth * gridHeight * 0.03).round();
+    for (int i = 0; i < stoneCount; i++) {
+      final cx = boardRect.left + rng.nextDouble() * boardRect.width;
+      final cy = boardRect.top + rng.nextDouble() * boardRect.height;
+      final r = cs * (0.12 + rng.nextDouble() * 0.2);
+      final paint = rng.nextBool() ? stoneLight : stoneDark;
+      c.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx, cy),
+          width: r * 2,
+          height: r * (1.2 + rng.nextDouble() * 0.6),
+        ),
+        paint,
+      );
+    }
+
+    // Clay cracks — short jagged polylines
+    final crackPaint = Paint()
+      ..color = Color.lerp(bg, Colors.black, 0.12)!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cs * 0.06;
+    final crackCount = (gridWidth * gridHeight * 0.012).round();
+    for (int i = 0; i < crackCount; i++) {
+      var x = boardRect.left + rng.nextDouble() * boardRect.width;
+      var y = boardRect.top + rng.nextDouble() * boardRect.height;
+      final path = Path()..moveTo(x, y);
+      final segs = 2 + rng.nextInt(3);
+      for (int s = 0; s < segs; s++) {
+        x += (rng.nextDouble() - 0.5) * cs * 2.2;
+        y += (rng.nextDouble() - 0.5) * cs * 2.2;
+        path.lineTo(x, y);
+      }
+      c.drawPath(path, crackPaint);
+    }
+
+    // A few small bone doodles
+    final bonePaint = Paint()..color = Color.lerp(bg, Colors.white, 0.14)!;
+    for (int i = 0; i < 4; i++) {
+      final cx = boardRect.left + rng.nextDouble() * boardRect.width;
+      final cy = boardRect.top + rng.nextDouble() * boardRect.height;
+      final angle = rng.nextDouble() * pi;
+      final len = cs * 0.9;
+      c.save();
+      c.translate(cx, cy);
+      c.rotate(angle);
+      c.drawRect(
+        Rect.fromCenter(center: Offset.zero, width: len, height: cs * 0.14),
+        bonePaint,
+      );
+      for (final end in [-len / 2, len / 2]) {
+        c.drawCircle(Offset(end, -cs * 0.08), cs * 0.10, bonePaint);
+        c.drawCircle(Offset(end, cs * 0.08), cs * 0.10, bonePaint);
+      }
+      c.restore();
+    }
+
+    c.restore();
+    return recorder.endRecording();
+  }
+
+  @override
+  void onRemove() {
+    _decorPicture?.dispose();
+    _decorPicture = null;
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
     final cs = cellSize;
+
+    // Habitat layer — bright board on darker surround (cached)
+    if (_decorPicture == null || _decorCellSize != cs) {
+      _decorCellSize = cs;
+      _decorPicture?.dispose();
+      _decorPicture = _buildDecorPicture();
+    }
+    canvas.drawPicture(_decorPicture!);
 
     // Draw grid
     final gridPaint = Paint()..color = mode.gridColor;
@@ -654,7 +756,8 @@ class PitGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'ALIVE: $aliveCount',
         style: TextStyle(
-          color: mode.snakeColor.withOpacity(0.5),
+          // Sits on the darker surround outside the board — keep it light.
+          color: Colors.white.withOpacity(0.85),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),

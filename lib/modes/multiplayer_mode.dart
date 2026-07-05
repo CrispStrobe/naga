@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Local 2-player duel mode — two snakes on the same board.
@@ -10,19 +11,19 @@ class MultiplayerMode extends GameMode {
   String get description => 'Local 2-player';
 
   @override
-  Color get backgroundColor => const Color(0xFF1A2A1A);
+  Color get backgroundColor => NagaPalette.lagoonTeal; // twin lagoon
 
   @override
-  Color get snakeColor => const Color(0xFF00E676); // Player 1 emerald
+  Color get snakeColor => NagaPalette.parrotLime; // Player 1 lime
 
-  /// Player 2 snake color — bright cyan.
-  Color get player2Color => const Color(0xFF00FFFF);
+  /// Player 2 snake color — sun gold, high contrast on the teal lagoon.
+  Color get player2Color => NagaPalette.sunGold;
 
   @override
   Color get foodColor => const Color(0xFFFF4444);
 
   @override
-  Color get gridColor => const Color(0xFF2A3A2A);
+  Color get gridColor => const Color(0xFF26A69A);
 
   @override
   bool get wallsKill => true;

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
@@ -84,7 +85,11 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
 
   void _renderCheckerboard(Canvas canvas, double cs, Vector2 offset, int gw, int gh) {
     final bg = _game.mode.backgroundColor;
-    final light = Color.lerp(bg, Colors.white, 0.03)!;
+    // On bright backgrounds a white tint is invisible — shade toward black instead
+    final isBright = bg.computeLuminance() > 0.45;
+    final light = isBright
+        ? Color.lerp(bg, Colors.black, 0.06)!
+        : Color.lerp(bg, Colors.white, 0.04)!;
     final dark = bg;
     final lightPaint = Paint()..color = light;
     final darkPaint = Paint()..color = dark;
@@ -100,6 +105,43 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
         );
         canvas.drawRect(rect, isLight ? lightPaint : darkPaint);
       }
+    }
+
+    _renderFoliage(canvas, cs, offset, gw, gh, bg);
+  }
+
+  /// Subtle tropical foliage scattered over the board — low-contrast leaf
+  /// shapes derived from the mode's background color, so every habitat
+  /// gets texture without hurting gameplay readability.
+  void _renderFoliage(Canvas canvas, double cs, Vector2 offset, int gw, int gh, Color bg) {
+    final rng = Random(1337); // fixed seed: same pattern every rebuild
+    final isBright = bg.computeLuminance() > 0.45;
+    final leafLight = Paint()
+      ..color = isBright
+          ? Color.lerp(bg, Colors.black, 0.05)!
+          : Color.lerp(bg, Colors.white, 0.09)!;
+    final leafDark = Paint()
+      ..color = Color.lerp(bg, Colors.black, isBright ? 0.10 : 0.08)!;
+
+    final count = (gw * gh * 0.06).round();
+    for (int i = 0; i < count; i++) {
+      final cx = offset.x + rng.nextDouble() * gw * cs;
+      final cy = offset.y + rng.nextDouble() * gh * cs;
+      final angle = rng.nextDouble() * 2 * pi;
+      final len = cs * (0.8 + rng.nextDouble() * 1.2);
+      final paint = rng.nextBool() ? leafLight : leafDark;
+
+      canvas.save();
+      canvas.translate(cx, cy);
+      canvas.rotate(angle);
+      // Leaf: pointed oval with a center vein
+      final leaf = Path()
+        ..moveTo(0, 0)
+        ..quadraticBezierTo(len * 0.5, -len * 0.22, len, 0)
+        ..quadraticBezierTo(len * 0.5, len * 0.22, 0, 0)
+        ..close();
+      canvas.drawPath(leaf, paint);
+      canvas.restore();
     }
   }
 

@@ -1,5 +1,7 @@
+import 'dart:math' show Random;
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../game/snake_game.dart';
 import '../game/maze_hunter_game.dart';
 import '../game/trail_game.dart' as trail;
@@ -67,6 +69,8 @@ class _GameScreenState extends State<GameScreen> {
   bool _isNewHighScore = false;
   bool _isPaused = false;
   late bool _useButtons;
+  int _quipIndex = 0;
+  int _overlayFocus = 0; // 0 = play again, 1 = back to menu
 
   bool get _isMazeMode => widget.mode is MazeMode;
   bool get _isTrailMode => widget.mode is TrailMode;
@@ -214,6 +218,7 @@ class _GameScreenState extends State<GameScreen> {
         onGameOver: _handleDeath,
         onScoreChanged: (score) => _scoreNotifier.value = score,
         aiDifficulty: AiDifficulty.values.byName(_settings.difficulty.name),
+        splitArena: widget.mode is VsAiSplitMode,
       );
     } else {
       // Classic: always walls kill. Zen: always wrap. Others: use settings.
@@ -398,6 +403,8 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       _isGameOver = true;
       _isNewHighScore = isNew;
+      _quipIndex = Random().nextInt(8);
+      _overlayFocus = 0;
     });
   }
 
@@ -699,13 +706,69 @@ class _GameScreenState extends State<GameScreen> {
     return Colors.red.shade400;
   }
 
+  String _getQuip(S s) {
+    final quips = [
+      s.gameOverQuip1,
+      s.gameOverQuip2,
+      s.gameOverQuip3,
+      s.gameOverQuip4,
+      s.gameOverQuip5,
+      s.gameOverQuip6,
+      s.gameOverQuip7,
+      s.gameOverQuip8,
+    ];
+    return quips[_quipIndex % quips.length];
+  }
+
+  void _playAgain() {
+    setState(() {
+      _isGameOver = false;
+      _isNewHighScore = false;
+      _scoreNotifier.value = 0;
+      _livesRemaining = _isClassicMode ? 0 : _settings.lives;
+      _createGame();
+    });
+  }
+
+  KeyEventResult _onOverlayKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.tab) {
+      setState(() => _overlayFocus = 1 - _overlayFocus);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.select) {
+      if (_overlayFocus == 0) {
+        _playAgain();
+      } else {
+        Navigator.of(context).pop();
+      }
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      Navigator.of(context).pop();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   Widget _buildGameOverOverlay(S s) {
     final resultText = _getResultText(s);
     final resultColor = _getResultColor();
+    final isLoss = resultText == s.gameOver;
     return Positioned.fill(
       child: Container(
         color: Colors.black54,
-        child: Center(
+        child: Focus(
+          autofocus: true,
+          onKeyEvent: _onOverlayKey,
+          child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -718,6 +781,21 @@ class _GameScreenState extends State<GameScreen> {
                   letterSpacing: 4,
                 ),
               ),
+              if (isLoss) ...[
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    _getQuip(s),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFFFFD740),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Text(
                 '${s.score}: ${_scoreNotifier.value}',
@@ -738,42 +816,57 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ],
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _isGameOver = false;
-                    _isNewHighScore = false;
-                    _scoreNotifier.value = 0;
-                    _livesRemaining = _isClassicMode ? 0 : _settings.lives;
-                    _createGame();
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: _overlayFocus == 0
+                        ? const Color(0xFFFFD740)
+                        : Colors.transparent,
+                    width: 2.5,
+                  ),
                 ),
-                child: Text(
-                  s.playAgain,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    letterSpacing: 2,
-                    color: Colors.white,
+                child: ElevatedButton(
+                  onPressed: _playAgain,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                  ),
+                  child: Text(
+                    s.playAgain,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      letterSpacing: 2,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  s.backToMenu,
-                  style: TextStyle(
-                    color: Colors.green.shade400,
-                    letterSpacing: 2,
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: _overlayFocus == 1
+                        ? const Color(0xFFFFD740)
+                        : Colors.transparent,
+                    width: 2.5,
+                  ),
+                ),
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    s.backToMenu,
+                    style: TextStyle(
+                      color: Colors.green.shade400,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

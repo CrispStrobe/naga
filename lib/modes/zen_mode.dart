@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Zen mode - no death, no walls, slow and peaceful.
@@ -10,16 +11,16 @@ class ZenMode extends GameMode {
   String get description => 'No death, just vibes';
 
   @override
-  Color get backgroundColor => const Color(0xFF3E1A3A);
+  Color get backgroundColor => NagaPalette.lotusPond; // pale zen water
 
   @override
-  Color get snakeColor => const Color(0xFFFFD740);
+  Color get snakeColor => const Color(0xFF00695C); // deep calm teal
 
   @override
-  Color get foodColor => const Color(0xFFFF80AB);
+  Color get foodColor => NagaPalette.flowerPink; // lotus blossom
 
   @override
-  Color get gridColor => const Color(0xFF4E2A4A);
+  Color get gridColor => const Color(0xFFA5D0CC);
 
   @override
   bool get wallsKill => false;

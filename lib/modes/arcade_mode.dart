@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Modern arcade mode - neon colors, wrap-around walls, faster pace.
@@ -10,16 +11,16 @@ class ArcadeMode extends GameMode {
   String get description => 'Neon speed run';
 
   @override
-  Color get backgroundColor => const Color(0xFF0D3B2E);
+  Color get backgroundColor => NagaPalette.cyanReef; // bright reef teal
 
   @override
-  Color get snakeColor => const Color(0xFF76FF03);
+  Color get snakeColor => NagaPalette.parrotLime;
 
   @override
-  Color get foodColor => const Color(0xFFFF1744);
+  Color get foodColor => NagaPalette.dangerRed;
 
   @override
-  Color get gridColor => const Color(0xFF1A4A3A);
+  Color get gridColor => const Color(0xFF00ACC1);
 
   @override
   bool get wallsKill => false;

@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -24,8 +23,6 @@ class FangsGame extends FlameGame with KeyboardEvents {
   // Snake — moves freely in 4 directions within the bottom zone
   List<Point<int>> snakeSegments = [];
   Direction currentDirection = Direction.right;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
-  static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
   double _snakeTickTimer = 0;
@@ -75,7 +72,6 @@ class FangsGame extends FlameGame with KeyboardEvents {
     _lives = 3;
     gameState = GameState.playing;
     currentDirection = Direction.right;
-    _directionQueue.clear();
     _resetSnake();
     _resetBall();
     _spawnBlocks();
@@ -134,18 +130,20 @@ class FangsGame extends FlameGame with KeyboardEvents {
     return (base - speedUp).clamp(fastest, base);
   }
 
-  double get _snakeInterval => mode.tickInterval(score);
+  // The snake auto-moves fast and fluently — faster than the ball, so it can
+  // always reposition to catch it.
+  static const double _snakeMoveInterval = 0.05;
 
   @override
   void update(double dt) {
     super.update(dt);
     if (gameState != GameState.playing) return;
 
-    // Process queued direction inputs — one step per input, no auto-move
+    // Snake slides continuously in its current direction; inputs steer it
     _snakeTickTimer += dt;
-    if (_snakeTickTimer >= _snakeInterval && _directionQueue.isNotEmpty) {
-      _snakeTickTimer = 0;
-      _stepSnake(_directionQueue.removeFirst());
+    while (_snakeTickTimer >= _snakeMoveInterval) {
+      _snakeTickTimer -= _snakeMoveInterval;
+      _stepSnake(currentDirection);
     }
 
     // Ball tick
@@ -156,28 +154,51 @@ class FangsGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _stepSnake(Direction dir) {
-    currentDirection = dir;
-    final head = snakeSegments.first;
-    late Point<int> newHead;
-
+  Point<int> _neighbor(Point<int> from, Direction dir) {
     switch (dir) {
       case Direction.up:
-        newHead = Point(head.x, head.y - 1);
+        return Point(from.x, from.y - 1);
       case Direction.down:
-        newHead = Point(head.x, head.y + 1);
+        return Point(from.x, from.y + 1);
       case Direction.left:
-        newHead = Point(head.x - 1, head.y);
+        return Point(from.x - 1, from.y);
       case Direction.right:
-        newHead = Point(head.x + 1, head.y);
+        return Point(from.x + 1, from.y);
     }
+  }
 
-    // Clamp to play area horizontally and to the bottom 5 rows vertically
-    if (newHead.x < 0 || newHead.x >= gridWidth) return;
-    if (newHead.y < _snakeZoneMinY || newHead.y >= gridHeight) return;
+  bool _inZone(Point<int> p) =>
+      p.x >= 0 && p.x < gridWidth && p.y >= _snakeZoneMinY && p.y < gridHeight;
 
-    // No self-collision
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) return;
+  bool _hitsBody(Point<int> p) {
+    // Moving onto the tail cell is fine — it vacates this step
+    for (int i = 0; i < snakeSegments.length - 1; i++) {
+      final s = snakeSegments[i];
+      if (s.x == p.x && s.y == p.y) return true;
+    }
+    return false;
+  }
+
+  void _stepSnake(Direction dir) {
+    currentDirection = dir;
+    var newHead = _neighbor(snakeSegments.first, dir);
+
+    // Hitting a wall just stops the slide, it never ends the game
+    if (!_inZone(newHead)) return;
+
+    // Blocked by own body (e.g. stopped at the top wall with the body lying
+    // sideways behind the head): turn around — head becomes tail — so the
+    // paddle can ALWAYS be steered out of a stop.
+    if (_hitsBody(newHead)) {
+      final flipped = snakeSegments.reversed.toList();
+      final flippedHead = _neighbor(flipped.first, dir);
+      final blocked = flipped
+          .take(flipped.length - 1)
+          .any((s) => s.x == flippedHead.x && s.y == flippedHead.y);
+      if (!_inZone(flippedHead) || blocked) return; // truly stuck this tick
+      snakeSegments = flipped;
+      newHead = flippedHead;
+    }
 
     // Move: insert new head, remove tail (snake doesn't grow from movement)
     snakeSegments.insert(0, newHead);
@@ -298,17 +319,19 @@ class FangsGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-    if (dir == lastDir) return;
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    // Applied immediately — even when the snake is stopped against a wall,
+    // a new direction takes effect on the very next tick.
+    final isOpposite =
+        (dir == Direction.up && currentDirection == Direction.down) ||
+        (dir == Direction.down && currentDirection == Direction.up) ||
+        (dir == Direction.left && currentDirection == Direction.right) ||
+        (dir == Direction.right && currentDirection == Direction.left);
+    if (isOpposite) {
+      // Instant turnaround: head becomes tail — essential for catching
+      // a ball that just passed overhead
+      snakeSegments = snakeSegments.reversed.toList();
     }
+    currentDirection = dir;
   }
 
   void togglePause() {
@@ -322,7 +345,9 @@ class FangsGame extends FlameGame with KeyboardEvents {
   @override
   KeyEventResult onKeyEvent(
       KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
-    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+    // Only fresh key presses steer — key-repeat from a held key must not
+    // override a newer direction (the snake auto-moves anyway)
+    if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.escape ||
           event.logicalKey == LogicalKeyboardKey.keyP) {
         togglePause();

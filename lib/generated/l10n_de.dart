@@ -331,4 +331,36 @@ class SDe extends S {
 
   @override
   String get nagaDiveDesc => 'Unterwasser-Schwimmen';
+
+  @override
+  String get vsAiSplit => 'VS KI Getrennt';
+
+  @override
+  String get vsAiSplitDesc => 'Duell auf getrennten Bahnen';
+
+  @override
+  String get gameOverQuip1 =>
+      'Auch eine Naga muss schauen, wohin sie schlängelt!';
+
+  @override
+  String get gameOverQuip2 => 'Der Dschungel holt sich wieder einen Schwanz…';
+
+  @override
+  String get gameOverQuip3 => 'Autsch! Direkt auf die Fangzähne.';
+
+  @override
+  String get gameOverQuip4 => 'Der Apfel war es SOWAS von wert.';
+
+  @override
+  String get gameOverQuip5 => 'Häute dich und versuch\'s nochmal!';
+
+  @override
+  String get gameOverQuip6 =>
+      'Eine weise Schlange döst nach dem Festmahl. Du… bist gecrasht.';
+
+  @override
+  String get gameOverQuip7 => 'Die Flussgeister haben alles gesehen.';
+
+  @override
+  String get gameOverQuip8 => 'Verknotet! Schlängeln, nicht verheddern.';
 }

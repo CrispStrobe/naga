@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,14 @@ class StampedeGame extends FlameGame with KeyboardEvents {
 
   final Random _random = Random();
 
+  // Static jungle scenery on both sides of the track — rendered once into a
+  // cached picture (fixed-seed Random, same idiom as GridBoard._renderFoliage)
+  // so nothing re-randomizes or scrolls per frame.
+  ui.Picture? _sidesPicture;
+  Size _sidesPictureSize = Size.zero;
+  final List<_SwayFrond> _swayFronds = [];
+  double _elapsed = 0;
+
   StampedeGame({
     required this.mode,
     required this.onGameOver,
@@ -69,6 +78,23 @@ class StampedeGame extends FlameGame with KeyboardEvents {
     trackRight = trackLeft + tw;
     laneWidth = tw / laneCount;
     playerY = size.y * 0.82;
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    if (isLoaded) {
+      _calculateLayout();
+      _sidesPicture?.dispose();
+      _sidesPicture = null;
+    }
+  }
+
+  @override
+  void onRemove() {
+    _sidesPicture?.dispose();
+    _sidesPicture = null;
+    super.onRemove();
   }
 
   void _startNewGame() {
@@ -96,6 +122,7 @@ class StampedeGame extends FlameGame with KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
+    _elapsed += dt; // drives the slow foliage sway (independent of game state)
     if (gameState != GameState.playing) return;
 
     // Scroll
@@ -298,6 +325,9 @@ class StampedeGame extends FlameGame with KeyboardEvents {
   }
 
   void _renderTrack(Canvas canvas) {
+    // Jungle scenery on both sides (static, cached picture + gentle sway)
+    _renderSides(canvas);
+
     // Track surface
     final trackPaint = Paint()..color = mode.trackColor;
     canvas.drawRect(
@@ -329,20 +359,181 @@ class StampedeGame extends FlameGame with KeyboardEvents {
       ..strokeWidth = 3;
     canvas.drawLine(Offset(trackLeft, 0), Offset(trackLeft, size.y), borderPaint);
     canvas.drawLine(Offset(trackRight, 0), Offset(trackRight, size.y), borderPaint);
+  }
 
-    // Grass stripes on sides
-    final grassDarkPaint = Paint()..color = const Color(0xFF1B5E20);
-    final stripeWidth = 15.0;
-    final stripeOffset = _scrollOffset % (stripeWidth * 2);
-    for (double y = -stripeOffset; y < size.y; y += stripeWidth * 2) {
-      canvas.drawRect(
-        Rect.fromLTWH(0, y, trackLeft, stripeWidth),
-        grassDarkPaint,
+  void _renderSides(Canvas canvas) {
+    final currentSize = Size(size.x, size.y);
+    if (_sidesPicture == null || _sidesPictureSize != currentSize) {
+      _buildSidesPicture();
+    }
+    canvas.drawPicture(_sidesPicture!);
+
+    // Gentle sway on a few fronds — deterministic positions, only the angle
+    // moves (slow sine), so it reads as a breeze rather than flicker.
+    final frondPaint = Paint()..color = const Color(0xFF2E7D32);
+    final ribPaint = Paint()
+      ..color = const Color(0xFF1B5E20)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    for (final f in _swayFronds) {
+      final angle = f.baseAngle + sin(_elapsed * 0.5 + f.phase) * 0.04;
+      canvas.save();
+      canvas.clipRect(f.clipRect);
+      canvas.translate(f.x, f.y);
+      canvas.rotate(angle);
+      final leaf = Path()
+        ..moveTo(0, 0)
+        ..quadraticBezierTo(f.length * 0.5, -f.length * 0.18, f.length, 0)
+        ..quadraticBezierTo(f.length * 0.5, f.length * 0.18, 0, 0)
+        ..close();
+      canvas.drawPath(leaf, frondPaint);
+      canvas.drawLine(Offset.zero, Offset(f.length * 0.9, 0), ribPaint);
+      canvas.restore();
+    }
+  }
+
+  /// Builds the static side scenery once: layered jungle bands, bushes,
+  /// scattered leaves, small flowers and palm-frond fans. Fixed-seed Random
+  /// so the pattern is identical every rebuild (no flicker).
+  void _buildSidesPicture() {
+    _sidesPictureSize = Size(size.x, size.y);
+    _sidesPicture?.dispose();
+    _swayFronds.clear();
+
+    final recorder = ui.PictureRecorder();
+    final c = Canvas(recorder);
+    final rng = Random(4242);
+
+    _paintSide(c, rng, Rect.fromLTRB(0, 0, trackLeft, size.y), trackOnRight: true);
+    _paintSide(c, rng, Rect.fromLTRB(trackRight, 0, size.x, size.y), trackOnRight: false);
+
+    _sidesPicture = recorder.endRecording();
+  }
+
+  void _paintSide(Canvas canvas, Random rng, Rect r, {required bool trackOnRight}) {
+    if (r.width <= 0) return;
+    canvas.save();
+    canvas.clipRect(r);
+
+    final outerX = trackOnRight ? r.left : r.right; // screen edge
+    final innerX = trackOnRight ? r.right : r.left; // track edge
+    final w = r.width;
+
+    // Base: deep jungle shade at the screen edge, brightening toward the
+    // track — keeps the sides clearly darker than the sunlit track verge.
+    final basePaint = Paint()
+      ..shader = ui.Gradient.linear(
+        Offset(outerX, 0),
+        Offset(innerX, 0),
+        const [Color(0xFF1B5E20), Color(0xFF2E7D32)],
       );
-      canvas.drawRect(
-        Rect.fromLTWH(trackRight, y, size.x - trackRight, stripeWidth),
-        grassDarkPaint,
-      );
+    canvas.drawRect(r, basePaint);
+
+    // Sunlit grass verge right next to the track border
+    final vergeW = (w * 0.10).clamp(4.0, 10.0);
+    final vergeRect = trackOnRight
+        ? Rect.fromLTRB(r.right - vergeW, r.top, r.right, r.bottom)
+        : Rect.fromLTRB(r.left, r.top, r.left + vergeW, r.bottom);
+    canvas.drawRect(vergeRect, Paint()..color = const Color(0xFF43A047));
+
+    // Dense canopy blobs hugging the screen edge
+    final canopyDark = Paint()..color = const Color(0xFF14481A);
+    final canopyMid = Paint()..color = const Color(0xFF1B5E20);
+    double y = -20;
+    while (y < r.bottom + 20) {
+      final radius = w * (0.18 + rng.nextDouble() * 0.14);
+      final cx = outerX + (trackOnRight ? 1 : -1) * rng.nextDouble() * w * 0.25;
+      canvas.drawCircle(Offset(cx, y), radius, rng.nextBool() ? canopyDark : canopyMid);
+      y += radius * (0.9 + rng.nextDouble() * 0.8);
+    }
+
+    // Bushes in the mid band: clusters of overlapping circles
+    final bushDark = Paint()..color = const Color(0xFF256029);
+    final bushLight = Paint()..color = const Color(0xFF388E3C);
+    final bushCount = (r.height / 110).ceil();
+    for (int i = 0; i < bushCount; i++) {
+      final bx = outerX + (trackOnRight ? 1 : -1) * w * (0.35 + rng.nextDouble() * 0.4);
+      final by = rng.nextDouble() * r.height;
+      final br = w * (0.07 + rng.nextDouble() * 0.06);
+      canvas.drawCircle(Offset(bx - br * 0.7, by + br * 0.2), br * 0.9, bushDark);
+      canvas.drawCircle(Offset(bx + br * 0.7, by + br * 0.2), br * 0.9, bushDark);
+      canvas.drawCircle(Offset(bx, by - br * 0.3), br, bushLight);
+    }
+
+    // Scattered leaves (same idiom as GridBoard._renderFoliage)
+    final leafLight = Paint()..color = const Color(0xFF3B8A3F);
+    final leafDark = Paint()..color = const Color(0xFF1E5423);
+    final leafCount = (r.height * w / 5500).round();
+    for (int i = 0; i < leafCount; i++) {
+      final lx = r.left + rng.nextDouble() * w;
+      final ly = rng.nextDouble() * r.height;
+      final angle = rng.nextDouble() * 2 * pi;
+      final len = w * (0.10 + rng.nextDouble() * 0.14);
+      canvas.save();
+      canvas.translate(lx, ly);
+      canvas.rotate(angle);
+      final leaf = Path()
+        ..moveTo(0, 0)
+        ..quadraticBezierTo(len * 0.5, -len * 0.22, len, 0)
+        ..quadraticBezierTo(len * 0.5, len * 0.22, 0, 0)
+        ..close();
+      canvas.drawPath(leaf, rng.nextBool() ? leafLight : leafDark);
+      canvas.restore();
+    }
+
+    // Palm-frond fans anchored at the screen edge, fanning toward the track
+    final frondPaint = Paint()..color = const Color(0xFF2E7D32);
+    final fanCount = (r.height / 220).ceil();
+    for (int i = 0; i < fanCount; i++) {
+      final fy = (i + 0.5) * r.height / fanCount + (rng.nextDouble() - 0.5) * 40;
+      final baseAngle = trackOnRight ? 0.0 : pi;
+      for (int leafI = -2; leafI <= 2; leafI++) {
+        final angle = baseAngle + leafI * 0.35 + (rng.nextDouble() - 0.5) * 0.1;
+        final len = w * (0.45 + rng.nextDouble() * 0.2);
+        canvas.save();
+        canvas.translate(outerX, fy);
+        canvas.rotate(angle);
+        final leaf = Path()
+          ..moveTo(0, 0)
+          ..quadraticBezierTo(len * 0.5, -len * 0.14, len, 0)
+          ..quadraticBezierTo(len * 0.5, len * 0.14, 0, 0)
+          ..close();
+        canvas.drawPath(leaf, frondPaint);
+        canvas.restore();
+      }
+    }
+
+    // Small tropical flowers: 5 petals + bright center (alpha baked into
+    // the const colors — ~0.85 opacity)
+    const petalColors = [Color(0xD9FF80AB), Color(0xD9FFD740), Color(0xD9E040FB)];
+    final flowerCount = (r.height / 130).ceil();
+    for (int i = 0; i < flowerCount; i++) {
+      final fx = outerX + (trackOnRight ? 1 : -1) * w * (0.4 + rng.nextDouble() * 0.45);
+      final fy = rng.nextDouble() * r.height;
+      final pr = 1.6 + rng.nextDouble() * 1.4;
+      final petalPaint = Paint()
+        ..color = petalColors[rng.nextInt(petalColors.length)];
+      for (int p = 0; p < 5; p++) {
+        final a = p * 2 * pi / 5;
+        canvas.drawCircle(Offset(fx + cos(a) * pr * 1.4, fy + sin(a) * pr * 1.4), pr, petalPaint);
+      }
+      canvas.drawCircle(Offset(fx, fy), pr * 0.8, Paint()..color = const Color(0xFFFFF59D));
+    }
+
+    canvas.restore();
+
+    // Register a few fronds for the slow live sway (drawn every frame with a
+    // sine-animated angle — positions fixed, never re-randomized)
+    final swayCount = (r.height / 260).ceil().clamp(2, 4);
+    for (int i = 0; i < swayCount; i++) {
+      _swayFronds.add(_SwayFrond(
+        x: outerX,
+        y: (i + 0.5) * r.height / swayCount + (rng.nextDouble() - 0.5) * 60,
+        baseAngle: (trackOnRight ? 0.0 : pi) + (rng.nextDouble() - 0.5) * 0.5,
+        length: w * (0.55 + rng.nextDouble() * 0.2),
+        phase: rng.nextDouble() * 2 * pi,
+        clipRect: r,
+      ));
     }
   }
 
@@ -626,6 +817,24 @@ class StampedeGame extends FlameGame with KeyboardEvents {
     )..layout();
     speedTp.paint(canvas, Offset(trackRight + 8, 24));
   }
+}
+
+/// A single side-scenery frond that sways slowly around a fixed anchor.
+class _SwayFrond {
+  final double x;
+  final double y;
+  final double baseAngle;
+  final double length;
+  final double phase;
+  final Rect clipRect;
+  _SwayFrond({
+    required this.x,
+    required this.y,
+    required this.baseAngle,
+    required this.length,
+    required this.phase,
+    required this.clipRect,
+  });
 }
 
 enum _ObjectType { rock, boost }

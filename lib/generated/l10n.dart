@@ -720,6 +720,66 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Underwater swim'**
   String get nagaDiveDesc;
+
+  /// No description provided for @vsAiSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'VS AI Split'**
+  String get vsAiSplit;
+
+  /// No description provided for @vsAiSplitDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate lanes duel'**
+  String get vsAiSplitDesc;
+
+  /// No description provided for @gameOverQuip1.
+  ///
+  /// In en, this message translates to:
+  /// **'Even a Naga must watch where it slithers!'**
+  String get gameOverQuip1;
+
+  /// No description provided for @gameOverQuip2.
+  ///
+  /// In en, this message translates to:
+  /// **'The jungle claims another tail…'**
+  String get gameOverQuip2;
+
+  /// No description provided for @gameOverQuip3.
+  ///
+  /// In en, this message translates to:
+  /// **'Ouch! Right on the fangs.'**
+  String get gameOverQuip3;
+
+  /// No description provided for @gameOverQuip4.
+  ///
+  /// In en, this message translates to:
+  /// **'That apple was SO worth it.'**
+  String get gameOverQuip4;
+
+  /// No description provided for @gameOverQuip5.
+  ///
+  /// In en, this message translates to:
+  /// **'Shed your skin and try again!'**
+  String get gameOverQuip5;
+
+  /// No description provided for @gameOverQuip6.
+  ///
+  /// In en, this message translates to:
+  /// **'A wise serpent naps after a feast. You… crashed.'**
+  String get gameOverQuip6;
+
+  /// No description provided for @gameOverQuip7.
+  ///
+  /// In en, this message translates to:
+  /// **'The river spirits saw everything.'**
+  String get gameOverQuip7;
+
+  /// No description provided for @gameOverQuip8.
+  ///
+  /// In en, this message translates to:
+  /// **'Knotted! Try slithering, not tangling.'**
+  String get gameOverQuip8;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

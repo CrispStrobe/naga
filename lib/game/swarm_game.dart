@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,10 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
   final Random _random = Random();
 
+  // Cached habitat decoration layer (board fill + canopy foliage).
+  ui.Picture? _decorPicture;
+  double _decorCellSize = -1;
+
   SwarmGame({
     required this.mode,
     required this.onGameOver,
@@ -51,7 +56,8 @@ class SwarmGame extends FlameGame with KeyboardEvents {
   });
 
   @override
-  Color backgroundColor() => mode.backgroundColor;
+  Color backgroundColor() =>
+      Color.lerp(mode.backgroundColor, Colors.black, 0.18)!;
 
   @override
   Future<void> onLoad() async {
@@ -371,10 +377,104 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  /// Builds the cached habitat layer: bright canopy board on the darker
+  /// surround, scattered leaves and vine strands along the top edge.
+  /// Deterministic (fixed seed) and cached so render stays cheap.
+  ui.Picture _buildDecorPicture() {
+    final recorder = ui.PictureRecorder();
+    final c = Canvas(recorder);
+    final cs = cellSize;
+    final bg = mode.backgroundColor;
+    final boardRect = Rect.fromLTWH(
+        boardOffset.x, boardOffset.y, gridWidth * cs, gridHeight * cs);
+
+    // Bright play field on the darker surround
+    c.drawRect(boardRect, Paint()..color = bg);
+
+    c.save();
+    c.clipRect(boardRect);
+    final rng = Random(9182); // fixed seed: same pattern every rebuild
+
+    // Scattered leaf shapes — low contrast against the canopy green
+    final leafLight = Paint()..color = Color.lerp(bg, Colors.white, 0.09)!;
+    final leafDark = Paint()..color = Color.lerp(bg, Colors.black, 0.08)!;
+    final count = (gridWidth * gridHeight * 0.06).round();
+    for (int i = 0; i < count; i++) {
+      final cx = boardRect.left + rng.nextDouble() * boardRect.width;
+      final cy = boardRect.top + rng.nextDouble() * boardRect.height;
+      final angle = rng.nextDouble() * 2 * pi;
+      final len = cs * (0.8 + rng.nextDouble() * 1.2);
+      final paint = rng.nextBool() ? leafLight : leafDark;
+
+      c.save();
+      c.translate(cx, cy);
+      c.rotate(angle);
+      // Leaf: pointed oval
+      final leaf = Path()
+        ..moveTo(0, 0)
+        ..quadraticBezierTo(len * 0.5, -len * 0.22, len, 0)
+        ..quadraticBezierTo(len * 0.5, len * 0.22, 0, 0)
+        ..close();
+      c.drawPath(leaf, paint);
+      c.restore();
+    }
+
+    // Vine strands hanging from the top edge
+    final vinePaint = Paint()
+      ..color = Color.lerp(bg, Colors.black, 0.12)!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cs * 0.08;
+    final vineLeaf = Paint()..color = Color.lerp(bg, Colors.black, 0.10)!;
+    const vineCount = 4;
+    for (int i = 0; i < vineCount; i++) {
+      final x = boardRect.left +
+          boardRect.width * (0.12 + 0.76 * i / (vineCount - 1)) +
+          (rng.nextDouble() - 0.5) * cs * 2;
+      final length = cs * (2.0 + rng.nextDouble() * 2.0);
+      final sway = (rng.nextDouble() - 0.5) * cs * 1.6;
+      final path = Path()
+        ..moveTo(x, boardRect.top)
+        ..quadraticBezierTo(
+            x + sway, boardRect.top + length * 0.5, x, boardRect.top + length)
+        ..quadraticBezierTo(x - sway * 0.6, boardRect.top + length * 1.25,
+            x + sway * 0.4, boardRect.top + length * 1.5);
+      c.drawPath(path, vinePaint);
+      // Small leaves along the vine
+      for (final t in [0.35, 0.7, 1.0]) {
+        c.drawOval(
+          Rect.fromCenter(
+            center: Offset(x + sway * 0.3, boardRect.top + length * t),
+            width: cs * 0.4,
+            height: cs * 0.22,
+          ),
+          vineLeaf,
+        );
+      }
+    }
+
+    c.restore();
+    return recorder.endRecording();
+  }
+
+  @override
+  void onRemove() {
+    _decorPicture?.dispose();
+    _decorPicture = null;
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
     final cs = cellSize;
+
+    // Habitat layer — bright board on darker surround (cached)
+    if (_decorPicture == null || _decorCellSize != cs) {
+      _decorCellSize = cs;
+      _decorPicture?.dispose();
+      _decorPicture = _buildDecorPicture();
+    }
+    canvas.drawPicture(_decorPicture!);
 
     // Draw border
     final borderPaint = Paint()
@@ -454,7 +554,8 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     final tp = TextPainter(
       text: TextSpan(
         text: 'WAVE $_wave',
-        style: TextStyle(color: mode.snakeColor.withOpacity(0.5), fontSize: 12, fontWeight: FontWeight.bold),
+        // Sits on the darker surround outside the board — keep it light.
+        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12, fontWeight: FontWeight.bold),
       ),
       textDirection: TextDirection.ltr,
     )..layout();

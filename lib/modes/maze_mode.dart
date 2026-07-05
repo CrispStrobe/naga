@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Pac-Man inspired mode — navigate a maze, eat dots, avoid ghosts.
@@ -10,7 +11,7 @@ class MazeMode extends GameMode {
   String get description => 'Pac-Man meets Snake';
 
   @override
-  Color get backgroundColor => const Color(0xFF000033);
+  Color get backgroundColor => NagaPalette.lagoonTeal; // sunlit lagoon floor
 
   @override
   Color get snakeColor => const Color(0xFFFFFF00); // Pac-Man yellow
@@ -19,7 +20,7 @@ class MazeMode extends GameMode {
   Color get foodColor => const Color(0xFFFFFFFF); // White dots
 
   @override
-  Color get gridColor => const Color(0xFF0000AA); // Blue maze walls
+  Color get gridColor => NagaPalette.deepLagoon;
 
   @override
   bool get wallsKill => true;
@@ -38,8 +39,8 @@ class MazeMode extends GameMode {
   @override
   int pointsPerFood(int score) => 10;
 
-  // Maze wall color for rendering
-  Color get wallColor => const Color(0xFF1565C0);
+  // Maze wall color for rendering — dense jungle hedge walls
+  Color get wallColor => NagaPalette.canopyGreen;
 
   // Ghost colors
   static const List<Color> ghostColors = [

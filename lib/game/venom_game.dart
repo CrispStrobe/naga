@@ -261,37 +261,44 @@ class VenomGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  Point<int> _neighbor(Point<int> from, Direction dir) {
+    switch (dir) {
+      case Direction.up:
+        return Point(from.x, from.y - 1);
+      case Direction.down:
+        return Point(from.x, from.y + 1);
+      case Direction.left:
+        return Point(from.x - 1, from.y);
+      case Direction.right:
+        return Point(from.x + 1, from.y);
+    }
+  }
+
+  bool _cellFree(Point<int> p) =>
+      !_isBlocked(p.x, p.y) && !_isBombAt(p.x, p.y);
+
   void _tickSnake() {
     if (_directionQueue.isNotEmpty) {
       currentDirection = _directionQueue.removeFirst();
     }
-    final head = snakeSegments.first;
-    late Point<int> newHead;
+    var newHead = _neighbor(snakeSegments.first, currentDirection);
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
-
-    // Check wall collision
-    if (_isBlocked(newHead.x, newHead.y)) {
-      return; // Can't move into wall, stay put
-    }
-
-    // Check bomb collision — can't walk through bombs
-    if (_isBombAt(newHead.x, newHead.y)) {
+    // Can't move into a wall or bomb — stay put
+    if (!_cellFree(newHead)) {
       return;
     }
 
-    // Check self collision
+    // Blocked by own body (e.g. wedged in a dead end after a blocked turn):
+    // turn around — head becomes tail — so the snake can always back out
     if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
-      return;
+      final flipped = snakeSegments.reversed.toList();
+      final flippedHead = _neighbor(flipped.first, currentDirection);
+      if (!_cellFree(flippedHead) ||
+          flipped.any((s) => s.x == flippedHead.x && s.y == flippedHead.y)) {
+        return; // truly stuck this tick
+      }
+      snakeSegments = flipped;
+      newHead = flippedHead;
     }
 
     // Check enemy collision — touching enemy = death
@@ -463,10 +470,18 @@ class VenomGame extends FlameGame with KeyboardEvents {
     final lastDir = _directionQueue.isNotEmpty
         ? _directionQueue.last
         : currentDirection;
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
+    final isOpposite =
+        (dir == Direction.up && lastDir == Direction.down) ||
+        (dir == Direction.down && lastDir == Direction.up) ||
+        (dir == Direction.left && lastDir == Direction.right) ||
+        (dir == Direction.right && lastDir == Direction.left);
+    if (isOpposite) {
+      // Turn around: head becomes tail, so dead ends are always escapable
+      snakeSegments = snakeSegments.reversed.toList();
+      currentDirection = dir;
+      _directionQueue.clear();
+      return;
+    }
     if (dir == lastDir) return;
     if (_directionQueue.length < _maxQueuedInputs) {
       _directionQueue.add(dir);

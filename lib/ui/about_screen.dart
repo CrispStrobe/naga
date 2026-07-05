@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../generated/l10n.dart';
+import '../theme/naga_palette.dart';
 import 'naga_logo.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -22,7 +22,13 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(s.about)),
+      backgroundColor: NagaPalette.menuBackground,
+      appBar: AppBar(
+        title: Text(s.about),
+        backgroundColor: NagaPalette.menuBackground,
+        foregroundColor: NagaPalette.menuDeepGreen,
+        elevation: 0,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

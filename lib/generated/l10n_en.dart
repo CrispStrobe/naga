@@ -330,4 +330,35 @@ class SEn extends S {
 
   @override
   String get nagaDiveDesc => 'Underwater swim';
+
+  @override
+  String get vsAiSplit => 'VS AI Split';
+
+  @override
+  String get vsAiSplitDesc => 'Separate lanes duel';
+
+  @override
+  String get gameOverQuip1 => 'Even a Naga must watch where it slithers!';
+
+  @override
+  String get gameOverQuip2 => 'The jungle claims another tail…';
+
+  @override
+  String get gameOverQuip3 => 'Ouch! Right on the fangs.';
+
+  @override
+  String get gameOverQuip4 => 'That apple was SO worth it.';
+
+  @override
+  String get gameOverQuip5 => 'Shed your skin and try again!';
+
+  @override
+  String get gameOverQuip6 =>
+      'A wise serpent naps after a feast. You… crashed.';
+
+  @override
+  String get gameOverQuip7 => 'The river spirits saw everything.';
+
+  @override
+  String get gameOverQuip8 => 'Knotted! Try slithering, not tangling.';
 }

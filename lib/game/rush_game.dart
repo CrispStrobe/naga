@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +37,10 @@ class RushGame extends FlameGame with KeyboardEvents {
 
   final Random _random = Random();
 
+  // Cached habitat decoration layer (board fill + savanna doodles).
+  ui.Picture? _decorPicture;
+  double _decorCellSize = -1;
+
   RushGame({
     required this.mode,
     required this.onGameOver,
@@ -43,7 +48,8 @@ class RushGame extends FlameGame with KeyboardEvents {
   });
 
   @override
-  Color backgroundColor() => mode.backgroundColor;
+  Color backgroundColor() =>
+      Color.lerp(mode.backgroundColor, Colors.black, 0.18)!;
 
   @override
   Future<void> onLoad() async {
@@ -280,10 +286,101 @@ class RushGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  /// Builds the cached habitat layer: bright savanna board on the darker
+  /// surround, plus grass tufts, streaks and small shrubs.
+  /// Deterministic (fixed seed) and cached so render stays cheap.
+  ui.Picture _buildDecorPicture() {
+    final recorder = ui.PictureRecorder();
+    final c = Canvas(recorder);
+    final cs = cellSize;
+    final bg = mode.backgroundColor;
+    final boardRect = Rect.fromLTWH(
+        boardOffset.x, boardOffset.y, gridWidth * cs, gridHeight * cs);
+
+    // Bright play field on the darker surround
+    c.drawRect(boardRect, Paint()..color = bg);
+
+    c.save();
+    c.clipRect(boardRect);
+    final rng = Random(7331); // fixed seed: same pattern every rebuild
+
+    // Grass streaks — thin horizontal-ish dashes, sun-bleached and shaded
+    final streakLight = Paint()
+      ..color = Color.lerp(bg, Colors.white, 0.09)!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cs * 0.08;
+    final streakDark = Paint()
+      ..color = Color.lerp(bg, Colors.black, 0.07)!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cs * 0.08;
+    final streakCount = (gridWidth * gridHeight * 0.04).round();
+    for (int i = 0; i < streakCount; i++) {
+      final x = boardRect.left + rng.nextDouble() * boardRect.width;
+      final y = boardRect.top + rng.nextDouble() * boardRect.height;
+      final len = cs * (0.6 + rng.nextDouble() * 1.0);
+      final tilt = (rng.nextDouble() - 0.5) * cs * 0.3;
+      c.drawLine(
+        Offset(x, y),
+        Offset(x + len, y + tilt),
+        rng.nextBool() ? streakLight : streakDark,
+      );
+    }
+
+    // Grass tufts — small fans of blades
+    final tuftPaint = Paint()
+      ..color = Color.lerp(bg, Colors.black, 0.10)!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cs * 0.07
+      ..strokeCap = StrokeCap.round;
+    final tuftCount = (gridWidth * gridHeight * 0.02).round();
+    for (int i = 0; i < tuftCount; i++) {
+      final x = boardRect.left + rng.nextDouble() * boardRect.width;
+      final y = boardRect.top + rng.nextDouble() * boardRect.height;
+      final h = cs * (0.35 + rng.nextDouble() * 0.35);
+      for (final dx in [-0.28, 0.0, 0.28]) {
+        c.drawLine(
+          Offset(x, y),
+          Offset(x + h * dx * 1.5, y - h),
+          tuftPaint,
+        );
+      }
+    }
+
+    // Small savanna shrubs — olive-tinted blob clusters
+    final shrubPaint = Paint()
+      ..color = Color.lerp(bg, const Color(0xFF33691E), 0.18)!;
+    for (int i = 0; i < 7; i++) {
+      final x = boardRect.left + rng.nextDouble() * boardRect.width;
+      final y = boardRect.top + rng.nextDouble() * boardRect.height;
+      final r = cs * (0.25 + rng.nextDouble() * 0.2);
+      c.drawCircle(Offset(x - r * 0.7, y), r * 0.8, shrubPaint);
+      c.drawCircle(Offset(x + r * 0.7, y), r * 0.8, shrubPaint);
+      c.drawCircle(Offset(x, y - r * 0.5), r, shrubPaint);
+    }
+
+    c.restore();
+    return recorder.endRecording();
+  }
+
+  @override
+  void onRemove() {
+    _decorPicture?.dispose();
+    _decorPicture = null;
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
     final cs = cellSize;
+
+    // Habitat layer — bright board on darker surround (cached)
+    if (_decorPicture == null || _decorCellSize != cs) {
+      _decorCellSize = cs;
+      _decorPicture?.dispose();
+      _decorPicture = _buildDecorPicture();
+    }
+    canvas.drawPicture(_decorPicture!);
 
     // Border
     final borderPaint = Paint()
@@ -333,7 +430,8 @@ class RushGame extends FlameGame with KeyboardEvents {
     final tp = TextPainter(
       text: TextSpan(
         text: 'DIST: $_distanceTraveled',
-        style: TextStyle(color: mode.snakeColor.withOpacity(0.5), fontSize: 12, fontWeight: FontWeight.bold),
+        // Sits on the darker surround outside the board — keep it light.
+        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12, fontWeight: FontWeight.bold),
       ),
       textDirection: TextDirection.ltr,
     )..layout();

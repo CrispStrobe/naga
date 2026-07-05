@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Breakout/Arkanoid inspired — snake is the paddle, bounce food into blocks.
@@ -10,16 +11,16 @@ class FangsMode extends GameMode {
   String get description => 'Breakout with a bite';
 
   @override
-  Color get backgroundColor => const Color(0xFF5C1A3A);
+  Color get backgroundColor => NagaPalette.orchidPurple; // orchid grove
 
   @override
-  Color get snakeColor => const Color(0xFFE040FB); // Magenta neon
+  Color get snakeColor => NagaPalette.parrotCyan;
 
   @override
   Color get foodColor => const Color(0xFFFFD740); // Golden ball
 
   @override
-  Color get gridColor => const Color(0xFF6A2A4A);
+  Color get gridColor => const Color(0xFF9C27B0);
 
   @override
   bool get wallsKill => true;

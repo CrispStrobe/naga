@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
 /// Roguelike dungeon crawler — explore rooms, fight monsters, collect loot.
@@ -10,7 +11,7 @@ class DungeonMode extends GameMode {
   String get description => 'Roguelike crawler';
 
   @override
-  Color get backgroundColor => const Color(0xFF2C1A0E);
+  Color get backgroundColor => NagaPalette.templeBrown; // sunlit temple stone
 
   @override
   Color get snakeColor => const Color(0xFF00E676);
@@ -19,7 +20,7 @@ class DungeonMode extends GameMode {
   Color get foodColor => const Color(0xFFFFD700);
 
   @override
-  Color get gridColor => const Color(0xFF3A2A1E);
+  Color get gridColor => const Color(0xFFA1887F);
 
   @override
   bool get wallsKill => true;
@@ -40,8 +41,8 @@ class DungeonMode extends GameMode {
   int pointsPerFood(int score) => 10;
 
   // Dungeon-specific colors
-  Color get wallColor => const Color(0xFF5D4037); // Brown stone walls
-  Color get floorColor => const Color(0xFF3E2723); // Dark corridor
+  Color get wallColor => const Color(0xFF4E342E); // Dark stone walls, pop on light ruin floor
+  Color get floorColor => const Color(0xFFA1887F); // Sunlit corridor
   Color get coinColor => const Color(0xFFFFD700); // Gold
   Color get potionColor => const Color(0xFFFF4444); // Red health potion
   Color get weaponColor => const Color(0xFF00BFFF); // Blue weapon pickup
