@@ -141,11 +141,11 @@ class FangsGame extends FlameGame with KeyboardEvents {
     super.update(dt);
     if (gameState != GameState.playing) return;
 
-    // Snake tick
+    // Process queued direction inputs — one step per input, no auto-move
     _snakeTickTimer += dt;
-    if (_snakeTickTimer >= _snakeInterval) {
+    if (_snakeTickTimer >= _snakeInterval && _directionQueue.isNotEmpty) {
       _snakeTickTimer = 0;
-      _tickSnake();
+      _stepSnake(_directionQueue.removeFirst());
     }
 
     // Ball tick
@@ -156,15 +156,12 @@ class FangsGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _tickSnake() {
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
-
+  void _stepSnake(Direction dir) {
+    currentDirection = dir;
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
+    switch (dir) {
       case Direction.up:
         newHead = Point(head.x, head.y - 1);
       case Direction.down:
@@ -179,7 +176,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
     if (newHead.x < 0 || newHead.x >= gridWidth) return;
     if (newHead.y < _snakeZoneMinY || newHead.y >= gridHeight) return;
 
-    // No self-collision (optional: could add, but breakout paddle shouldn't die)
+    // No self-collision
     if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) return;
 
     // Move: insert new head, remove tail (snake doesn't grow from movement)
