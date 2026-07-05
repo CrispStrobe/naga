@@ -5,6 +5,7 @@ import 'generated/l10n.dart';
 import 'services/settings_service.dart';
 import 'services/high_score_service.dart';
 import 'services/audio_service.dart';
+import 'services/achievements_service.dart';
 import 'ui/home_screen.dart';
 
 void main() async {
@@ -19,11 +20,13 @@ void main() async {
   final settingsService = await SettingsService.instance();
   final highScoreService = await HighScoreService.instance();
   final audioService = await AudioService.instance();
+  final achievementsService = await AchievementsService.instance();
 
   runApp(NagaApp(
     settingsService: settingsService,
     highScoreService: highScoreService,
     audioService: audioService,
+    achievementsService: achievementsService,
   ));
 }
 
@@ -31,12 +34,14 @@ class NagaApp extends StatelessWidget {
   final SettingsService settingsService;
   final HighScoreService highScoreService;
   final AudioService audioService;
+  final AchievementsService achievementsService;
 
   const NagaApp({
     super.key,
     required this.settingsService,
     required this.highScoreService,
     required this.audioService,
+    required this.achievementsService,
   });
 
   @override
@@ -56,6 +61,7 @@ class NagaApp extends StatelessWidget {
         settingsService: settingsService,
         highScoreService: highScoreService,
         audioService: audioService,
+        achievementsService: achievementsService,
       ),
     );
   }

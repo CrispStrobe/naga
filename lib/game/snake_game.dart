@@ -338,6 +338,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       onScoreChanged(score);
       remove(food);
       _spawnFood();
+      HapticFeedback.selectionClick();
     }
 
     // Check power-up collection
@@ -359,6 +360,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
 
   void _die() {
     gameState = GameState.gameOver;
+    HapticFeedback.heavyImpact();
     onGameOver();
   }
 

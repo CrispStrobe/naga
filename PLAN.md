@@ -2,84 +2,71 @@
 
 ## Current State (2026-07-05)
 
-### Done
-- [x] Flutter + Flame project scaffold, cross-platform (iOS, Android, Web)
-- [x] i18n (EN + DE) with Flutter gen-l10n, class `S`
-- [x] About screen (AGPL-3.0, mirrors CrispSudoku pattern)
-- [x] Settings: grid size, wall behavior, lives, control type, audio toggles
-- [x] Local high scores per mode (SharedPreferences)
-- [x] Audio service with per-mode music (OGG) + SFX, toggles in settings
-- [x] Generated chiptune music (10+ tracks) and SFX (5 sounds) via CrispAudio synth
-- [x] Virtual d-pad controls (toggle in-game or via settings)
-- [x] Input lag reduction (early tick trigger on direction change)
-- [x] Release build fix (nullable singletons, bounds-checked enum indexing)
-- [x] Vercel web deployment (https://web-ten-ebon-14.vercel.app)
-- [x] GitHub repo (private, https://github.com/CrispStrobe/naga)
-- [x] Game pause (pause button + overlay, all modes)
-- [x] Power-up/buff system (Speed, Shield, Magnet, Slow, Shrink)
-- [x] Visual upgrades: smooth snake, reactive food, checkerboard, per-mode boards
+### Complete
+- [x] Flutter + Flame, cross-platform (iOS, Android, Web)
+- [x] i18n (EN + DE), About screen (AGPL-3.0)
+- [x] Settings: grid size, wall behavior, lives, controls, audio, difficulty, start speed
+- [x] Local high scores, audio (OGG music + SFX per mode)
+- [x] D-pad controls, game pause, input lag reduction
+- [x] Power-up/buff system (5 types, visual indicators)
+- [x] Smooth snake rendering, reactive food, checkerboard boards
+- [x] Home screen animated snake (cycling mode styles)
+- [x] App icon + splash screen (all platforms)
+- [x] PWA manifest, privacy policy, App Store metadata (EN/DE)
+- [x] Release build fix
 
-### Game Modes — 15 total (+ Dungeon in progress)
+### 17 Game Modes
 
-**Classic (3):** Classic, Arcade, Zen
-**Crossover (4):** Maze Hunter, Trail, Fangs, Venom
-**Action (3):** Pit, Swarm, Rush
-**Legacy (4):** Snake II, ASCII, CGA, Nibbles
-**Multiplayer (1):** Duel (local 2-player)
-**In progress:** Dungeon (roguelike crawler)
+| Category | Modes |
+|----------|-------|
+| Classic (3) | Classic, Arcade, Zen |
+| Crossover (4) | Maze Hunter, Trail, Fangs, Venom |
+| Action (3) | Pit, Swarm, Rush |
+| Legacy (4) | Snake II, ASCII, CGA, Nibbles |
+| Adventure (1) | Dungeon |
+| Multiplayer (2) | Duel (local 2P), VS AI (4 difficulty levels) |
 
----
-
-## Phase 1: ~~Wire Retro Modes + Chain-Link Snake~~ DONE
-## Phase 2: ~~Polish & Gameplay Quality~~ DONE
-## Phase 3: ~~Multiplayer~~ DONE (Duel mode)
+### Deployments
+- Web: https://web-ten-ebon-14.vercel.app
+- GitHub: https://github.com/CrispStrobe/naga (private)
 
 ---
 
-## Phase 4: Dungeon Mode (IN PROGRESS)
-- Procedurally generated rooms with corridors
-- Monsters, collectibles (coins, potions, weapons), traps
-- Room progression with scaling difficulty
-- Snake segments = HP, lose segments on damage
-
-## Phase 5: App Store Preparation
-
-### 5.1 App icon and splash screen
-- Design Naga snake logo
-- Adaptive icon (Android), App Icon (iOS)
-- Launch screen / splash
-
-### 5.2 App Store metadata
-- Screenshots for all device sizes (automated via Playwright/integration tests)
-- App description (EN + DE)
-- Privacy policy page
-- Age rating
-
-### 5.3 iOS build & submission
-- Xcode project configuration
-- Signing, provisioning profiles
-- TestFlight beta → App Store Connect
-
-### 5.4 Android build & submission
-- Signing key
-- Play Console → Internal testing → Production
-
-### 5.5 PWA support for web
-- Service worker for offline play
-- Manifest with proper icons
-- Add-to-homescreen prompt
+## Phases 1-5: DONE
 
 ---
 
-## Phase 6: Future Ideas (prioritized)
+## Phase 6: Polish & Future (remaining)
 
-1. **Online multiplayer** — WebSocket server, matchmaking, lobbies
-2. **Achievements** — unlock modes, track milestones (local + Game Center/Play Games)
-3. **Haptic feedback** — vibration on eat/die (mobile only)
-4. **Skins** — unlockable snake skins per mode
-5. **Level editor** — user-created mazes (share via URL/QR)
-6. **Seasonal events** — holiday-themed food/backgrounds
-7. **Leaderboards** — global (requires backend)
-8. **More retro modes** — Anakonda, Worm, Hyper-Wurm
-9. **Tutorial/onboarding** — animated intro for first-time players
-10. **Accessibility** — high contrast mode, screen reader hints
+### 6.1 Haptic feedback
+- Vibration on eat/die/power-up (mobile only, HapticFeedback.lightImpact)
+
+### 6.2 Tutorial/onboarding
+- First-launch animated tutorial showing controls
+- Mode descriptions on first play
+
+### 6.3 Achievements system
+- Local achievements (SharedPreferences)
+- Examples: "Eat 100 food", "Clear 5 dungeon rooms", "Win a Duel", "Survive 60s in Rush"
+
+### 6.4 More retro modes
+- Anakonda, Worm, Hyper-Wurm (as requested)
+
+### 6.5 Online multiplayer
+- WebSocket server, matchmaking
+
+### 6.6 iOS/Android submission
+- Requires developer accounts (Apple + Google)
+- Signing keys, TestFlight, Play Console
+
+### 6.7 Skins & customization
+- Unlockable snake skins
+- Custom color themes
+
+### 6.8 Level editor
+- User-created mazes, shareable via URL
+
+### 6.9 Accessibility
+- High contrast mode
+- Screen reader hints
+- Reduced motion option

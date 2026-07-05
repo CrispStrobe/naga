@@ -26,17 +26,21 @@ import 'game_screen.dart';
 import 'about_screen.dart';
 import 'settings_screen.dart';
 import 'high_scores_screen.dart';
+import 'achievements_screen.dart';
+import '../services/achievements_service.dart';
 
 class HomeScreen extends StatelessWidget {
   final SettingsService settingsService;
   final HighScoreService highScoreService;
   final AudioService audioService;
+  final AchievementsService achievementsService;
 
   const HomeScreen({
     super.key,
     required this.settingsService,
     required this.highScoreService,
     required this.audioService,
+    required this.achievementsService,
   });
 
   @override
@@ -256,6 +260,18 @@ class HomeScreen extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) => HighScoresScreen(
                           highScoreService: highScoreService,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  _BottomBarButton(
+                    icon: Icons.military_tech,
+                    label: 'Achievements',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AchievementsScreen(
+                          achievementsService: achievementsService,
                         ),
                       ),
                     ),
