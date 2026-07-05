@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -28,7 +29,8 @@ class CgaGame extends FlameGame with KeyboardEvents {
   // Snake
   List<Point<int>> snakeSegments = [];
   Direction currentDirection = Direction.right;
-  Direction _nextDirection = Direction.right;
+  final Queue<Direction> _directionQueue = Queue<Direction>();
+  static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
   double _tickTimer = 0;
@@ -72,7 +74,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
     score = 0;
     gameState = GameState.playing;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
 
     final startX = gridWidth ~/ 2;
     final startY = gridHeight ~/ 2;
@@ -93,7 +95,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
   void respawn() {
     _tickTimer = 0;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
     gameState = GameState.playing;
     final startX = gridWidth ~/ 2;
     final startY = gridHeight ~/ 2;
@@ -126,7 +128,9 @@ class CgaGame extends FlameGame with KeyboardEvents {
   }
 
   void _tick() {
-    currentDirection = _nextDirection;
+    if (_directionQueue.isNotEmpty) {
+      currentDirection = _directionQueue.removeFirst();
+    }
 
     final head = snakeSegments.first;
     late Point<int> newHead;
@@ -177,11 +181,17 @@ class CgaGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    if (dir == Direction.up && currentDirection == Direction.down) return;
-    if (dir == Direction.down && currentDirection == Direction.up) return;
-    if (dir == Direction.left && currentDirection == Direction.right) return;
-    if (dir == Direction.right && currentDirection == Direction.left) return;
-    _nextDirection = dir;
+    final lastDir = _directionQueue.isNotEmpty
+        ? _directionQueue.last
+        : currentDirection;
+    if (dir == Direction.up && lastDir == Direction.down) return;
+    if (dir == Direction.down && lastDir == Direction.up) return;
+    if (dir == Direction.left && lastDir == Direction.right) return;
+    if (dir == Direction.right && lastDir == Direction.left) return;
+    if (dir == lastDir) return;
+    if (_directionQueue.length < _maxQueuedInputs) {
+      _directionQueue.add(dir);
+    }
     final interval = mode.tickInterval(score);
     if (_tickTimer > interval * 0.4) {
       _tickTimer = interval;

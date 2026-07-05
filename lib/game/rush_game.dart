@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -20,7 +21,8 @@ class RushGame extends FlameGame with KeyboardEvents {
   // Snake
   List<Point<int>> snakeSegments = [];
   Direction currentDirection = Direction.up;
-  Direction _nextDirection = Direction.up;
+  final Queue<Direction> _directionQueue = Queue<Direction>();
+  static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
   double _tickTimer = 0;
@@ -66,7 +68,7 @@ class RushGame extends FlameGame with KeyboardEvents {
     _scrollInterval = 2.0;
     gameState = GameState.playing;
     currentDirection = Direction.up;
-    _nextDirection = Direction.up;
+    _directionQueue.clear();
     obstacles.clear();
     food.clear();
 
@@ -126,7 +128,9 @@ class RushGame extends FlameGame with KeyboardEvents {
   }
 
   void _tickSnake() {
-    currentDirection = _nextDirection;
+    if (_directionQueue.isNotEmpty) {
+      currentDirection = _directionQueue.removeFirst();
+    }
     final head = snakeSegments.first;
     late Point<int> newHead;
 
@@ -220,11 +224,17 @@ class RushGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    if (dir == Direction.up && currentDirection == Direction.down) return;
-    if (dir == Direction.down && currentDirection == Direction.up) return;
-    if (dir == Direction.left && currentDirection == Direction.right) return;
-    if (dir == Direction.right && currentDirection == Direction.left) return;
-    _nextDirection = dir;
+    final lastDir = _directionQueue.isNotEmpty
+        ? _directionQueue.last
+        : currentDirection;
+    if (dir == Direction.up && lastDir == Direction.down) return;
+    if (dir == Direction.down && lastDir == Direction.up) return;
+    if (dir == Direction.left && lastDir == Direction.right) return;
+    if (dir == Direction.right && lastDir == Direction.left) return;
+    if (dir == lastDir) return;
+    if (_directionQueue.length < _maxQueuedInputs) {
+      _directionQueue.add(dir);
+    }
   }
 
   void togglePause() {

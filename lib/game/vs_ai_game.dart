@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -36,7 +37,8 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   // Player
   List<Point<int>> playerSegments = [];
   Direction currentDirection = Direction.right;
-  Direction _nextDirection = Direction.right;
+  final Queue<Direction> _directionQueue = Queue<Direction>();
+  static const int _maxQueuedInputs = 4;
 
   // AI opponents
   late List<_AiOpponent> _aiOpponents;
@@ -86,7 +88,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     gameState = GameState.playing;
     playerWon = false;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
 
     // Player starts centre-left
     final px = gridWidth ~/ 4;
@@ -162,8 +164,14 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   // ------------------------------------------------------------------
 
   void changeDirection(Direction dir) {
-    if (_isOpposite(dir, currentDirection)) return;
-    _nextDirection = dir;
+    final lastDir = _directionQueue.isNotEmpty
+        ? _directionQueue.last
+        : currentDirection;
+    if (_isOpposite(dir, lastDir)) return;
+    if (dir == lastDir) return;
+    if (_directionQueue.length < _maxQueuedInputs) {
+      _directionQueue.add(dir);
+    }
     _maybeEarlyTick();
   }
 
@@ -265,7 +273,9 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     }
 
     // --- Player movement ---
-    currentDirection = _nextDirection;
+    if (_directionQueue.isNotEmpty) {
+      currentDirection = _directionQueue.removeFirst();
+    }
     final playerHead = _advance(playerSegments.first, currentDirection);
 
     // Player death checks

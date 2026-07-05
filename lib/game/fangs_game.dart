@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -23,7 +24,8 @@ class FangsGame extends FlameGame with KeyboardEvents {
   // Snake — moves freely in 4 directions within the bottom zone
   List<Point<int>> snakeSegments = [];
   Direction currentDirection = Direction.right;
-  Direction _nextDirection = Direction.right;
+  final Queue<Direction> _directionQueue = Queue<Direction>();
+  static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
   double _snakeTickTimer = 0;
@@ -73,7 +75,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
     _lives = 3;
     gameState = GameState.playing;
     currentDirection = Direction.right;
-    _nextDirection = Direction.right;
+    _directionQueue.clear();
     _resetSnake();
     _resetBall();
     _spawnBlocks();
@@ -155,7 +157,9 @@ class FangsGame extends FlameGame with KeyboardEvents {
   }
 
   void _tickSnake() {
-    currentDirection = _nextDirection;
+    if (_directionQueue.isNotEmpty) {
+      currentDirection = _directionQueue.removeFirst();
+    }
 
     final head = snakeSegments.first;
     late Point<int> newHead;
@@ -297,12 +301,17 @@ class FangsGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    // Prevent reversing direction
-    if (dir == Direction.up && currentDirection == Direction.down) return;
-    if (dir == Direction.down && currentDirection == Direction.up) return;
-    if (dir == Direction.left && currentDirection == Direction.right) return;
-    if (dir == Direction.right && currentDirection == Direction.left) return;
-    _nextDirection = dir;
+    final lastDir = _directionQueue.isNotEmpty
+        ? _directionQueue.last
+        : currentDirection;
+    if (dir == Direction.up && lastDir == Direction.down) return;
+    if (dir == Direction.down && lastDir == Direction.up) return;
+    if (dir == Direction.left && lastDir == Direction.right) return;
+    if (dir == Direction.right && lastDir == Direction.left) return;
+    if (dir == lastDir) return;
+    if (_directionQueue.length < _maxQueuedInputs) {
+      _directionQueue.add(dir);
+    }
   }
 
   void togglePause() {
