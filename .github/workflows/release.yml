@@ -1,0 +1,148 @@
+name: Release builds
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.44.1'
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate l10n
+        run: flutter gen-l10n || true
+
+      - name: Build APK (release, debug-signed — no release keystore configured)
+        run: |
+          flutter build apk --release \
+            --dart-define=GIT_COMMIT=${{ github.sha }} \
+            --dart-define=BUILD_MODE=release \
+            --dart-define=APP_VERSION=${{ github.ref_name }}
+
+      - name: Build App Bundle (release, debug-signed)
+        run: |
+          flutter build appbundle --release \
+            --dart-define=GIT_COMMIT=${{ github.sha }} \
+            --dart-define=BUILD_MODE=release \
+            --dart-define=APP_VERSION=${{ github.ref_name }}
+
+      - name: Rename artifacts
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/naga-android-unsigned.apk
+          cp build/app/outputs/bundle/release/app-release.aab dist/naga-android-unsigned.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: dist/*
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate l10n
+        run: flutter gen-l10n || true
+
+      - name: Build iOS (unsigned)
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=GIT_COMMIT=${{ github.sha }} \
+            --dart-define=BUILD_MODE=release \
+            --dart-define=APP_VERSION=${{ github.ref_name }}
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p dist Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r dist/naga-ios-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: dist/*
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate l10n
+        run: flutter gen-l10n || true
+
+      - name: Build web (WASM)
+        run: |
+          flutter build web --wasm \
+            --dart-define=GIT_COMMIT=${{ github.sha }} \
+            --dart-define=BUILD_MODE=wasm \
+            --dart-define=APP_VERSION=${{ github.ref_name }}
+
+      - name: Zip web build
+        run: |
+          mkdir -p dist
+          (cd build/web && zip -r ../../dist/naga-web-wasm.zip .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: dist/*
+
+  release:
+    needs: [android, ios, web]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          name: Naga ${{ github.ref_name }}
+          body: |
+            Automated release build.
+
+            - **Android**: `naga-android-unsigned.apk` / `.aab` — debug-signed (no release keystore configured), install with `adb install` or sideload after enabling unknown sources.
+            - **iOS**: `naga-ios-unsigned.ipa` — unsigned, requires resigning (e.g. with a personal Apple developer certificate via AltStore/Sideloadly/Xcode) before it can run on a device.
+            - **Web**: `naga-web-wasm.zip` — static WASM build; the live version is auto-deployed to https://naga-game.vercel.app on every push to `main`.
