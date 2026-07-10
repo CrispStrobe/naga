@@ -1,5 +1,8 @@
 App Name: Naga
 Subtitle: The Snake Game
+Bundle ID (iOS): com.crispstrobe.naga
+Application ID (Android): com.naga.naga
+Game Modes: 19
 
 Category: Games > Casual
 Secondary Category: Entertainment
@@ -12,7 +15,7 @@ Supported Languages:
 - English (primary)
 - German
 
-Privacy Policy URL: https://[your-domain]/privacy.html
+Privacy Policy URL: https://naga-game.vercel.app/privacy.html
 
 Pricing: Free
 In-App Purchases: None

@@ -31,6 +31,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/build
 /coverage/
 assets/audio/build/
 
@@ -45,3 +46,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .vercel
+
+# App Store Connect API key (never commit)
+.appstoreconnect/
+*.p8
