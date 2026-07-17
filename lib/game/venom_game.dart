@@ -13,10 +13,14 @@ import 'snake_game.dart' show Direction, GameState;
 class VenomGame extends FlameGame with KeyboardEvents {
   final VenomMode mode;
   final VoidCallback onGameOver;
+
+  /// Called once when the player clears the final level — the win condition.
+  final VoidCallback onWin;
   final ValueChanged<int> onScoreChanged;
 
   static const int gridWidth = 20;
   static const int gridHeight = 28;
+  static const int maxLevel = 5; // clear all 5 levels to win the campaign
   static const int bombExplosionRadius = 2; // circular cloud, ~13 cells
   static const double bombFuseTime = 3.0;
   static const int startLength = 3;
@@ -32,6 +36,10 @@ class VenomGame extends FlameGame with KeyboardEvents {
   final Queue<Direction> _directionQueue = Queue<Direction>();
   static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
+
+  /// True once every level has been cleared — read by the UI to show a
+  /// victory screen instead of "game over".
+  bool hasWon = false;
   int score = 0;
   double _tickTimer = 0;
   int _bombsAvailable = 3;
@@ -69,6 +77,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
   VenomGame({
     required this.mode,
     required this.onGameOver,
+    required this.onWin,
     required this.onScoreChanged,
   });
 
@@ -99,6 +108,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     score = 0;
     _level = 1;
     targetLength = startLength;
+    hasWon = false;
     gameState = GameState.playing;
     currentDirection = Direction.right;
     _directionQueue.clear();
@@ -413,8 +423,21 @@ class VenomGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    // Check win condition
+    // Level cleared by the blast?
     if (_enemies.isEmpty && gameState == GameState.playing) {
+      _onLevelCleared();
+    }
+  }
+
+  /// All enemies on the current level are dead. Advance to the next level —
+  /// or, if this was the final level, win the game. This is Venom's real
+  /// win condition: survive and clear all [maxLevel] levels.
+  void _onLevelCleared() {
+    if (_level >= maxLevel) {
+      hasWon = true;
+      gameState = GameState.gameOver;
+      onWin();
+    } else {
       _level++;
       _buildLevel();
     }
@@ -510,12 +533,14 @@ class VenomGame extends FlameGame with KeyboardEvents {
     }
 
     if (_enemies.isEmpty && gameState == GameState.playing) {
-      _level++;
-      _buildLevel();
+      _onLevelCleared();
     }
   }
 
   void _die() {
+    // Never override an already-finished game — e.g. if the same chain blast
+    // that cleared the final level (a win) also caught the snake.
+    if (gameState != GameState.playing) return;
     gameState = GameState.gameOver;
     onGameOver();
   }
@@ -774,7 +799,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     final hudY = boardOffset.y + 2;
     final levelTp = TextPainter(
       text: TextSpan(
-        text: 'LEVEL $_level',
+        text: 'LEVEL $_level/$maxLevel',
         style: TextStyle(
           color: mode.snakeColor.withOpacity(0.8),
           fontSize: 12,

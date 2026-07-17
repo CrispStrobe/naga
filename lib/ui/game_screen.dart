@@ -143,6 +143,7 @@ class _GameScreenState extends State<GameScreen> {
       _game = VenomGame(
         mode: widget.mode as VenomMode,
         onGameOver: _handleDeath,
+        onWin: () => _onGameOver(victory: true),
         onScoreChanged: (score) => _scoreNotifier.value = score,
       );
     } else if (_isPitMode) {
@@ -342,7 +343,8 @@ class _GameScreenState extends State<GameScreen> {
             'destroys walls and enemies. Chain reactions possible!\n'
             'Destroyed walls may drop food — eat it to grow.\n'
             'A longer snake carries more bombs, but is easier to blast.\n'
-            'Kill all enemies to advance. Don\'t get caught in your own venom.';
+            'Clear all enemies to advance. Survive all 5 levels to WIN!\n'
+            'Don\'t get caught in your own venom.';
       case 'Swarm':
         return 'Space Invaders meets Snake!\n\n'
             'Enemies march down in formation. Eat them by approaching from the SIDES.\n'
@@ -405,8 +407,12 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  void _onGameOver() async {
-    widget.audioService.playDie();
+  void _onGameOver({bool victory = false}) async {
+    if (victory) {
+      widget.audioService.playLevelUp();
+    } else {
+      widget.audioService.playDie();
+    }
     final isNew = await widget.highScoreService
         .submitScore(widget.mode.name, _scoreNotifier.value);
     setState(() {
@@ -695,6 +701,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   String _getResultText(S s) {
+    if (_isVenomMode && (_game as VenomGame).hasWon) {
+      return 'YOU WIN!';
+    }
     if (_isVsAiMode) {
       final won = (_game as VsAiGame).playerWon;
       return won ? 'YOU WIN!' : s.gameOver;
@@ -709,6 +718,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Color _getResultColor() {
+    if (_isVenomMode && (_game as VenomGame).hasWon) {
+      return Colors.green.shade400;
+    }
     if (_isVsAiMode && (_game as VsAiGame).playerWon) {
       return Colors.green.shade400;
     }
