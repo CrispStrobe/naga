@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'game_mode.dart';
 
 /// Bomberman inspired — drop venom bombs, chain explosions, clear obstacles.
+/// Destroyed walls drop food; eating grows the snake and its bomb capacity.
 class VenomMode extends GameMode {
   @override
   String get name => 'Venom';

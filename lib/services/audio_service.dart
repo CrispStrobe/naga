@@ -59,6 +59,15 @@ class AudioService {
     return _pendingInit!;
   }
 
+  /// Test-only: a muted service that never touches audio platform channels
+  /// (audioplayers futures never complete in the test environment).
+  static AudioService silent() {
+    final service = AudioService._();
+    service._musicEnabled = false;
+    service._sfxEnabled = false;
+    return service;
+  }
+
   static Future<AudioService> _createInstance() async {
     final service = AudioService._();
     await service._init();

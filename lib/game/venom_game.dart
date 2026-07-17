@@ -8,6 +8,8 @@ import '../modes/venom_mode.dart';
 import 'snake_game.dart' show Direction, GameState;
 
 /// Bomberman-inspired mode — drop venom bombs, destroy walls, clear enemies.
+/// Destroyed walls drop food; eating grows the snake, and a longer snake
+/// carries more venom bombs (but is a bigger target for blasts).
 class VenomGame extends FlameGame with KeyboardEvents {
   final VenomMode mode;
   final VoidCallback onGameOver;
@@ -15,15 +17,17 @@ class VenomGame extends FlameGame with KeyboardEvents {
 
   static const int gridWidth = 20;
   static const int gridHeight = 28;
-  static const int bombExplosionRadius = 3;
+  static const int bombExplosionRadius = 2; // circular cloud, ~13 cells
   static const double bombFuseTime = 3.0;
-  static const int snakeLength = 3;
+  static const int startLength = 3;
+  static const double foodDropChance = 0.3;
 
   late double cellSize;
   late Vector2 boardOffset;
 
   // Snake
   List<Point<int>> snakeSegments = [];
+  int targetLength = startLength;
   Direction currentDirection = Direction.right;
   final Queue<Direction> _directionQueue = Queue<Direction>();
   static const int _maxQueuedInputs = 4;
@@ -31,8 +35,15 @@ class VenomGame extends FlameGame with KeyboardEvents {
   int score = 0;
   double _tickTimer = 0;
   int _bombsAvailable = 3;
-  static const int _maxBombs = 3;
   bool _dropBombRequested = false;
+
+  /// Bomb capacity grows with the snake: +1 bomb per 3 segments, capped at 6.
+  int get maxBombs => min(2 + targetLength ~/ 3, 6);
+
+  int get bombsAvailable => _bombsAvailable;
+
+  // Food dropped by destroyed walls
+  final Set<int> _foods = {};
 
   // Walls: true = indestructible, false would not be stored
   Set<int> indestructibleWalls = {};
@@ -87,12 +98,13 @@ class VenomGame extends FlameGame with KeyboardEvents {
   void _startNewGame() {
     score = 0;
     _level = 1;
+    targetLength = startLength;
     gameState = GameState.playing;
     currentDirection = Direction.right;
     _directionQueue.clear();
     _bombs.clear();
     _explosions.clear();
-    _bombsAvailable = _maxBombs;
+    _bombsAvailable = maxBombs;
     _dropBombRequested = false;
     _buildLevel();
   }
@@ -103,6 +115,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     _bombs.clear();
     _explosions.clear();
     _enemies.clear();
+    _foods.clear();
     _dropBombRequested = false;
 
     // Border walls (indestructible)
@@ -221,17 +234,25 @@ class VenomGame extends FlameGame with KeyboardEvents {
     return _bombs.any((b) => b.position.x == x && b.position.y == y);
   }
 
+  /// Freshly dropped bombs stay passable for the snake until it slides off
+  /// them; then they harden and block like a wall.
+  bool _isSolidBombAt(int x, int y) {
+    return _bombs.any((b) => b.solid && b.position.x == x && b.position.y == y);
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
     if (gameState != GameState.playing) return;
 
-    // Replenish bombs over time (1 every 5 seconds if below max)
-    // (handled in _explodeBomb — bombs replenish on detonation)
-
-    // Update bomb timers
+    // Update bomb timers; harden bombs the snake has slid off
     for (final bomb in _bombs) {
       bomb.timer -= dt;
+      if (!bomb.solid &&
+          !snakeSegments.any(
+              (s) => s.x == bomb.position.x && s.y == bomb.position.y)) {
+        bomb.solid = true;
+      }
     }
     // Explode bombs whose timer expired
     final expired = _bombs.where((b) => b.timer <= 0).toList();
@@ -275,15 +296,27 @@ class VenomGame extends FlameGame with KeyboardEvents {
   }
 
   bool _cellFree(Point<int> p) =>
-      !_isBlocked(p.x, p.y) && !_isBombAt(p.x, p.y);
+      !_isBlocked(p.x, p.y) && !_isSolidBombAt(p.x, p.y);
 
   void _tickSnake() {
+    // Drop bomb on request at the tail cell — before movement, so bombing
+    // the wall you're pressed against works. The bomb stays passable until
+    // the snake slides off it.
+    if (_dropBombRequested) {
+      _dropBombRequested = false;
+      final tail = snakeSegments.last;
+      if (_bombsAvailable > 0 && !_isBombAt(tail.x, tail.y)) {
+        _bombs.add(_Bomb(position: tail, timer: bombFuseTime));
+        _bombsAvailable--;
+      }
+    }
+
     if (_directionQueue.isNotEmpty) {
       currentDirection = _directionQueue.removeFirst();
     }
     var newHead = _neighbor(snakeSegments.first, currentDirection);
 
-    // Can't move into a wall or bomb — stay put
+    // Can't move into a wall or hardened bomb — stay put
     if (!_cellFree(newHead)) {
       return;
     }
@@ -307,23 +340,22 @@ class VenomGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    // Move snake (fixed length)
+    // Move snake
     snakeSegments.insert(0, newHead);
-    final tail = snakeSegments.last;
-    if (snakeSegments.length > snakeLength) {
+    if (snakeSegments.length > targetLength) {
       snakeSegments.removeLast();
     }
 
-    // Drop bomb on request (Space key) at tail position
-    if (_dropBombRequested) {
-      _dropBombRequested = false;
-      if (_bombsAvailable > 0 &&
-          !_isWall(tail.x, tail.y) &&
-          !_isBombAt(tail.x, tail.y) &&
-          !snakeSegments.any((s) => s.x == tail.x && s.y == tail.y)) {
-        _bombs.add(_Bomb(position: tail, timer: bombFuseTime));
-        _bombsAvailable--;
+    // Eat food dropped by destroyed walls — grow, and grow bomb capacity
+    final headKey = _key(newHead.x, newHead.y);
+    if (_foods.remove(headKey)) {
+      final oldMax = maxBombs;
+      targetLength++;
+      if (maxBombs > oldMax) {
+        _bombsAvailable++;
       }
+      score += mode.pointsPerFood(score);
+      onScoreChanged(score);
     }
 
     // Check if snake is in an active explosion
@@ -335,7 +367,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
 
   void _explodeBomb(_Bomb bomb) {
     // Replenish one bomb when it explodes
-    if (_bombsAvailable < _maxBombs) {
+    if (_bombsAvailable < maxBombs) {
       _bombsAvailable++;
     }
     final cells = _getExplosionCells(bomb.position);
@@ -343,13 +375,16 @@ class VenomGame extends FlameGame with KeyboardEvents {
     // Create explosion visual
     _explosions.add(_Explosion(cells: cells, timer: _explosionDuration));
 
-    // Destroy destructible walls
+    // Destroy destructible walls — some drop food
     for (final cell in cells) {
       final k = _key(cell.x, cell.y);
       if (destructibleWalls.contains(k)) {
         destructibleWalls.remove(k);
         score += 5;
         onScoreChanged(score);
+        if (_random.nextDouble() < foodDropChance) {
+          _foods.add(k);
+        }
       }
     }
 
@@ -385,20 +420,32 @@ class VenomGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  /// Venom spreads as a circular cloud around the bomb: a breadth-first
+  /// flood out to [bombExplosionRadius]. Indestructible walls block it;
+  /// destructible walls are engulfed (and destroyed) but stop the spread.
   List<Point<int>> _getExplosionCells(Point<int> center) {
+    final visited = <int>{_key(center.x, center.y)};
     final cells = <Point<int>>[center];
-    // Four directions
+    var frontier = <Point<int>>[center];
     final dirs = [Point(0, -1), Point(0, 1), Point(-1, 0), Point(1, 0)];
-    for (final dir in dirs) {
-      for (int i = 1; i <= bombExplosionRadius; i++) {
-        final x = center.x + dir.x * i;
-        final y = center.y + dir.y * i;
-        if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) break;
-        final k = _key(x, y);
-        if (indestructibleWalls.contains(k)) break; // Blocked by indestructible
-        cells.add(Point(x, y));
-        if (destructibleWalls.contains(k)) break; // Destroys wall but stops
+    for (int ring = 1; ring <= bombExplosionRadius; ring++) {
+      final next = <Point<int>>[];
+      for (final cell in frontier) {
+        for (final dir in dirs) {
+          final x = cell.x + dir.x;
+          final y = cell.y + dir.y;
+          if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) continue;
+          final k = _key(x, y);
+          if (visited.contains(k)) continue;
+          if (indestructibleWalls.contains(k)) continue;
+          visited.add(k);
+          cells.add(Point(x, y));
+          if (!destructibleWalls.contains(k)) {
+            next.add(Point(x, y)); // walls are engulfed but don't spread on
+          }
+        }
       }
+      frontier = next;
     }
     return cells;
   }
@@ -410,8 +457,8 @@ class VenomGame extends FlameGame with KeyboardEvents {
   }
 
   void _tickEnemies() {
+    final head = snakeSegments.first;
     for (final enemy in _enemies) {
-      // Simple random wandering AI
       final dirs = <Point<int>>[];
       for (final d in [Point(0, -1), Point(0, 1), Point(-1, 0), Point(1, 0)]) {
         final nx = enemy.position.x + d.x;
@@ -422,8 +469,21 @@ class VenomGame extends FlameGame with KeyboardEvents {
       }
       if (dirs.isEmpty) continue;
 
-      // Prefer continuing in same direction if possible
-      if (enemy.lastDir != null && dirs.any((d) => d.x == enemy.lastDir!.x && d.y == enemy.lastDir!.y) && _random.nextDouble() < 0.7) {
+      // Sometimes stalk the snake: step toward its head
+      if (_random.nextDouble() < 0.4) {
+        dirs.sort((a, b) {
+          int dist(Point<int> d) =>
+              (enemy.position.x + d.x - head.x).abs() +
+              (enemy.position.y + d.y - head.y).abs();
+          return dist(a).compareTo(dist(b));
+        });
+        final d = dirs.first;
+        enemy.position = Point(enemy.position.x + d.x, enemy.position.y + d.y);
+        enemy.lastDir = d;
+      } else if (enemy.lastDir != null &&
+          dirs.any((d) => d.x == enemy.lastDir!.x && d.y == enemy.lastDir!.y) &&
+          _random.nextDouble() < 0.7) {
+        // Prefer continuing in same direction if possible
         final d = enemy.lastDir!;
         enemy.position = Point(enemy.position.x + d.x, enemy.position.y + d.y);
       } else {
@@ -434,7 +494,6 @@ class VenomGame extends FlameGame with KeyboardEvents {
     }
 
     // Check if enemy walked into snake — death
-    final head = snakeSegments.first;
     for (final enemy in _enemies) {
       if (enemy.position.x == head.x && enemy.position.y == head.y) {
         _die();
@@ -608,6 +667,21 @@ class VenomGame extends FlameGame with KeyboardEvents {
       );
     }
 
+    // Draw food (dropped by destroyed walls)
+    final foodPaint = Paint()..color = mode.foodColor;
+    final foodShinePaint = Paint()..color = Colors.white.withOpacity(0.5);
+    for (final k in _foods) {
+      final p = _fromKey(k);
+      final sp = _gridToScreen(p);
+      final center = Offset(sp.x + cs / 2, sp.y + cs / 2);
+      canvas.drawCircle(center, cs * 0.3, foodPaint);
+      canvas.drawCircle(
+        Offset(center.dx - cs * 0.1, center.dy - cs * 0.1),
+        cs * 0.08,
+        foodShinePaint,
+      );
+    }
+
     // Draw explosions
     for (final exp in _explosions) {
       final alpha = (exp.timer / _explosionDuration).clamp(0.0, 1.0);
@@ -695,23 +769,25 @@ class VenomGame extends FlameGame with KeyboardEvents {
       }
     }
 
-    // HUD: Level and enemies remaining
+    // HUD: painted inside the border wall row so it never overlaps the
+    // score bar above the canvas
+    final hudY = boardOffset.y + 2;
     final levelTp = TextPainter(
       text: TextSpan(
         text: 'LEVEL $_level',
         style: TextStyle(
-          color: mode.snakeColor.withOpacity(0.5),
+          color: mode.snakeColor.withOpacity(0.8),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    levelTp.paint(canvas, Offset(boardOffset.x + 4, boardOffset.y - 16));
+    levelTp.paint(canvas, Offset(boardOffset.x + 4, hudY));
 
     final bombTp = TextPainter(
       text: TextSpan(
-        text: 'BOMBS: $_bombsAvailable/$_maxBombs',
+        text: 'BOMBS: $_bombsAvailable/$maxBombs',
         style: TextStyle(
           color: mode.bombColor.withOpacity(0.8),
           fontSize: 12,
@@ -722,7 +798,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     )..layout();
     bombTp.paint(
       canvas,
-      Offset(boardOffset.x + (gridWidth * cs - bombTp.width) / 2, boardOffset.y - 16),
+      Offset(boardOffset.x + (gridWidth * cs - bombTp.width) / 2, hudY),
     );
 
     final enemyTp = TextPainter(
@@ -738,7 +814,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     )..layout();
     enemyTp.paint(
       canvas,
-      Offset(boardOffset.x + gridWidth * cs - enemyTp.width - 4, boardOffset.y - 16),
+      Offset(boardOffset.x + gridWidth * cs - enemyTp.width - 4, hudY),
     );
   }
 }
@@ -746,6 +822,9 @@ class VenomGame extends FlameGame with KeyboardEvents {
 class _Bomb {
   final Point<int> position;
   double timer;
+
+  /// Passable for the snake until it slides off, then blocks like a wall.
+  bool solid = false;
 
   _Bomb({required this.position, required this.timer});
 }

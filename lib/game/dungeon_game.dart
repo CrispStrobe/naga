@@ -39,10 +39,17 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   // Traps
   List<_Trap> _traps = [];
 
-  // Attack buff
-  bool _hasWeaponBuff = false;
-  double _weaponBuffTimer = 0;
-  static const double _weaponBuffDuration = 10; // turns
+  // Weapon inventory
+  int swordHits = 0; // bump-kills that cost no HP
+  int arrows = 0; // ranged shots (Space / action button)
+  int hammerCharges = 0; // break walls by walking into them
+  int shieldBlocks = 0; // absorb hits that would cost a segment
+  static const int _inventoryCap = 9;
+
+  // Arrow shot visual (fades in real time)
+  List<Point<int>> _arrowTrace = [];
+  double _arrowTraceTimer = 0;
+  static const double _arrowTraceDuration = 0.35;
 
   final Random _random = Random();
 
@@ -77,8 +84,12 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     _roomNumber = 1;
     gameState = GameState.playing;
     currentDirection = Direction.right;
-    _hasWeaponBuff = false;
-    _weaponBuffTimer = 0;
+    swordHits = 2; // small starting loadout so room 1 is survivable
+    arrows = 0;
+    hammerCharges = 0;
+    shieldBlocks = 0;
+    _arrowTrace = [];
+    _arrowTraceTimer = 0;
     _generateRoom();
   }
 
@@ -268,10 +279,18 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     return null;
   }
 
+  _MonsterType _rollMonsterType() {
+    final roll = _random.nextDouble();
+    if (_roomNumber >= 3 && roll < 0.25) return _MonsterType.brute;
+    if (_roomNumber >= 2 && roll < 0.55) return _MonsterType.runner;
+    return _MonsterType.grunt;
+  }
+
   void _spawnMonsters(int count, List<Rect> rooms) {
     for (int i = 0; i < count; i++) {
       final pos = _findFreeFloorCell();
       if (pos != null) {
+        final type = _rollMonsterType();
         // Avoid spawning in the first room (give player breathing room)
         final firstRoom = rooms.first;
         if (firstRoom.contains(Offset(pos.x.toDouble(), pos.y.toDouble()))) {
@@ -280,11 +299,11 @@ class DungeonGame extends FlameGame with KeyboardEvents {
           if (alt != null &&
               !firstRoom
                   .contains(Offset(alt.x.toDouble(), alt.y.toDouble()))) {
-            _monsters.add(_Monster(position: alt));
+            _monsters.add(_Monster(position: alt, type: type));
             continue;
           }
         }
-        _monsters.add(_Monster(position: pos));
+        _monsters.add(_Monster(position: pos, type: type));
       }
     }
   }
@@ -314,14 +333,23 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       }
     }
 
-    // Weapon pickup: 0-1
-    if (_random.nextDouble() < 0.6) {
+    // Weapon pickups: 1-2 per room, random type
+    final weaponCount = 1 + _random.nextInt(2);
+    for (int i = 0; i < weaponCount; i++) {
       final pos = _findFreeFloorCell();
       if (pos != null) {
-        _collectibles.add(_Collectible(
-          position: pos,
-          type: _CollectibleType.weapon,
-        ));
+        final roll = _random.nextDouble();
+        final _CollectibleType type;
+        if (roll < 0.35) {
+          type = _CollectibleType.sword;
+        } else if (roll < 0.65) {
+          type = _CollectibleType.bow;
+        } else if (roll < 0.80) {
+          type = _CollectibleType.hammer;
+        } else {
+          type = _CollectibleType.shield;
+        }
+        _collectibles.add(_Collectible(position: pos, type: type));
       }
     }
   }
@@ -344,10 +372,10 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
-    if (gameState != GameState.playing) return;
-
-    // Trap cycle based on turn count (every 6 turns active for 1 turn)
-    // Weapon buff based on turns
+    if (_arrowTraceTimer > 0) {
+      _arrowTraceTimer -= dt;
+      if (_arrowTraceTimer <= 0) _arrowTrace = [];
+    }
   }
 
   /// Called on each keypress — one turn of the game.
@@ -370,16 +398,36 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         newHead = Point(head.x + 1, head.y);
     }
 
-    // Wall collision = blocked (don't move, don't waste turn)
+    // Wall collision — hammer smashes through, otherwise blocked (no turn)
     if (!_inBounds(newHead.x, newHead.y) ||
         _grid[newHead.y][newHead.x] == _CellType.wall) {
-      return; // just don't move
+      if (_inBounds(newHead.x, newHead.y) && hammerCharges > 0) {
+        hammerCharges--;
+        _grid[newHead.y][newHead.x] = _CellType.floor;
+        _endTurn(); // smashing costs the turn; snake moves in next turn
+      }
+      return;
     }
 
     // Self collision
     if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
       _die();
       return;
+    }
+
+    // Monster in the way — bump attack. Sword absorbs the counter-hit.
+    final bumped = _monsters
+        .where((m) => m.position.x == newHead.x && m.position.y == newHead.y)
+        .toList();
+    if (bumped.isNotEmpty) {
+      _attackMonster(bumped.first);
+      if (gameState != GameState.playing) return;
+      // Survivors (brutes) hold the cell: the attack costs the turn instead
+      if (_monsters.any(
+          (m) => m.position.x == newHead.x && m.position.y == newHead.y)) {
+        _endTurn();
+        return;
+      }
     }
 
     bool grew = false;
@@ -392,9 +440,14 @@ class DungeonGame extends FlameGame with KeyboardEvents {
             score += 10;
           case _CollectibleType.potion:
             grew = true; // +1 segment
-          case _CollectibleType.weapon:
-            _hasWeaponBuff = true;
-            _weaponBuffTimer = _weaponBuffDuration;
+          case _CollectibleType.sword:
+            swordHits = min(swordHits + 3, _inventoryCap);
+          case _CollectibleType.bow:
+            arrows = min(arrows + 3, _inventoryCap);
+          case _CollectibleType.hammer:
+            hammerCharges = min(hammerCharges + 2, _inventoryCap);
+          case _CollectibleType.shield:
+            shieldBlocks = min(shieldBlocks + 2, _inventoryCap);
         }
         onScoreChanged(score);
         return true;
@@ -411,19 +464,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         }
       }
     }
-
-    // Check monster collision (head-on = kill, side = damage)
-    final hitMonster = _monsters
-        .where((m) => m.position.x == newHead.x && m.position.y == newHead.y)
-        .toList();
-    for (final monster in hitMonster) {
-      _monsters.remove(monster);
-      score += 50;
-      onScoreChanged(score);
-      if (!_hasWeaponBuff) {
-        _takeDamage(); // costs 1 segment to kill
-      }
-    }
+    if (gameState != GameState.playing) return;
 
     // Check exit
     if (_exitOpen &&
@@ -442,31 +483,86 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       snakeSegments.removeLast();
     }
 
+    _endTurn();
+  }
+
+  /// One melee hit on a monster. The sword absorbs the counter-hit;
+  /// without it, striking costs a segment (shield blocks first).
+  void _attackMonster(_Monster monster) {
+    monster.hp--;
+    if (swordHits > 0) {
+      swordHits--;
+    } else {
+      _takeDamage();
+    }
+    if (monster.hp <= 0) {
+      _monsters.remove(monster);
+      score += monster.type.scoreValue;
+      onScoreChanged(score);
+    }
+  }
+
+  /// Fired from Space / the action button. Costs a turn and one arrow;
+  /// hits the first monster in a straight line from the head.
+  void fireArrow() {
+    if (gameState != GameState.playing) return;
+    if (arrows <= 0 || snakeSegments.isEmpty) return;
+    arrows--;
+
+    final trace = <Point<int>>[];
+    var pos = snakeSegments.first;
+    while (true) {
+      switch (currentDirection) {
+        case Direction.up:
+          pos = Point(pos.x, pos.y - 1);
+        case Direction.down:
+          pos = Point(pos.x, pos.y + 1);
+        case Direction.left:
+          pos = Point(pos.x - 1, pos.y);
+        case Direction.right:
+          pos = Point(pos.x + 1, pos.y);
+      }
+      if (!_isFloor(pos.x, pos.y)) break;
+      trace.add(pos);
+      final hit = _monsters
+          .where((m) => m.position.x == pos.x && m.position.y == pos.y)
+          .toList();
+      if (hit.isNotEmpty) {
+        final monster = hit.first;
+        monster.hp--;
+        if (monster.hp <= 0) {
+          _monsters.remove(monster);
+          score += monster.type.scoreValue;
+          onScoreChanged(score);
+        }
+        break;
+      }
+    }
+    _arrowTrace = trace;
+    _arrowTraceTimer = _arrowTraceDuration;
+
+    _endTurn();
+  }
+
+  /// After the player's action, monsters take their turn.
+  void _endTurn() {
     // Open exit if all monsters dead
     if (_monsters.isEmpty && !_exitOpen) {
       _exitOpen = true;
     }
-
-    // Check if dead from damage
     if (snakeSegments.isEmpty) {
       _die();
       return;
     }
-
-    // After player moves, monsters take their turn
     _turnCount++;
     _tickMonsters();
-
-    // Weapon buff lasts N turns
-    if (_hasWeaponBuff) {
-      _weaponBuffTimer -= 1;
-      if (_weaponBuffTimer <= 0) {
-        _hasWeaponBuff = false;
-      }
-    }
   }
 
   void _takeDamage() {
+    if (shieldBlocks > 0) {
+      shieldBlocks--;
+      return;
+    }
     if (snakeSegments.length > 1) {
       snakeSegments.removeLast();
     } else {
@@ -484,26 +580,34 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final head = snakeSegments.first;
 
     for (final monster in _monsters) {
+      // Brutes are slow: they only move every other turn
+      if (monster.type == _MonsterType.brute && _turnCount.isOdd) continue;
+
+      // Runners sprint 2 cells when chasing from a distance
       final dx = head.x - monster.position.x;
       final dy = head.y - monster.position.y;
       final dist = dx.abs() + dy.abs();
+      final chasing = dist <= monster.type.chaseRadius;
+      final steps =
+          (monster.type == _MonsterType.runner && chasing && dist > 3) ? 2 : 1;
 
-      Point<int> nextPos;
-      if (dist <= 5) {
-        // Chase snake
-        nextPos = _monsterChaseStep(monster.position, head);
-      } else {
-        // Wander randomly
-        nextPos = _monsterWanderStep(monster.position);
-      }
+      for (int s = 0; s < steps; s++) {
+        final nextPos = chasing
+            ? _monsterChaseStep(monster.position, head)
+            : _monsterWanderStep(monster.position);
 
-      // Only move if floor and not occupied by another monster
-      if (_isFloor(nextPos.x, nextPos.y) &&
-          !_monsters.any((m) =>
-              m != monster &&
-              m.position.x == nextPos.x &&
-              m.position.y == nextPos.y)) {
-        monster.position = nextPos;
+        // Only move if floor and not occupied by another monster
+        if (_isFloor(nextPos.x, nextPos.y) &&
+            !_monsters.any((m) =>
+                m != monster &&
+                m.position.x == nextPos.x &&
+                m.position.y == nextPos.y)) {
+          monster.position = nextPos;
+        }
+        // Stop sprinting the moment the snake is reached
+        if (monster.position.x == head.x && monster.position.y == head.y) {
+          break;
+        }
       }
     }
 
@@ -516,14 +620,11 @@ class DungeonGame extends FlameGame with KeyboardEvents {
           break;
         }
       }
-      // Monster walks onto snake head = damage
+      if (gameState != GameState.playing) return;
+      // Monster walks onto snake head = it attacks; sword counters
       if (monster.position.x == head.x && monster.position.y == head.y) {
-        _monsters.remove(monster);
-        score += 50;
-        onScoreChanged(score);
-        if (!_hasWeaponBuff) {
-          _takeDamage();
-        }
+        _attackMonster(monster);
+        if (gameState != GameState.playing) return;
       }
     }
 
@@ -591,6 +692,10 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         }
         return KeyEventResult.handled;
       }
+      if (event.logicalKey == LogicalKeyboardKey.space) {
+        fireArrow();
+        return KeyEventResult.handled;
+      }
       if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
           event.logicalKey == LogicalKeyboardKey.keyW) {
         _doTurn(Direction.up);
@@ -636,9 +741,24 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     _renderCollectibles(canvas, cs);
     _renderExit(canvas, cs);
     _renderMonsters(canvas, cs);
+    _renderArrowTrace(canvas, cs);
     _renderSnake(canvas, cs);
     _renderHUD(canvas, cs);
     _renderLegend(canvas, cs);
+  }
+
+  void _renderArrowTrace(Canvas canvas, double cs) {
+    if (_arrowTrace.isEmpty || _arrowTraceTimer <= 0) return;
+    final alpha = (_arrowTraceTimer / _arrowTraceDuration).clamp(0.0, 1.0);
+    final paint = Paint()..color = mode.bowColor.withOpacity(alpha * 0.8);
+    for (final cell in _arrowTrace) {
+      final sp = _gridToScreen(cell);
+      canvas.drawRect(
+        Rect.fromLTWH(
+            sp.x + cs * 0.35, sp.y + cs * 0.35, cs * 0.3, cs * 0.3),
+        paint,
+      );
+    }
   }
 
   void _renderWallsAndFloor(Canvas canvas, double cs) {
@@ -736,8 +856,8 @@ class DungeonGame extends FlameGame with KeyboardEvents {
             crossPaint,
           );
 
-        case _CollectibleType.weapon:
-          // Diamond shape (colored)
+        case _CollectibleType.sword:
+          // Diamond shape (blue)
           final glowPaint = Paint()
             ..color = mode.weaponColor.withOpacity(0.3);
           canvas.drawCircle(center, cs * 0.35, glowPaint);
@@ -750,6 +870,51 @@ class DungeonGame extends FlameGame with KeyboardEvents {
             ..lineTo(center.dx - halfSize, center.dy)
             ..close();
           canvas.drawPath(path, paint);
+
+        case _CollectibleType.bow:
+          // Upward triangle (purple)
+          final glowPaint = Paint()..color = mode.bowColor.withOpacity(0.3);
+          canvas.drawCircle(center, cs * 0.35, glowPaint);
+          final paint = Paint()..color = mode.bowColor;
+          final halfSize = cs * 0.25;
+          final path = Path()
+            ..moveTo(center.dx, center.dy - halfSize)
+            ..lineTo(center.dx + halfSize, center.dy + halfSize)
+            ..lineTo(center.dx - halfSize, center.dy + halfSize)
+            ..close();
+          canvas.drawPath(path, paint);
+
+        case _CollectibleType.hammer:
+          // T-shape (steel grey)
+          final glowPaint = Paint()..color = mode.hammerColor.withOpacity(0.3);
+          canvas.drawCircle(center, cs * 0.35, glowPaint);
+          final paint = Paint()..color = mode.hammerColor;
+          canvas.drawRect(
+            Rect.fromCenter(
+                center: Offset(center.dx, center.dy - cs * 0.12),
+                width: cs * 0.44,
+                height: cs * 0.2),
+            paint,
+          );
+          canvas.drawRect(
+            Rect.fromCenter(
+                center: Offset(center.dx, center.dy + cs * 0.08),
+                width: cs * 0.12,
+                height: cs * 0.36),
+            paint,
+          );
+
+        case _CollectibleType.shield:
+          // Ringed circle (silver)
+          final glowPaint = Paint()..color = mode.shieldColor.withOpacity(0.3);
+          canvas.drawCircle(center, cs * 0.35, glowPaint);
+          final paint = Paint()..color = mode.shieldColor;
+          canvas.drawCircle(center, cs * 0.2, paint);
+          final ringPaint = Paint()
+            ..color = Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawCircle(center, cs * 0.26, ringPaint);
       }
     }
   }
@@ -799,12 +964,23 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  Color _monsterBodyColor(_MonsterType type) {
+    switch (type) {
+      case _MonsterType.grunt:
+        return mode.monsterColor;
+      case _MonsterType.runner:
+        return mode.runnerColor;
+      case _MonsterType.brute:
+        return mode.bruteColor;
+    }
+  }
+
   void _renderMonsters(Canvas canvas, double cs) {
     for (final monster in _monsters) {
       final sp = _gridToScreen(monster.position);
 
-      // Body: dark red rounded rectangle
-      final bodyPaint = Paint()..color = mode.monsterColor;
+      // Body: rounded rectangle, color by type
+      final bodyPaint = Paint()..color = _monsterBodyColor(monster.type);
       final bodyRect = RRect.fromRectAndRadius(
         Rect.fromLTWH(
             sp.x + cs * 0.1, sp.y + cs * 0.15, cs * 0.8, cs * 0.7),
@@ -838,8 +1014,18 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         eyeGlow,
       );
 
+      // Brute HP pips
+      if (monster.type == _MonsterType.brute && monster.hp > 1) {
+        final pipPaint = Paint()..color = Colors.white;
+        canvas.drawCircle(
+          Offset(sp.x + cs * 0.5, sp.y + cs * 0.62),
+          cs * 0.06,
+          pipPaint,
+        );
+      }
+
       // Jagged bottom (monster feet/tentacles)
-      final jaggedPaint = Paint()..color = mode.monsterColor;
+      final jaggedPaint = Paint()..color = _monsterBodyColor(monster.type);
       final jaggedPath = Path();
       final bottom = sp.y + cs * 0.85;
       jaggedPath.moveTo(sp.x + cs * 0.1, bottom);
@@ -898,8 +1084,8 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     canvas.drawCircle(Offset(e1x, e1y), cs * 0.05, pupilPaint);
     canvas.drawCircle(Offset(e2x, e2y), cs * 0.05, pupilPaint);
 
-    // Weapon buff indicator on snake
-    if (_hasWeaponBuff) {
+    // Sword indicator on snake — bump-kills are currently free
+    if (swordHits > 0) {
       final buffPaint = Paint()
         ..color = mode.weaponColor.withOpacity(0.4)
         ..style = PaintingStyle.stroke
@@ -913,7 +1099,10 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   }
 
   void _renderHUD(Canvas canvas, double cs) {
-    final hudY = boardOffset.y - 20;
+    // Paint inside the board's top wall rows (rooms start at y >= 3), so the
+    // HUD never overlaps the score bar above the canvas. Score itself is
+    // shown by the score bar, not here.
+    final hudY = boardOffset.y + 4;
 
     // Room number
     final roomTp = TextPainter(
@@ -934,7 +1123,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'HP ${snakeSegments.length}',
         style: TextStyle(
-          color: mode.potionColor.withOpacity(0.8),
+          color: mode.potionColor.withOpacity(0.9),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -944,43 +1133,31 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final centerX = boardOffset.x + (gridWidth * cs) / 2 - hpTp.width / 2;
     hpTp.paint(canvas, Offset(centerX, hudY));
 
-    // Score
-    final scoreTp = TextPainter(
-      text: TextSpan(
-        text: 'SCORE $score',
+    // Weapon inventory (right-aligned, only what you carry)
+    final parts = <TextSpan>[];
+    void addPart(String label, int count, Color color) {
+      if (count <= 0) return;
+      parts.add(TextSpan(
+        text: '${parts.isEmpty ? '' : '  '}$label $count',
         style: TextStyle(
-          color: mode.coinColor.withOpacity(0.8),
+          color: color.withOpacity(0.9),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    scoreTp.paint(
-      canvas,
-      Offset(
-        boardOffset.x + gridWidth * cs - scoreTp.width - 4,
-        hudY,
-      ),
-    );
+      ));
+    }
 
-    // Weapon buff timer
-    if (_hasWeaponBuff) {
-      final buffTp = TextPainter(
-        text: TextSpan(
-          text: 'WEAPON ${_weaponBuffTimer.ceil()}s',
-          style: TextStyle(
-            color: mode.weaponColor.withOpacity(0.9),
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+    addPart('SWD', swordHits, mode.weaponColor);
+    addPart('ARW', arrows, mode.bowColor);
+    addPart('HAM', hammerCharges, mode.hammerColor);
+    addPart('SHD', shieldBlocks, mode.shieldColor);
+    if (parts.isNotEmpty) {
+      final invTp = TextPainter(
+        text: TextSpan(children: parts),
         textDirection: TextDirection.ltr,
       )..layout();
-      buffTp.paint(
-        canvas,
-        Offset(boardOffset.x + 4, hudY - 16),
-      );
+      // Second line, so a full inventory never collides with the HP text
+      invTp.paint(canvas, Offset(boardOffset.x + 4, hudY + 16));
     }
   }
 
@@ -999,7 +1176,12 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       (mode.coinColor, 'Coin', _LegendShape.circle),
       (mode.potionColor, '+HP', _LegendShape.circle),
       (mode.weaponColor, 'Sword', _LegendShape.diamond),
-      (mode.monsterColor, 'Enemy', _LegendShape.square),
+      (mode.bowColor, 'Bow', _LegendShape.triangle),
+      (mode.hammerColor, 'Hammer', _LegendShape.square),
+      (mode.shieldColor, 'Shield', _LegendShape.circle),
+      (mode.monsterColor, 'Grunt', _LegendShape.square),
+      (mode.runnerColor, 'Runner', _LegendShape.square),
+      (mode.bruteColor, 'Brute', _LegendShape.square),
       (mode.trapColor, 'Trap', _LegendShape.star),
       (mode.exitColor, 'Exit', _LegendShape.square),
       (const Color(0xFF555555), 'Locked', _LegendShape.square),
@@ -1024,6 +1206,14 @@ class DungeonGame extends FlameGame with KeyboardEvents {
             ..lineTo(center.dx + half, center.dy)
             ..lineTo(center.dx, center.dy + half)
             ..lineTo(center.dx - half, center.dy)
+            ..close();
+          canvas.drawPath(path, paint);
+        case _LegendShape.triangle:
+          final half = iconSize * 0.35;
+          final path = Path()
+            ..moveTo(center.dx, center.dy - half)
+            ..lineTo(center.dx + half, center.dy + half)
+            ..lineTo(center.dx - half, center.dy + half)
             ..close();
           canvas.drawPath(path, paint);
         case _LegendShape.star:
@@ -1051,7 +1241,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   }
 }
 
-enum _LegendShape { circle, square, diamond, star }
+enum _LegendShape { circle, square, diamond, triangle, star }
 
 // ---------------------------------------------------------------------------
 // Internal data classes
@@ -1059,11 +1249,31 @@ enum _LegendShape { circle, square, diamond, star }
 
 enum _CellType { wall, floor }
 
-enum _CollectibleType { coin, potion, weapon }
+enum _CollectibleType { coin, potion, sword, bow, hammer, shield }
+
+enum _MonsterType {
+  grunt(maxHp: 1, chaseRadius: 5, scoreValue: 50),
+  runner(maxHp: 1, chaseRadius: 9, scoreValue: 75),
+  brute(maxHp: 2, chaseRadius: 4, scoreValue: 100);
+
+  const _MonsterType({
+    required this.maxHp,
+    required this.chaseRadius,
+    required this.scoreValue,
+  });
+
+  final int maxHp;
+  final int chaseRadius;
+  final int scoreValue;
+}
 
 class _Monster {
   Point<int> position;
-  _Monster({required this.position});
+  final _MonsterType type;
+  int hp;
+
+  _Monster({required this.position, this.type = _MonsterType.grunt})
+      : hp = type.maxHp;
 }
 
 class _Collectible {

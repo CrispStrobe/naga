@@ -45,9 +45,14 @@ class DungeonMode extends GameMode {
   Color get floorColor => const Color(0xFFA1887F); // Sunlit corridor
   Color get coinColor => const Color(0xFFFFD700); // Gold
   Color get potionColor => const Color(0xFFFF4444); // Red health potion
-  Color get weaponColor => const Color(0xFF00BFFF); // Blue weapon pickup
+  Color get weaponColor => const Color(0xFF00BFFF); // Blue sword pickup
+  Color get bowColor => const Color(0xFFB388FF); // Purple bow / arrows
+  Color get hammerColor => const Color(0xFFB0BEC5); // Steel grey hammer
+  Color get shieldColor => const Color(0xFFE0E0E0); // Silver shield
   Color get trapColor => const Color(0xFFFF6600); // Orange spike trap
   Color get exitColor => const Color(0xFF00FF66); // Green exit door
-  Color get monsterColor => const Color(0xFFCC0000); // Dark red monsters
+  Color get monsterColor => const Color(0xFFCC0000); // Dark red grunts
+  Color get runnerColor => const Color(0xFFFF9100); // Orange runners (fast)
+  Color get bruteColor => const Color(0xFF9C27B0); // Purple brutes (2 HP)
   Color get monsterEyeColor => const Color(0xFFFF0000); // Glowing red eyes
 }

@@ -336,9 +336,13 @@ class _GameScreenState extends State<GameScreen> {
             'Move fast — the snake is quick in this mode!';
       case 'Venom':
         return 'Bomberman meets Snake!\n\n'
-            'Drop venom bombs (Space / action button) to destroy walls and enemies.\n'
-            'Bombs explode after 3 seconds. Chain reactions possible!\n'
-            'Kill all enemies to advance. Don\'t get caught in your own blast.';
+            'Drop venom bombs from your tail: press SPACE, the BOMB button,\n'
+            'or simply TAP the board when using swipe controls.\n'
+            'After 3 seconds the venom bursts in a circular cloud that\n'
+            'destroys walls and enemies. Chain reactions possible!\n'
+            'Destroyed walls may drop food — eat it to grow.\n'
+            'A longer snake carries more bombs, but is easier to blast.\n'
+            'Kill all enemies to advance. Don\'t get caught in your own venom.';
       case 'Swarm':
         return 'Space Invaders meets Snake!\n\n'
             'Enemies march down in formation. Eat them by approaching from the SIDES.\n'
@@ -354,11 +358,16 @@ class _GameScreenState extends State<GameScreen> {
             'Touching an enemy with your body is deadly.';
       case 'Dungeon':
         return 'Turn-based roguelike!\n\n'
-            'Move with arrow keys — each step is one turn. Monsters move after you.\n\n'
+            'Move with arrow keys or swipes — each step is one turn.\n'
+            'Monsters move after you. Bumping one costs 1 HP unless armed.\n'
+            'SPACE, the SHOOT button, or a TAP fires an arrow (needs arrows).\n\n'
             '🟡 Coin = points\n'
             '🔴 Potion = +1 HP (length)\n'
-            '💎 Weapon = kill without damage\n'
-            '👾 Monster = costs 1 HP to kill\n'
+            '⚔️ Sword (blue) = 3 free bump-kills\n'
+            '🏹 Bow (purple) = 3 arrows, shoot from afar\n'
+            '🔨 Hammer (grey) = smash through 2 walls\n'
+            '🛡️ Shield (silver) = absorbs 2 hits\n'
+            '👾 Monsters: red grunt, orange runner (fast), purple brute (2 HP)\n'
             '⭐ Trap = active every 6th turn\n'
             '🚪 Exit = opens when all monsters dead';
       case 'Snake II':
@@ -592,6 +601,8 @@ class _GameScreenState extends State<GameScreen> {
     return Positioned.fill(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
+        // Tap = mode action (drop bomb / fire arrow) for swipe players
+        onTap: _hasActionButton ? _triggerAction : null,
         onVerticalDragUpdate: (details) {
           if (details.delta.dy < -2) {
             _changeDirection(Direction.up);
@@ -613,18 +624,22 @@ class _GameScreenState extends State<GameScreen> {
   void _triggerAction() {
     if (_isVenomMode) {
       (_game as VenomGame).dropBomb();
+    } else if (_isDungeonMode) {
+      (_game as DungeonGame).fireArrow();
     }
   }
 
-  bool get _hasActionButton => _isVenomMode;
+  bool get _hasActionButton => _isVenomMode || _isDungeonMode;
 
   String get _actionLabel {
     if (_isVenomMode) return 'BOMB';
+    if (_isDungeonMode) return 'SHOOT';
     return '';
   }
 
   IconData get _actionIcon {
     if (_isVenomMode) return Icons.local_fire_department;
+    if (_isDungeonMode) return Icons.gps_fixed;
     return Icons.circle;
   }
 
