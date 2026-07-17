@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+# Publishes the web build to https://crispstrobe.github.io/naga/
+#
+# Uses the DEFAULT (CanvasKit) renderer, NOT --wasm: GitHub Pages cannot send
+# the Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy headers that a
+# Flutter WASM build needs for cross-origin isolation, so a --wasm build would
+# fail to boot there. The WASM build continues to ship to Vercel via deploy.yml.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow one concurrent deployment, don't cancel an in-progress prod deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate l10n
+        run: flutter gen-l10n || true
+
+      - name: Build web (CanvasKit, base-href /naga/)
+        run: |
+          flutter build web --release --base-href /naga/ \
+            --dart-define=GIT_COMMIT=${{ github.sha }} \
+            --dart-define=BUILD_MODE=release
+          # Artifact deploys are not Jekyll-processed, but keep .nojekyll as a
+          # belt-and-braces guard for any underscore-prefixed asset paths.
+          touch build/web/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
