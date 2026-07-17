@@ -1,0 +1,61 @@
+name: App Store Connect build status
+
+# On-demand check of how App Store Connect processed our uploads. Uses the same
+# ASC API key already stored for the release workflow to query the /builds API
+# and print each recent build's processingState (PROCESSING / VALID / INVALID /
+# FAILED). A build that reaches VALID has cleared the beta-contract check.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query ASC builds API
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          P8_B64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyjwt cryptography requests
+          echo "$P8_B64" | base64 --decode > /tmp/asc.p8
+          P8_PATH=/tmp/asc.p8 python3 - <<'PY'
+          import jwt, time, requests, os, json
+          key = open(os.environ['P8_PATH']).read()
+          tok = jwt.encode(
+              {'iss': os.environ['ASC_ISSUER_ID'], 'iat': int(time.time()),
+               'exp': int(time.time()) + 600, 'aud': 'appstoreconnect-v1'},
+              key, algorithm='ES256',
+              headers={'kid': os.environ['ASC_KEY_ID'], 'typ': 'JWT'})
+          h = {'Authorization': f'Bearer {tok}'}
+          app = os.environ['ASC_APP_ID']
+          r = requests.get(
+              'https://api.appstoreconnect.apple.com/v1/builds',
+              params={'filter[app]': app, 'limit': 10, 'sort': '-uploadedDate',
+                      'fields[builds]': 'version,processingState,uploadedDate,expired',
+                      'include': 'buildBetaDetail',
+                      'fields[buildBetaDetails]': 'internalBuildState,externalBuildState'},
+              headers=h, timeout=30)
+          print('HTTP', r.status_code)
+          data = r.json()
+          if r.status_code != 200:
+              print(json.dumps(data, indent=2)[:1500]); raise SystemExit(0)
+          beta = {i['id']: i['attributes']
+                  for i in data.get('included', []) if i['type'] == 'buildBetaDetails'}
+          rows = data.get('data', [])
+          if not rows:
+              print('NO BUILDS RETURNED for app', app)
+          print(f'{"VER":>4}  {"PROCESSING":<12}  {"INTERNAL":<22}  {"EXTERNAL":<22}  UPLOADED')
+          for b in rows:
+              a = b['attributes']
+              bid = (b.get('relationships', {}).get('buildBetaDetail', {})
+                     .get('data') or {}).get('id')
+              bd = beta.get(bid, {})
+              print(f'{a.get("version"):>4}  {a.get("processingState",""):<12}  '
+                    f'{str(bd.get("internalBuildState","")):<22}  '
+                    f'{str(bd.get("externalBuildState","")):<22}  {a.get("uploadedDate","")}'
+                    + ('  [EXPIRED]' if a.get('expired') else ''))
+          PY
