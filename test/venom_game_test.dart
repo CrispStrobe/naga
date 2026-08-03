@@ -8,6 +8,7 @@ VenomGame _makeGame() {
   final game = VenomGame(
     mode: VenomMode(),
     onGameOver: () {},
+    onWin: () {},
     onScoreChanged: (_) {},
   );
   game.onGameResize(Vector2(400, 560));
