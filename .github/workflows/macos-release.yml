@@ -1,0 +1,233 @@
+name: macOS Release (App Store)
+
+# Builds, signs and uploads the macOS app to App Store Connect from CI.
+# Mirrors ios-release.yml; see that file for the shared signing rationale.
+#
+# Triggers:
+#   * push a tag matching v*        -> full build + upload (a real release)
+#   * manual "Run workflow"         -> choose dry_run=true to build+sign WITHOUT
+#                                      uploading (validates signing safely)
+#
+# Secrets reused from the iOS workflow:
+#   ASC_API_KEY_P8_BASE64  base64 of AuthKey_<KEYID>.p8
+#   ASC_KEY_ID             App Store Connect API key id            (9RMU3C7422)
+#   ASC_ISSUER_ID          App Store Connect issuer id
+#   ASC_APP_ID             numeric app id                          (6789478872)
+#   ASC_TEAM_ID            Apple Developer team id                 (N9XSJ4M3GT)
+#   DIST_CERT_P12_BASE64   base64 of the "Apple Distribution" .p12 (cert + key)
+#   DIST_CERT_PASSWORD     password for that .p12
+#
+# Secrets that are NEW for macOS (a Mac App Store .pkg needs a SECOND identity —
+# the app bundle is signed with "Apple Distribution", but the installer package
+# must be signed with "3rd Party Mac Developer Installer"):
+#   MAC_INSTALLER_P12_BASE64  base64 of the "3rd Party Mac Developer Installer"
+#                             .p12 (cert + private key)
+#   MAC_INSTALLER_PASSWORD    password for that .p12
+#
+# NOTE: two "3rd Party Mac Developer Installer" certs exist on this account.
+# Only SHA-1 36D3723E1FEC754A6037463F19035E988080A67F (serial
+# 7304716550428871CAFFE8CEFA46F8F3, ASC id 378Q65L5QT) has a usable key pair.
+# The export below pins both identities by SHA-1 so exporting the wrong cert
+# fails loudly instead of silently producing an unusable .pkg.
+#
+# The provisioning profile is NOT stored as a secret — it is fetched from the
+# App Store Connect API at build time using the key above, so rotating the
+# profile needs no secret update.
+#
+# The build number comes from pubspec.yaml (version: x.y.z+BUILD). Bump BUILD
+# before tagging, or Apple rejects a duplicate CFBundleVersion.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build & sign only, do NOT upload'
+        type: boolean
+        default: true
+
+env:
+  BUNDLE_ID: com.crispstrobe.naga
+  PROFILE_NAME: Naga MacAppStore CI
+  APP_CERT_SHA1: 56D3B7D782F2CEF0BBEFEEE30D98C6BA0F31C632
+  INSTALLER_CERT_SHA1: 36D3723E1FEC754A6037463F19035E988080A67F
+  FLUTTER_VERSION: '3.44.2'
+
+jobs:
+  build-upload:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Disable Swift Package Manager (use pure CocoaPods)
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Import signing certificates into a temp keychain
+        env:
+          P12_B64: ${{ secrets.DIST_CERT_P12_BASE64 }}
+          P12_PW: ${{ secrets.DIST_CERT_PASSWORD }}
+          INST_B64: ${{ secrets.MAC_INSTALLER_P12_BASE64 }}
+          INST_PW: ${{ secrets.MAC_INSTALLER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KC="$RUNNER_TEMP/nn-signing.keychain-db"
+          KC_PW="ci-$(uuidgen)"
+          security create-keychain -p "$KC_PW" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PW" "$KC"
+
+          echo "$P12_B64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          security import "$RUNNER_TEMP/dist.p12" -k "$KC" -P "$P12_PW" \
+            -T /usr/bin/codesign -T /usr/bin/security
+
+          echo "$INST_B64" | base64 --decode > "$RUNNER_TEMP/installer.p12"
+          # productbuild/productsign need the installer identity
+          security import "$RUNNER_TEMP/installer.p12" -k "$KC" -P "$INST_PW" \
+            -T /usr/bin/productbuild -T /usr/bin/productsign -T /usr/bin/security
+
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: \
+            -s -k "$KC_PW" "$KC" >/dev/null
+          echo "codesigning identities:"
+          security find-identity -v -p codesigning "$KC"
+          echo "all identities (installer must appear here):"
+          security find-identity -v "$KC"
+
+          # Fail early and loudly if the wrong installer cert was exported.
+          if ! security find-identity -v "$KC" | grep -qi "$INSTALLER_CERT_SHA1"; then
+            echo "::error::Installer cert $INSTALLER_CERT_SHA1 not found in keychain."
+            echo "The account has two '3rd Party Mac Developer Installer' certs;"
+            echo "only that SHA-1 has a usable key pair. Re-export the right one."
+            exit 1
+          fi
+
+      - name: Write App Store Connect API key
+        env:
+          P8_B64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys" .appstoreconnect
+          echo "$P8_B64" | base64 --decode > ".appstoreconnect/AuthKey_${{ secrets.ASC_KEY_ID }}.p8"
+          cp ".appstoreconnect/AuthKey_${{ secrets.ASC_KEY_ID }}.p8" "$HOME/.appstoreconnect/private_keys/"
+
+      - name: Fetch and install the Mac App Store provisioning profile
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyjwt cryptography requests
+          P8_PATH=".appstoreconnect/AuthKey_${ASC_KEY_ID}.p8" \
+          PROFILE_NAME="${{ env.PROFILE_NAME }}" python3 - <<'PY'
+          import jwt, time, requests, os, base64, sys
+          key = open(os.environ['P8_PATH']).read()
+          tok = jwt.encode(
+              {'iss': os.environ['ASC_ISSUER_ID'], 'iat': int(time.time()),
+               'exp': int(time.time()) + 600, 'aud': 'appstoreconnect-v1'},
+              key, algorithm='ES256',
+              headers={'kid': os.environ['ASC_KEY_ID'], 'typ': 'JWT'})
+          want = os.environ['PROFILE_NAME']
+          r = requests.get('https://api.appstoreconnect.apple.com/v1/profiles',
+                           params={'limit': 200,
+                                   'fields[profiles]': 'name,profileType,profileState,profileContent,uuid'},
+                           headers={'Authorization': f'Bearer {tok}'}, timeout=40)
+          r.raise_for_status()
+          hit = next((p for p in r.json()['data']
+                      if p['attributes']['name'] == want
+                      and p['attributes']['profileType'] == 'MAC_APP_STORE'), None)
+          if not hit:
+              sys.exit(f'MAC_APP_STORE profile named {want!r} not found')
+          a = hit['attributes']
+          if a.get('profileState') != 'ACTIVE':
+              sys.exit(f'profile {want!r} is {a.get("profileState")}, not ACTIVE')
+          open('/tmp/naga_mac.provisionprofile', 'wb').write(
+              base64.b64decode(a['profileContent']))
+          print('fetched profile', want, 'uuid', a.get('uuid'))
+          open(os.environ['GITHUB_ENV'], 'a').write(f"PROFILE_UUID={a.get('uuid')}\n")
+          PY
+          # Install into BOTH the legacy dir and the Xcode 16+/26 dir.
+          for DIR in "$HOME/Library/MobileDevice/Provisioning Profiles" \
+                     "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "$DIR"
+            cp /tmp/naga_mac.provisionprofile "$DIR/$PROFILE_UUID.provisionprofile"
+          done
+          echo "installed profile $PROFILE_UUID"
+
+      - name: Write ExportOptions.plist (manual signing, pinned by SHA-1)
+        run: |
+          cat > .appstoreconnect/ExportOptionsMac.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${{ secrets.ASC_TEAM_ID }}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>${{ env.APP_CERT_SHA1 }}</string>
+            <key>installerSigningCertificate</key><string>${{ env.INSTALLER_CERT_SHA1 }}</string>
+            <key>provisioningProfiles</key>
+            <dict><key>${{ env.BUNDLE_ID }}</key><string>${{ env.PROFILE_NAME }}</string></dict>
+            <key>destination</key><string>export</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build & sign .pkg (xcodebuild, manual signing)
+        run: |
+          set -euo pipefail
+          # Generate Flutter's ephemeral macOS config + CocoaPods integration
+          # without building, so xcodebuild picks up FlutterMacOS.framework.
+          # `env -u GEM_*` works around the runner's broken CocoaPods/Ruby mix.
+          PATH="/usr/bin:$PATH" flutter build macos --release --config-only
+          PATH="/usr/bin:$PATH" env -u GEM_HOME -u GEM_PATH -u RUBYOPT \
+            pod install --project-directory=macos
+          PATH="/usr/bin:$PATH" xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner \
+            -configuration Release -destination 'generic/platform=macOS' \
+            -archivePath build/macos/archive/Naga.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="${{ secrets.ASC_TEAM_ID }}" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.PROFILE_NAME }}" \
+            clean archive
+          PATH="/usr/bin:$PATH" xcodebuild -exportArchive \
+            -archivePath build/macos/archive/Naga.xcarchive \
+            -exportPath build/macos/pkg \
+            -exportOptionsPlist .appstoreconnect/ExportOptionsMac.plist
+          PKG=$(ls build/macos/pkg/*.pkg | head -1)
+          echo "PKG=$PKG" >> "$GITHUB_ENV"
+          echo "built: $PKG"
+          pkgutil --check-signature "$PKG" | head -5
+
+      - name: Upload .pkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: naga-macos-pkg
+          path: build/macos/pkg/*.pkg
+          if-no-files-found: error
+
+      - name: Upload to App Store Connect
+        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+        run: |
+          set -euo pipefail
+          VER=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
+          BUILD=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          echo "Uploading $VER (build $BUILD) for macOS"
+          xcrun altool --upload-package "$PKG" --type macos \
+            --apple-id "${{ secrets.ASC_APP_ID }}" \
+            --bundle-id "${{ env.BUNDLE_ID }}" \
+            --bundle-version "$BUILD" \
+            --bundle-short-version-string "$VER" \
+            --api-key "${{ secrets.ASC_KEY_ID }}" \
+            --api-issuer "${{ secrets.ASC_ISSUER_ID }}"
