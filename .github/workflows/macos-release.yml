@@ -158,15 +158,19 @@ jobs:
           open('/tmp/naga_mac.provisionprofile', 'wb').write(
               base64.b64decode(a['profileContent']))
           print('fetched profile', want, 'uuid', a.get('uuid'))
+          # A GITHUB_ENV write only takes effect in the NEXT step, so hand the
+          # uuid to the rest of THIS step through a file.
+          open('/tmp/naga_mac_profile_uuid.txt', 'w').write(a.get('uuid'))
           open(os.environ['GITHUB_ENV'], 'a').write(f"PROFILE_UUID={a.get('uuid')}\n")
           PY
+          UUID=$(cat /tmp/naga_mac_profile_uuid.txt)
           # Install into BOTH the legacy dir and the Xcode 16+/26 dir.
           for DIR in "$HOME/Library/MobileDevice/Provisioning Profiles" \
                      "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
             mkdir -p "$DIR"
-            cp /tmp/naga_mac.provisionprofile "$DIR/$PROFILE_UUID.provisionprofile"
+            cp /tmp/naga_mac.provisionprofile "$DIR/$UUID.provisionprofile"
           done
-          echo "installed profile $PROFILE_UUID"
+          echo "installed profile $UUID"
 
       - name: Write ExportOptions.plist (manual signing, pinned by SHA-1)
         run: |
