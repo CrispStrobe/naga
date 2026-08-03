@@ -127,9 +127,13 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -euo pipefail
-          python3 -m pip install --quiet pyjwt cryptography requests
+          # The macOS runner's python is externally managed (PEP 668), so a bare
+          # `pip install` fails. Use a throwaway venv rather than
+          # --break-system-packages, which risks the runner's Homebrew python.
+          python3 -m venv "$RUNNER_TEMP/ascvenv"
+          "$RUNNER_TEMP/ascvenv/bin/pip" install --quiet pyjwt cryptography requests
           P8_PATH=".appstoreconnect/AuthKey_${ASC_KEY_ID}.p8" \
-          PROFILE_NAME="${{ env.PROFILE_NAME }}" python3 - <<'PY'
+          PROFILE_NAME="${{ env.PROFILE_NAME }}" "$RUNNER_TEMP/ascvenv/bin/python3" - <<'PY'
           import jwt, time, requests, os, base64, sys
           key = open(os.environ['P8_PATH']).read()
           tok = jwt.encode(
