@@ -384,7 +384,7 @@ class RushGame extends FlameGame with KeyboardEvents {
 
     // Border
     final borderPaint = Paint()
-      ..color = mode.snakeColor.withOpacity(0.2)
+      ..color = mode.snakeColor.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawRect(
@@ -431,7 +431,7 @@ class RushGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'DIST: $_distanceTraveled',
         // Sits on the darker surround outside the board — keep it light.
-        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12, fontWeight: FontWeight.bold),
+        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.bold),
       ),
       textDirection: TextDirection.ltr,
     )..layout();

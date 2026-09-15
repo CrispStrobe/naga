@@ -534,7 +534,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'MAZE ${_currentMaze + 1}',
         style: TextStyle(
-          color: mode.snakeColor.withOpacity(0.6),
+          color: mode.snakeColor.withValues(alpha: 0.6),
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),

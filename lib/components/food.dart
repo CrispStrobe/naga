@@ -17,7 +17,7 @@ class Food extends Component with HasGameReference<SnakeGame> {
     ..strokeCap = StrokeCap.round;
   late final Paint _classicPaint = Paint();
 
-  Food({required this.gridPosition, required SnakeGame game}) : _game = game;
+  Food(this._game, {required this.gridPosition});
 
   @override
   void update(double dt) {
@@ -46,7 +46,7 @@ class Food extends Component with HasGameReference<SnakeGame> {
       final cy = y + cs / 2;
 
       // Glow (cached paint, just update color)
-      _glowPaint.color = _game.mode.foodColor.withOpacity(0.15);
+      _glowPaint.color = _game.mode.foodColor.withValues(alpha: 0.15);
       canvas.drawCircle(Offset(cx, cy), radius * 1.8, _glowPaint);
 
       // Main body
@@ -54,7 +54,7 @@ class Food extends Component with HasGameReference<SnakeGame> {
       canvas.drawCircle(Offset(cx, cy), radius, _mainPaint);
 
       // Highlight
-      _highlightPaint.color = Colors.white.withOpacity(0.4);
+      _highlightPaint.color = Colors.white.withValues(alpha: 0.4);
       canvas.drawCircle(
         Offset(cx - radius * 0.25, cy - radius * 0.25),
         radius * 0.3,

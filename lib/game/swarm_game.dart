@@ -478,7 +478,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
     // Draw border
     final borderPaint = Paint()
-      ..color = mode.snakeColor.withOpacity(0.3)
+      ..color = mode.snakeColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawRect(
@@ -487,7 +487,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     );
 
     // Draw enemies — with spikes top/bottom to show vertical danger
-    final spikePaint = Paint()..color = Colors.white.withOpacity(0.9);
+    final spikePaint = Paint()..color = Colors.white.withValues(alpha: 0.9);
     for (final enemy in _enemies) {
       final sp = _gridToScreen(enemy.position);
       final paint = Paint()..color = enemy.color;
@@ -541,7 +541,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     // Draw snake (flashes during grace period)
     final graceFlash = _isInGrace && ((_graceTimer * 8).toInt() % 2 == 0);
     final snakeAlpha = graceFlash ? 0.4 : 1.0;
-    final snakePaint = Paint()..color = mode.snakeColor.withOpacity(snakeAlpha);
+    final snakePaint = Paint()..color = mode.snakeColor.withValues(alpha: snakeAlpha);
     for (final seg in snakeSegments) {
       final sp = _gridToScreen(seg);
       canvas.drawRect(
@@ -555,7 +555,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'WAVE $_wave',
         // Sits on the darker surround outside the board — keep it light.
-        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12, fontWeight: FontWeight.bold),
+        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.bold),
       ),
       textDirection: TextDirection.ltr,
     )..layout();

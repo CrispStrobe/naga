@@ -27,11 +27,11 @@ class PowerUp extends Component with HasGameReference<SnakeGame> {
     ..style = PaintingStyle.stroke;
   final Paint _highlightPaint = Paint();
 
-  PowerUp({
+  PowerUp(
+    this._game, {
     required this.gridPosition,
     required this.type,
-    required SnakeGame game,
-  }) : _game = game;
+  });
 
   Color get color {
     switch (type) {
@@ -87,7 +87,7 @@ class PowerUp extends Component with HasGameReference<SnakeGame> {
         : 1.0;
 
     // Glow (reuse cached paint)
-    _glowPaint.color = color.withOpacity(0.25 * fadeOut);
+    _glowPaint.color = color.withValues(alpha: 0.25 * fadeOut);
     canvas.drawCircle(Offset(cx, cy), cs * 0.6 * pulse, _glowPaint);
 
     // Diamond shape
@@ -99,16 +99,16 @@ class PowerUp extends Component with HasGameReference<SnakeGame> {
       ..lineTo(cx - size, cy)
       ..close();
 
-    _fillPaint.color = color.withOpacity(0.9 * fadeOut);
+    _fillPaint.color = color.withValues(alpha: 0.9 * fadeOut);
     canvas.drawPath(path, _fillPaint);
 
     // Border
-    _borderPaint.color = Colors.white.withOpacity(0.6 * fadeOut);
+    _borderPaint.color = Colors.white.withValues(alpha: 0.6 * fadeOut);
     _borderPaint.strokeWidth = cs * 0.05;
     canvas.drawPath(path, _borderPaint);
 
     // Inner highlight
-    _highlightPaint.color = Colors.white.withOpacity(0.35 * fadeOut);
+    _highlightPaint.color = Colors.white.withValues(alpha: 0.35 * fadeOut);
     canvas.drawCircle(
       Offset(cx - size * 0.15, cy - size * 0.15),
       size * 0.25,

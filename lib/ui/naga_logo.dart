@@ -42,7 +42,7 @@ class _NagaLogoPainter extends CustomPainter {
 
     // Glow paint
     final glowPaint = Paint()
-      ..color = glowGreen.withOpacity(0.25)
+      ..color = glowGreen.withValues(alpha: 0.25)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeW * 2.2
       ..strokeCap = StrokeCap.round
@@ -59,7 +59,7 @@ class _NagaLogoPainter extends CustomPainter {
 
     // Inner highlight paint
     final highlightPaint = Paint()
-      ..color = highlightGreen.withOpacity(0.5)
+      ..color = highlightGreen.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeW * 0.35
       ..strokeCap = StrokeCap.round

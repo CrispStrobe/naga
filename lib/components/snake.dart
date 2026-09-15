@@ -9,9 +9,8 @@ class Snake extends Component with HasGameReference<SnakeGame> {
   final SnakeGame _game;
   final Set<int> occupiedCells = {};
 
-  Snake({required List<Point<int>> initialSegments, required SnakeGame game})
-      : segments = List.from(initialSegments),
-        _game = game {
+  Snake(this._game, {required List<Point<int>> initialSegments})
+      : segments = List.from(initialSegments) {
     _rebuildOccupiedSet();
   }
 
@@ -126,7 +125,7 @@ class Snake extends Component with HasGameReference<SnakeGame> {
           ? (_game.shieldFlashTimer / 0.5).clamp(0.0, 1.0) * 0.5
           : 0.3;
       final glowPaint = Paint()
-        ..color = glowColor.withOpacity(glowOpacity)
+        ..color = glowColor.withValues(alpha: glowOpacity)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
       final headSp = _game.gridToScreen(segments.first);
       canvas.drawCircle(

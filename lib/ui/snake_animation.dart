@@ -255,7 +255,7 @@ class _MeadowBackgroundPainter extends CustomPainter {
         const Color(0xFF43A047),
         (sin(x * 0.3) * 0.5 + 0.5),
       )!;
-      final grassPaint = Paint()..color = grassColor.withOpacity(0.6);
+      final grassPaint = Paint()..color = grassColor.withValues(alpha: 0.6);
       final path = Path()
         ..moveTo(x, h)
         ..quadraticBezierTo(x + sway + 2, h - gh * 0.6, x + sway, h - gh)
@@ -280,13 +280,13 @@ class _MeadowBackgroundPainter extends CustomPainter {
 
       // Stem
       final stemPaint = Paint()
-        ..color = const Color(0xFF4CAF50).withOpacity(0.5)
+        ..color = const Color(0xFF4CAF50).withValues(alpha: 0.5)
         ..strokeWidth = 1.5
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(Offset(fx + sway, fy), Offset(fx, h), stemPaint);
 
       // Petals
-      final petalPaint = Paint()..color = color.withOpacity(0.5);
+      final petalPaint = Paint()..color = color.withValues(alpha: 0.5);
       for (int p = 0; p < 5; p++) {
         final angle = p * pi * 2 / 5 + t * 0.2;
         final px = fx + sway + cos(angle) * 4;
@@ -297,7 +297,7 @@ class _MeadowBackgroundPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(fx + sway, fy),
         1.5,
-        Paint()..color = const Color(0xFFFFEB3B).withOpacity(0.6),
+        Paint()..color = const Color(0xFFFFEB3B).withValues(alpha: 0.6),
       );
     }
 
@@ -310,7 +310,7 @@ class _MeadowBackgroundPainter extends CustomPainter {
       final wingFlap = sin(t * 6 + i * 2) * 0.4;
       final bColor = flowerColors[(i + 2) % flowerColors.length];
 
-      final wingPaint = Paint()..color = bColor.withOpacity(0.35);
+      final wingPaint = Paint()..color = bColor.withValues(alpha: 0.35);
       // Left wing
       canvas.drawOval(
         Rect.fromCenter(
@@ -328,15 +328,15 @@ class _MeadowBackgroundPainter extends CustomPainter {
         wingPaint,
       );
       // Body
-      canvas.drawCircle(Offset(bx, by), 1.2, Paint()..color = Colors.brown.withOpacity(0.4));
+      canvas.drawCircle(Offset(bx, by), 1.2, Paint()..color = Colors.brown.withValues(alpha: 0.4));
     }
 
     // Subtle sun in top-right corner
     final sunPaint = Paint()
-      ..color = const Color(0xFFFFD740).withOpacity(0.25)
+      ..color = const Color(0xFFFFD740).withValues(alpha: 0.25)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30);
     canvas.drawCircle(Offset(w * 0.85, h * 0.05), 40, sunPaint);
-    final sunCore = Paint()..color = const Color(0xFFFFECB3).withOpacity(0.35);
+    final sunCore = Paint()..color = const Color(0xFFFFECB3).withValues(alpha: 0.35);
     canvas.drawCircle(Offset(w * 0.85, h * 0.05), 18, sunCore);
   }
 
@@ -356,12 +356,12 @@ class _MeadowBackgroundPainter extends CustomPainter {
     river.close();
     canvas.drawPath(
       river,
-      Paint()..color = const Color(0xFF81D4FA).withOpacity(0.55),
+      Paint()..color = const Color(0xFF81D4FA).withValues(alpha: 0.55),
     );
 
     // Shimmer streaks drifting with the current
     final shimmer = Paint()
-      ..color = Colors.white.withOpacity(0.35)
+      ..color = Colors.white.withValues(alpha: 0.35)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     for (int i = 0; i < 7; i++) {
@@ -376,10 +376,10 @@ class _MeadowBackgroundPainter extends CustomPainter {
       final ly = (topY + bottomY) / 2 + (i - 1) * 6;
       canvas.drawOval(
         Rect.fromCenter(center: Offset(lx, ly + 3), width: 18, height: 7),
-        Paint()..color = const Color(0xFF2E7D32).withOpacity(0.5),
+        Paint()..color = const Color(0xFF2E7D32).withValues(alpha: 0.5),
       );
       if (i != 1) continue; // one blossom in the middle
-      final petal = Paint()..color = const Color(0xFFFF80AB).withOpacity(0.8);
+      final petal = Paint()..color = const Color(0xFFFF80AB).withValues(alpha: 0.8);
       for (int p = 0; p < 6; p++) {
         final a = p * pi / 3 + t * 0.1;
         canvas.drawOval(
@@ -409,7 +409,7 @@ class _MeadowBackgroundPainter extends CustomPainter {
       final sway = sin(t * 0.5 + side) * 4;
 
       final trunk = Paint()
-        ..color = const Color(0xFF8D6E63).withOpacity(0.55)
+        ..color = const Color(0xFF8D6E63).withValues(alpha: 0.55)
         ..strokeWidth = 7
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
@@ -421,7 +421,7 @@ class _MeadowBackgroundPainter extends CustomPainter {
 
       // Fronds fanning out from the crown
       final frond = Paint()
-        ..color = const Color(0xFF2E7D32).withOpacity(0.45)
+        ..color = const Color(0xFF2E7D32).withValues(alpha: 0.45)
         ..strokeWidth = 4
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
@@ -438,20 +438,20 @@ class _MeadowBackgroundPainter extends CustomPainter {
       }
       // Coconuts
       canvas.drawCircle(Offset(topX + sway - 4, topY + 4), 3.5,
-          Paint()..color = const Color(0xFF6D4C41).withOpacity(0.6));
+          Paint()..color = const Color(0xFF6D4C41).withValues(alpha: 0.6));
       canvas.drawCircle(Offset(topX + sway + 4, topY + 5), 3.5,
-          Paint()..color = const Color(0xFF6D4C41).withOpacity(0.6));
+          Paint()..color = const Color(0xFF6D4C41).withValues(alpha: 0.6));
     }
   }
 
   /// Hanging vines swaying along the top edge.
   void _drawVines(Canvas canvas, double w, double h) {
     final vinePaint = Paint()
-      ..color = const Color(0xFF388E3C).withOpacity(0.4)
+      ..color = const Color(0xFF388E3C).withValues(alpha: 0.4)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
-    final leafPaint = Paint()..color = const Color(0xFF43A047).withOpacity(0.4);
+    final leafPaint = Paint()..color = const Color(0xFF43A047).withValues(alpha: 0.4);
 
     for (int i = 0; i < 4; i++) {
       final vx = w * (0.12 + i * 0.24);
@@ -482,7 +482,7 @@ class _MeadowBackgroundPainter extends CustomPainter {
       final dy = h * 0.6 + sin(t * 2.1 + i * 1.7) * h * 0.06;
       final flap = sin(t * 14 + i) * 0.5;
 
-      final wing = Paint()..color = const Color(0xFF80DEEA).withOpacity(0.45);
+      final wing = Paint()..color = const Color(0xFF80DEEA).withValues(alpha: 0.45);
       for (final side in [-1, 1]) {
         canvas.drawOval(
           Rect.fromCenter(
@@ -506,7 +506,7 @@ class _MeadowBackgroundPainter extends CustomPainter {
         Offset(dx - 6, dy),
         Offset(dx + 6, dy),
         Paint()
-          ..color = const Color(0xFF00838F).withOpacity(0.6)
+          ..color = const Color(0xFF00838F).withValues(alpha: 0.6)
           ..strokeWidth = 1.6
           ..strokeCap = StrokeCap.round,
       );
@@ -550,7 +550,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
       // Apple shadow
       canvas.drawOval(
         Rect.fromCenter(center: Offset(apple.dx + 1, apple.dy + 2), width: 14, height: 8),
-        Paint()..color = Colors.black.withOpacity(0.08),
+        Paint()..color = Colors.black.withValues(alpha: 0.08),
       );
 
       // Apple body — bright red
@@ -561,7 +561,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(apple.dx - 2, apple.dy - 2),
         2.5,
-        Paint()..color = Colors.white.withOpacity(0.4),
+        Paint()..color = Colors.white.withValues(alpha: 0.4),
       );
 
       // Stem
@@ -594,7 +594,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
         b.pos,
         6 + p * 18,
         Paint()
-          ..color = const Color(0xFFFFD740).withOpacity(0.5 * fade)
+          ..color = const Color(0xFFFFD740).withValues(alpha: 0.5 * fade)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5 * fade + 0.5,
       );
@@ -606,7 +606,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
         canvas.drawCircle(
           Offset(b.pos.dx + cos(a) * r, b.pos.dy + sin(a) * r - p * 6),
           2.2 * fade,
-          Paint()..color = const Color(0xFFE53935).withOpacity(0.7 * fade),
+          Paint()..color = const Color(0xFFE53935).withValues(alpha: 0.7 * fade),
         );
       }
     }
@@ -623,11 +623,11 @@ class _SnakeAndApplesPainter extends CustomPainter {
       final color = isEven
           ? const Color(0xFF4CAF50) // medium green
           : const Color(0xFF388E3C); // darker green
-      final bodyPaint = Paint()..color = color.withOpacity(0.7);
+      final bodyPaint = Paint()..color = color.withValues(alpha: 0.7);
       canvas.drawCircle(positions[i], radius, bodyPaint);
 
       // Belly highlight
-      final bellyPaint = Paint()..color = const Color(0xFFA5D6A7).withOpacity(0.3);
+      final bellyPaint = Paint()..color = const Color(0xFFA5D6A7).withValues(alpha: 0.3);
       canvas.drawCircle(
         Offset(positions[i].dx, positions[i].dy + radius * 0.3),
         radius * 0.5,
@@ -649,7 +649,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
     final mouthOpen = chomping || nearest < 45;
 
     // Head — larger, bright green
-    final headPaint = Paint()..color = const Color(0xFF2E7D32).withOpacity(0.85);
+    final headPaint = Paint()..color = const Color(0xFF2E7D32).withValues(alpha: 0.85);
     canvas.save();
     canvas.translate(head.dx, head.dy);
     canvas.rotate(angle);
@@ -660,7 +660,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
     // Top of head — lighter
     canvas.drawOval(
       Rect.fromCenter(center: const Offset(-1, -1), width: 12, height: 8),
-      Paint()..color = const Color(0xFF66BB6A).withOpacity(0.6),
+      Paint()..color = const Color(0xFF66BB6A).withValues(alpha: 0.6),
     );
 
     // Open mouth — dark red wedge at the front of the head
@@ -671,7 +671,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
         ..lineTo(2 + cos(gape) * 9, -sin(gape) * 9)
         ..lineTo(2 + cos(gape) * 9, sin(gape) * 9)
         ..close();
-      canvas.drawPath(mouth, Paint()..color = const Color(0xFFB71C1C).withOpacity(0.85));
+      canvas.drawPath(mouth, Paint()..color = const Color(0xFFB71C1C).withValues(alpha: 0.85));
     }
     canvas.restore();
 
@@ -689,18 +689,18 @@ class _SnakeAndApplesPainter extends CustomPainter {
 
     // Red eye glow
     final eyeGlow = Paint()
-      ..color = const Color(0xFFFF1744).withOpacity(0.3)
+      ..color = const Color(0xFFFF1744).withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     canvas.drawCircle(e1, 4, eyeGlow);
     canvas.drawCircle(e2, 4, eyeGlow);
 
     // Eye whites
-    final eyePaint = Paint()..color = const Color(0xFFFF1744).withOpacity(0.8);
+    final eyePaint = Paint()..color = const Color(0xFFFF1744).withValues(alpha: 0.8);
     canvas.drawCircle(e1, 3, eyePaint);
     canvas.drawCircle(e2, 3, eyePaint);
 
     // Pupils — black, looking forward
-    final pupilPaint = Paint()..color = Colors.black.withOpacity(0.8);
+    final pupilPaint = Paint()..color = Colors.black.withValues(alpha: 0.8);
     final pupilDir = Offset(cos(angle) * 0.8, sin(angle) * 0.8);
     canvas.drawCircle(e1 + pupilDir, 1.5, pupilPaint);
     canvas.drawCircle(e2 + pupilDir, 1.5, pupilPaint);
@@ -709,7 +709,7 @@ class _SnakeAndApplesPainter extends CustomPainter {
     final tongueOut = !mouthOpen && sin(t * 6) > 0.3;
     if (tongueOut) {
       final tongPaint = Paint()
-        ..color = const Color(0xFFFF1744).withOpacity(0.7)
+        ..color = const Color(0xFFFF1744).withValues(alpha: 0.7)
         ..strokeWidth = 1.5
         ..strokeCap = StrokeCap.round;
       final tongBase = Offset(

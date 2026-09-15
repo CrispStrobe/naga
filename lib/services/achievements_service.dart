@@ -24,7 +24,6 @@ class AchievementsService {
   static const _prefix = 'achievement_';
   static const _statsPrefix = 'stat_';
 
-  static AchievementsService? _instance;
   static Future<AchievementsService>? _pendingInit;
   SharedPreferences? _prefs;
 
@@ -91,7 +90,6 @@ class AchievementsService {
   static Future<AchievementsService> _createInstance() async {
     final service = AchievementsService._();
     service._prefs = await SharedPreferences.getInstance();
-    _instance = service;
     return service;
   }
 

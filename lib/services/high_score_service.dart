@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class HighScoreService {
   static const _prefix = 'high_score_';
 
-  static HighScoreService? _instance;
   static Future<HighScoreService>? _pendingInit;
   SharedPreferences? _prefs;
 
@@ -17,7 +16,6 @@ class HighScoreService {
   static Future<HighScoreService> _createInstance() async {
     final service = HighScoreService._();
     service._prefs = await SharedPreferences.getInstance();
-    _instance = service;
     return service;
   }
 

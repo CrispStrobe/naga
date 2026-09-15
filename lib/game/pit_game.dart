@@ -672,7 +672,7 @@ class PitGame extends FlameGame with KeyboardEvents {
 
       // Draw safe zone border
       final safeBorderPaint = Paint()
-        ..color = const Color(0xFFFF1744).withOpacity(0.6)
+        ..color = const Color(0xFFFF1744).withValues(alpha: 0.6)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawRect(
@@ -688,7 +688,7 @@ class PitGame extends FlameGame with KeyboardEvents {
 
     // Draw outer border
     final borderPaint = Paint()
-      ..color = mode.snakeColor.withOpacity(0.3)
+      ..color = mode.snakeColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawRect(
@@ -708,7 +708,7 @@ class PitGame extends FlameGame with KeyboardEvents {
     // Draw AI snakes
     for (final ai in _aiSnakes) {
       final aiPaint = Paint()..color = ai.color;
-      final aiHeadPaint = Paint()..color = ai.color.withOpacity(0.8);
+      final aiHeadPaint = Paint()..color = ai.color.withValues(alpha: 0.8);
       for (int i = 0; i < ai.segments.length; i++) {
         final seg = ai.segments[i];
         final sp = _gridToScreen(seg);
@@ -757,7 +757,7 @@ class PitGame extends FlameGame with KeyboardEvents {
         text: 'ALIVE: $aliveCount',
         style: TextStyle(
           // Sits on the darker surround outside the board — keep it light.
-          color: Colors.white.withOpacity(0.85),
+          color: Colors.white.withValues(alpha: 0.85),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),

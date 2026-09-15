@@ -27,7 +27,7 @@ class AchievementsScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: total > 0 ? count / total : 0,
-              backgroundColor: Colors.green.withOpacity(0.1),
+              backgroundColor: Colors.green.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation(Colors.green.shade400),
               minHeight: 8,
             ),
@@ -93,11 +93,11 @@ class _AchievementTile extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(
           color: unlocked
-              ? Colors.amber.withOpacity(0.4)
-              : Colors.green.withOpacity(0.1),
+              ? Colors.amber.withValues(alpha: 0.4)
+              : Colors.green.withValues(alpha: 0.1),
         ),
         borderRadius: BorderRadius.circular(10),
-        color: unlocked ? Colors.amber.withOpacity(0.05) : null,
+        color: unlocked ? Colors.amber.withValues(alpha: 0.05) : null,
       ),
       child: Row(
         children: [
@@ -124,8 +124,8 @@ class _AchievementTile extends StatelessWidget {
                   isEn ? achievement.descEn : achievement.descDe,
                   style: TextStyle(
                     color: unlocked
-                        ? Colors.amber.withOpacity(0.5)
-                        : Colors.green.withOpacity(0.3),
+                        ? Colors.amber.withValues(alpha: 0.5)
+                        : Colors.green.withValues(alpha: 0.3),
                     fontSize: 12,
                   ),
                 ),

@@ -469,7 +469,7 @@ class _GameScreenState extends State<GameScreen> {
               s.livesRemaining(_livesRemaining),
               style: TextStyle(
                 fontSize: 12,
-                color: textColor.withOpacity(0.7),
+                color: textColor.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -493,7 +493,7 @@ class _GameScreenState extends State<GameScreen> {
                     s.highScoreValue(highScore),
                     style: TextStyle(
                       fontSize: 10,
-                      color: textColor.withOpacity(0.5),
+                      color: textColor.withValues(alpha: 0.5),
                     ),
                   ),
               ],
@@ -915,9 +915,9 @@ class _DPadButton extends StatelessWidget {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.15),
+          color: Colors.green.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.withOpacity(0.3)),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
         ),
         child: Icon(icon, color: Colors.green.shade400, size: 36),
       ),
@@ -944,9 +944,9 @@ class _ActionButton extends StatelessWidget {
         width: 64,
         height: 64,
         decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.2),
+          color: Colors.red.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.red.withOpacity(0.5), width: 2),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 2),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

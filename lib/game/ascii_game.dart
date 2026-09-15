@@ -270,7 +270,7 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     final green = mode.snakeColor;
 
     // ─── ASCII border: +---+ style ───────────────────────────────────
-    final borderColor = green.withOpacity(0.7);
+    final borderColor = green.withValues(alpha: 0.7);
     final cornerChar = _getCharPainter('+', borderColor, fontSize);
     final hChar = _getCharPainter('-', borderColor, fontSize);
     final vChar = _getCharPainter('|', borderColor, fontSize);
@@ -315,7 +315,7 @@ class AsciiGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'SCORE: $score',
         style: TextStyle(
-          color: green.withOpacity(0.8),
+          color: green.withValues(alpha: 0.8),
           fontSize: 12,
           fontFamily: 'monospace',
           fontWeight: FontWeight.bold,

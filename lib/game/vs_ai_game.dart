@@ -706,7 +706,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
             fontSize: 14,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
-            color: alive ? color : color.withOpacity(0.5),
+            color: alive ? color : color.withValues(alpha: 0.5),
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -721,7 +721,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       );
       canvas.drawRRect(
         pill,
-        Paint()..color = Colors.black.withOpacity(alive ? 0.45 : 0.25),
+        Paint()..color = Colors.black.withValues(alpha: alive ? 0.45 : 0.25),
       );
       textPainter.paint(canvas, Offset(x + 7, y + 3));
       x += pill.width + 8;
@@ -753,7 +753,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     }
 
     final borderPaint = Paint()
-      ..color = Colors.white.withOpacity(0.5)
+      ..color = Colors.white.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawRRect(
@@ -783,7 +783,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
 
     // Light edge highlight so the wall pops on the bright board.
     final edgePaint = Paint()
-      ..color = Colors.white.withOpacity(0.35)
+      ..color = Colors.white.withValues(alpha: 0.35)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawRRect(
@@ -796,7 +796,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
 
     // Bamboo-style segment notches.
     final notchPaint = Paint()
-      ..color = Colors.white.withOpacity(0.25)
+      ..color = Colors.white.withValues(alpha: 0.25)
       ..strokeWidth = 2;
     for (int y = 2; y < gridHeight; y += 3) {
       final ny = boardOffset.y + y * cs;
@@ -1051,7 +1051,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     final cy = y + cs / 2;
 
     final glowPaint = Paint()
-      ..color = mode.foodColor.withOpacity(0.25)
+      ..color = mode.foodColor.withValues(alpha: 0.25)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawCircle(Offset(cx, cy), radius * 1.8, glowPaint);
 
@@ -1059,7 +1059,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     canvas.drawCircle(Offset(cx, cy), radius, paint);
 
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.4);
+      ..color = Colors.white.withValues(alpha: 0.4);
     canvas.drawCircle(
       Offset(cx - radius * 0.25, cy - radius * 0.25),
       radius * 0.3,

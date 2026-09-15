@@ -12,7 +12,6 @@ class AudioService {
   static const _keyMusicEnabled = 'music_enabled';
   static const _keySfxEnabled = 'sfx_enabled';
 
-  static AudioService? _instance;
   static Future<AudioService>? _pendingInit;
 
   final AudioPlayer _musicPlayer = AudioPlayer();
@@ -27,30 +26,30 @@ class AudioService {
 
   // Per-mode music mapping
   static const Map<String, String> _modeMusic = {
-    'Classic': 'music/classic.ogg',
-    'Arcade': 'music/arcade.ogg',
-    'Zen': 'music/zen.ogg',
-    'Maze Hunter': 'music/maze.ogg',
-    'Trail': 'music/trail.ogg',
-    'Fangs': 'music/fangs.ogg',
-    'Venom': 'music/venom.ogg',
-    'Pit': 'music/pit.ogg',
-    'Swarm': 'music/swarm.ogg',
-    'Rush': 'music/rush.ogg',
-    'Snake II': 'music/classic.ogg',
-    'ASCII': 'music/classic.ogg',
-    'CGA': 'music/arcade.ogg',
-    'Nibbles': 'music/arcade.ogg',
-    'Duel': 'music/pit.ogg',
-    'Dungeon': 'music/venom.ogg',
+    'Classic': 'audio/music/classic.ogg',
+    'Arcade': 'audio/music/arcade.ogg',
+    'Zen': 'audio/music/zen.ogg',
+    'Maze Hunter': 'audio/music/maze.ogg',
+    'Trail': 'audio/music/trail.ogg',
+    'Fangs': 'audio/music/fangs.ogg',
+    'Venom': 'audio/music/venom.ogg',
+    'Pit': 'audio/music/pit.ogg',
+    'Swarm': 'audio/music/swarm.ogg',
+    'Rush': 'audio/music/rush.ogg',
+    'Snake II': 'audio/music/classic.ogg',
+    'ASCII': 'audio/music/classic.ogg',
+    'CGA': 'audio/music/arcade.ogg',
+    'Nibbles': 'audio/music/arcade.ogg',
+    'Duel': 'audio/music/pit.ogg',
+    'Dungeon': 'audio/music/venom.ogg',
   };
 
   // SFX names
-  static const String sfxEat = 'sfx/eat.ogg';
-  static const String sfxDie = 'sfx/die.ogg';
-  static const String sfxPowerUp = 'sfx/powerup.ogg';
-  static const String sfxLevelUp = 'sfx/levelup.ogg';
-  static const String sfxClick = 'sfx/click.ogg';
+  static const String sfxEat = 'audio/sfx/eat.ogg';
+  static const String sfxDie = 'audio/sfx/die.ogg';
+  static const String sfxPowerUp = 'audio/sfx/powerup.ogg';
+  static const String sfxLevelUp = 'audio/sfx/levelup.ogg';
+  static const String sfxClick = 'audio/sfx/click.ogg';
 
   AudioService._();
 
@@ -71,7 +70,6 @@ class AudioService {
   static Future<AudioService> _createInstance() async {
     final service = AudioService._();
     await service._init();
-    _instance = service;
     return service;
   }
 

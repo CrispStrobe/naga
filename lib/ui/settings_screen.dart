@@ -478,11 +478,11 @@ class _OptionTile extends StatelessWidget {
               width: focused ? 2.5 : (selected ? 2 : 1),
             ),
             borderRadius: BorderRadius.circular(8),
-            color: selected ? const Color(0xFFC8E6C9) : Colors.white.withOpacity(0.5),
+            color: selected ? const Color(0xFFC8E6C9) : Colors.white.withValues(alpha: 0.5),
             boxShadow: focused
                 ? [
                     BoxShadow(
-                      color: const Color(0xFFE65100).withOpacity(0.25),
+                      color: const Color(0xFFE65100).withValues(alpha: 0.25),
                       blurRadius: 8,
                     ),
                   ]

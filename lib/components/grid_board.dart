@@ -9,7 +9,7 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
   ui.Picture? _cachedPicture;
   double _cachedCellSize = 0;
 
-  GridBoard({required SnakeGame game}) : _game = game;
+  GridBoard(this._game);
 
   void invalidateCache() {
     _cachedPicture?.dispose();
@@ -39,7 +39,7 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
       // Border
       if (_game.mode.showBorder) {
         final borderPaint = Paint()
-          ..color = _game.mode.snakeColor.withOpacity(isClassic ? 1.0 : 0.4)
+          ..color = _game.mode.snakeColor.withValues(alpha: isClassic ? 1.0 : 0.4)
           ..style = PaintingStyle.stroke
           ..strokeWidth = isClassic ? 2 : 1.5;
 

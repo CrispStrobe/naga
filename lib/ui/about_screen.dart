@@ -165,7 +165,7 @@ class _AppHeader extends StatelessWidget {
                           '${AboutScreen._buildMode.isNotEmpty ? ' (${AboutScreen._buildMode})' : ''}',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontFamily: 'monospace',
-                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                           ),
                         ),
                       ],

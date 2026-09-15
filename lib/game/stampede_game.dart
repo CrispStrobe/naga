@@ -337,7 +337,7 @@ class StampedeGame extends FlameGame with KeyboardEvents {
 
     // Lane dashes
     final dashPaint = Paint()
-      ..color = mode.trackLineColor.withOpacity(0.4)
+      ..color = mode.trackLineColor.withValues(alpha: 0.4)
       ..strokeWidth = 2;
     for (int i = 1; i < laneCount; i++) {
       final x = trackLeft + i * laneWidth;
@@ -355,7 +355,7 @@ class StampedeGame extends FlameGame with KeyboardEvents {
 
     // Track borders
     final borderPaint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
+      ..color = Colors.white.withValues(alpha: 0.6)
       ..strokeWidth = 3;
     canvas.drawLine(Offset(trackLeft, 0), Offset(trackLeft, size.y), borderPaint);
     canvas.drawLine(Offset(trackRight, 0), Offset(trackRight, size.y), borderPaint);
@@ -554,12 +554,12 @@ class StampedeGame extends FlameGame with KeyboardEvents {
           ..close();
         canvas.drawPath(path, rockPaint);
         // Highlight
-        final hlPaint = Paint()..color = Colors.white.withOpacity(0.15);
+        final hlPaint = Paint()..color = Colors.white.withValues(alpha: 0.15);
         canvas.drawCircle(Offset(cx - halfW * 0.2, obj.y - halfW * 0.3), halfW * 0.2, hlPaint);
       } else {
         // Boost: golden star
         final boostPaint = Paint()..color = mode.foodColor;
-        final glowPaint = Paint()..color = mode.foodColor.withOpacity(0.3);
+        final glowPaint = Paint()..color = mode.foodColor.withValues(alpha: 0.3);
         canvas.drawCircle(Offset(cx, obj.y), halfW * 1.2, glowPaint);
         _drawStar(canvas, cx, obj.y, halfW * 0.8, 5, boostPaint);
       }
@@ -794,7 +794,7 @@ class StampedeGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'DIST: ${(_distanceTraveled ~/ 50)}',
         style: TextStyle(
-          color: Colors.white.withOpacity(0.6),
+          color: Colors.white.withValues(alpha: 0.6),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -808,7 +808,7 @@ class StampedeGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: '${_scrollSpeed.toInt()} km/h',
         style: TextStyle(
-          color: mode.foodColor.withOpacity(0.7),
+          color: mode.foodColor.withValues(alpha: 0.7),
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),

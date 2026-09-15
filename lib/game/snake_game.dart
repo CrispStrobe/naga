@@ -74,7 +74,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   Future<void> onLoad() async {
     await super.onLoad();
     _calculateGrid();
-    board = GridBoard(game: this);
+    board = GridBoard(this);
     add(board);
     _startNewGame();
   }
@@ -112,12 +112,12 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     final startY = gridHeight ~/ 2;
 
     snake = Snake(
+      this,
       initialSegments: [
         Point(startX, startY),
         Point(startX - 1, startY),
         Point(startX - 2, startY),
       ],
-      game: this,
     );
     add(snake);
   }
@@ -128,7 +128,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
     } while (snake.occupies(pos));
 
-    food = Food(gridPosition: pos, game: this);
+    food = Food(this, gridPosition: pos);
     add(food);
   }
 
@@ -228,7 +228,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     final types = PowerUpType.values;
     final type = types[_random.nextInt(types.length)];
 
-    _currentPowerUp = PowerUp(gridPosition: pos, type: type, game: this);
+    _currentPowerUp = PowerUp(this, gridPosition: pos, type: type);
     add(_currentPowerUp!);
   }
 
@@ -466,7 +466,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       final color = _buffColor(entry.key);
 
       // Background pill (reuse Paint)
-      _buffBgPaint.color = color.withOpacity(0.3);
+      _buffBgPaint.color = color.withValues(alpha: 0.3);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(x, y, 40, 14),
@@ -487,7 +487,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
           text: TextSpan(
             text: remaining,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 9,
               fontWeight: FontWeight.bold,
             ),

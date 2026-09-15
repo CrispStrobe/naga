@@ -42,11 +42,11 @@ class HighScoresScreen extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(isTop ? 0.9 : 0.6),
+                    color: Colors.white.withValues(alpha: isTop ? 0.9 : 0.6),
                     border: Border.all(
                       color: isTop
                           ? const Color(0xFFFFB300)
-                          : Colors.green.withOpacity(0.35),
+                          : Colors.green.withValues(alpha: 0.35),
                       width: isTop ? 2 : 1,
                     ),
                     borderRadius: BorderRadius.circular(10),

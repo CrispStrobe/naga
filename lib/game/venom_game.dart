@@ -662,7 +662,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
     // Draw destructible walls
     final destructPaint = Paint()..color = mode.destructibleWallColor;
     final destructBorderPaint = Paint()
-      ..color = mode.destructibleWallColor.withOpacity(0.6)
+      ..color = mode.destructibleWallColor.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     for (final k in destructibleWalls) {
@@ -694,7 +694,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
 
     // Draw food (dropped by destroyed walls)
     final foodPaint = Paint()..color = mode.foodColor;
-    final foodShinePaint = Paint()..color = Colors.white.withOpacity(0.5);
+    final foodShinePaint = Paint()..color = Colors.white.withValues(alpha: 0.5);
     for (final k in _foods) {
       final p = _fromKey(k);
       final sp = _gridToScreen(p);
@@ -710,8 +710,8 @@ class VenomGame extends FlameGame with KeyboardEvents {
     // Draw explosions
     for (final exp in _explosions) {
       final alpha = (exp.timer / _explosionDuration).clamp(0.0, 1.0);
-      final expPaint = Paint()..color = mode.explosionColor.withOpacity(alpha * 0.8);
-      final expCorePaint = Paint()..color = Colors.white.withOpacity(alpha * 0.6);
+      final expPaint = Paint()..color = mode.explosionColor.withValues(alpha: alpha * 0.8);
+      final expCorePaint = Paint()..color = Colors.white.withValues(alpha: alpha * 0.6);
       for (final cell in exp.cells) {
         final sp = _gridToScreen(cell);
         canvas.drawRect(Rect.fromLTWH(sp.x, sp.y, cs, cs), expPaint);
@@ -801,7 +801,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'LEVEL $_level/$maxLevel',
         style: TextStyle(
-          color: mode.snakeColor.withOpacity(0.8),
+          color: mode.snakeColor.withValues(alpha: 0.8),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -814,7 +814,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'BOMBS: $_bombsAvailable/$maxBombs',
         style: TextStyle(
-          color: mode.bombColor.withOpacity(0.8),
+          color: mode.bombColor.withValues(alpha: 0.8),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -830,7 +830,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: '${_enemies.length} ENEMIES',
         style: TextStyle(
-          color: mode.snakeColor.withOpacity(0.5),
+          color: mode.snakeColor.withValues(alpha: 0.5),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),

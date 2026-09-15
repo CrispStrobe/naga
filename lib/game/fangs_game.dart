@@ -391,7 +391,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
 
     // Draw border
     final borderPaint = Paint()
-      ..color = mode.snakeColor.withOpacity(0.3)
+      ..color = mode.snakeColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawRect(
@@ -402,7 +402,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
 
     // Draw snake zone divider line
     final zonePaint = Paint()
-      ..color = mode.snakeColor.withOpacity(0.15)
+      ..color = mode.snakeColor.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final zoneY = boardOffset.y + _snakeZoneMinY * cs;
@@ -424,7 +424,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
       );
       // Highlight on top edge for 3D effect
       final highlightPaint = Paint()
-        ..color = Colors.white.withOpacity(0.25)
+        ..color = Colors.white.withValues(alpha: 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1;
       canvas.drawLine(
@@ -444,7 +444,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
     );
     // Ball glow
     final glowPaint = Paint()
-      ..color = mode.ballColor.withOpacity(0.3)
+      ..color = mode.ballColor.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawCircle(
       Offset(ballScreen.x + cs / 2, ballScreen.y + cs / 2),
@@ -461,7 +461,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
       final snakePaint = Paint()
         ..color = isHead
             ? mode.snakeColor
-            : mode.snakeColor.withOpacity(0.8);
+            : mode.snakeColor.withValues(alpha: 0.8);
 
       // Draw each segment as a solid rounded rect
       canvas.drawRRect(
@@ -495,7 +495,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'LVL $_level',
         style: TextStyle(
-          color: mode.snakeColor.withOpacity(0.5),
+          color: mode.snakeColor.withValues(alpha: 0.5),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -512,7 +512,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: '\u2665 ' * _lives, // heart symbols for lives
         style: TextStyle(
-          color: const Color(0xFFFF1744).withOpacity(0.8),
+          color: const Color(0xFFFF1744).withValues(alpha: 0.8),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),

@@ -473,7 +473,7 @@ class _BottomBarButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           color: focused
-              ? const Color(0xFF2E7D32).withOpacity(0.15)
+              ? const Color(0xFF2E7D32).withValues(alpha: 0.15)
               : Colors.transparent,
           border: Border.all(
             color: focused
@@ -551,7 +551,7 @@ class _ModeButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           decoration: BoxDecoration(
             border: Border.all(
-              color: accentColor.withOpacity(focused ? 1.0 : 0.6),
+              color: accentColor.withValues(alpha: focused ? 1.0 : 0.6),
               width: focused ? 2.5 : 1.5,
             ),
             borderRadius: BorderRadius.circular(12),
@@ -560,9 +560,9 @@ class _ModeButton extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 Color.lerp(Colors.white, accentColor, focused ? 0.30 : 0.16)!
-                    .withOpacity(0.90),
+                    .withValues(alpha: 0.90),
                 Color.lerp(Colors.white, accentColor, focused ? 0.16 : 0.06)!
-                    .withOpacity(0.78),
+                    .withValues(alpha: 0.78),
               ],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
@@ -570,7 +570,7 @@ class _ModeButton extends StatelessWidget {
             boxShadow: focused
                 ? [
                     BoxShadow(
-                      color: accentColor.withOpacity(0.35),
+                      color: accentColor.withValues(alpha: 0.35),
                       blurRadius: 10,
                       spreadRadius: 1,
                     ),
@@ -598,14 +598,14 @@ class _ModeButton extends StatelessWidget {
                       description,
                       style: TextStyle(
                         fontSize: 11,
-                        color: accentColor.withOpacity(0.75),
+                        color: accentColor.withValues(alpha: 0.75),
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(Icons.arrow_forward_ios,
-                  color: accentColor.withOpacity(0.5), size: 14),
+                  color: accentColor.withValues(alpha: 0.5), size: 14),
             ],
           ),
         ),

@@ -86,7 +86,6 @@ class SettingsService {
   static const _keyStartSpeed = 'start_speed';
   static const _keyLocale = 'locale';
 
-  static SettingsService? _instance;
   static Future<SettingsService>? _pendingInit;
   SharedPreferences? _prefs;
   GameSettings _settings = const GameSettings();
@@ -102,7 +101,6 @@ class SettingsService {
   static Future<SettingsService> _createInstance() async {
     final service = SettingsService._();
     await service._init();
-    _instance = service;
     return service;
   }
 

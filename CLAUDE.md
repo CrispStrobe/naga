@@ -59,9 +59,12 @@ assets/audio/      Music (OGG per mode) and SFX
 
 ## Conventions
 
-- Use `withOpacity()` not `withValues()` for color alpha (withValues crashes on web)
+- Use `withValues(alpha: x)` for color alpha. (The old rule said the opposite; `withValues` was verified on 2026-09-16 under both dart2js and WASM on Flutter 3.44 and works correctly.)
 - Wrap platform-specific APIs in `kIsWeb` checks (e.g. SystemChrome)
-- AudioService methods are all try/catch wrapped (audioplayers may not work on all platforms)
+- AudioService methods are all try/catch wrapped (audioplayers may not work on all platforms).
+  Note this hides asset-path mistakes: audio paths are relative to audioplayers' `assets/`
+  prefix, so they must start with `audio/` (e.g. `audio/sfx/eat.ogg`). Verify with a real
+  build — a wrong path fails silently.
 - Classic mode preserves authentic retro look — no smooth rendering, no glow effects
 - No Nokia brand references anywhere
-- Services use nullable singletons with `_pendingInit` pattern (race-safe)
+- Services use a `_pendingInit` future as the singleton (race-safe); there is no `_instance` field

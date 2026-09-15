@@ -389,7 +389,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
 
     // Border
     final borderPaint = Paint()
-      ..color = mode.snakeColor.withOpacity(0.4)
+      ..color = mode.snakeColor.withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawRRect(
@@ -639,7 +639,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
 
     // Glow
     final glowPaint = Paint()
-      ..color = mode.foodColor.withOpacity(0.15)
+      ..color = mode.foodColor.withValues(alpha: 0.15)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawCircle(Offset(cx, cy), radius * 1.8, glowPaint);
 
@@ -649,93 +649,11 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
 
     // Highlight
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.4);
+      ..color = Colors.white.withValues(alpha: 0.4);
     canvas.drawCircle(
       Offset(cx - radius * 0.25, cy - radius * 0.25),
       radius * 0.3,
       highlightPaint,
-    );
-  }
-
-  void _renderGameOver(Canvas canvas) {
-    // Semi-transparent overlay
-    final overlayPaint = Paint()..color = Colors.black.withOpacity(0.6);
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.x, size.y),
-      overlayPaint,
-    );
-
-    // Winner text
-    String resultText;
-    Color resultColor;
-    switch (matchResult!) {
-      case MatchResult.player1Wins:
-        resultText = 'PLAYER 1 WINS!';
-        resultColor = mode.snakeColor;
-      case MatchResult.player2Wins:
-        resultText = 'PLAYER 2 WINS!';
-        resultColor = mode.player2Color;
-      case MatchResult.draw:
-        resultText = 'DRAW!';
-        resultColor = Colors.amber;
-    }
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: resultText,
-        style: TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: resultColor,
-          letterSpacing: 4,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        (size.x - textPainter.width) / 2,
-        size.y * 0.35,
-      ),
-    );
-
-    // Scores
-    final scorePainter = TextPainter(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'P1: $p1Score',
-            style: TextStyle(
-              fontSize: 22,
-              color: mode.snakeColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const TextSpan(
-            text: '    ',
-            style: TextStyle(fontSize: 22),
-          ),
-          TextSpan(
-            text: 'P2: $p2Score',
-            style: TextStyle(
-              fontSize: 22,
-              color: mode.player2Color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    scorePainter.layout();
-    scorePainter.paint(
-      canvas,
-      Offset(
-        (size.x - scorePainter.width) / 2,
-        size.y * 0.35 + 50,
-      ),
     );
   }
 }

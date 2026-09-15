@@ -750,7 +750,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   void _renderArrowTrace(Canvas canvas, double cs) {
     if (_arrowTrace.isEmpty || _arrowTraceTimer <= 0) return;
     final alpha = (_arrowTraceTimer / _arrowTraceDuration).clamp(0.0, 1.0);
-    final paint = Paint()..color = mode.bowColor.withOpacity(alpha * 0.8);
+    final paint = Paint()..color = mode.bowColor.withValues(alpha: alpha * 0.8);
     for (final cell in _arrowTrace) {
       final sp = _gridToScreen(cell);
       canvas.drawRect(
@@ -763,7 +763,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
   void _renderWallsAndFloor(Canvas canvas, double cs) {
     final wallPaint = Paint()..color = mode.wallColor;
-    final wallHighlight = Paint()..color = mode.wallColor.withOpacity(0.7);
+    final wallHighlight = Paint()..color = mode.wallColor.withValues(alpha: 0.7);
     final floorPaint = Paint()..color = mode.floorColor;
 
     for (int y = 0; y < gridHeight; y++) {
@@ -813,7 +813,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         canvas.drawPath(path, paint);
       } else {
         // Inactive: dim indicator
-        final paint = Paint()..color = mode.trapColor.withOpacity(0.25);
+        final paint = Paint()..color = mode.trapColor.withValues(alpha: 0.25);
         canvas.drawCircle(center, cs * 0.15, paint);
       }
     }
@@ -828,7 +828,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         case _CollectibleType.coin:
           // Yellow circle with glow
           final glowPaint = Paint()
-            ..color = mode.coinColor.withOpacity(0.3);
+            ..color = mode.coinColor.withValues(alpha: 0.3);
           canvas.drawCircle(center, cs * 0.35, glowPaint);
           final paint = Paint()..color = mode.coinColor;
           canvas.drawCircle(center, cs * 0.22, paint);
@@ -836,7 +836,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         case _CollectibleType.potion:
           // Red circle (health)
           final glowPaint = Paint()
-            ..color = mode.potionColor.withOpacity(0.3);
+            ..color = mode.potionColor.withValues(alpha: 0.3);
           canvas.drawCircle(center, cs * 0.35, glowPaint);
           final paint = Paint()..color = mode.potionColor;
           canvas.drawCircle(center, cs * 0.22, paint);
@@ -859,7 +859,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         case _CollectibleType.sword:
           // Diamond shape (blue)
           final glowPaint = Paint()
-            ..color = mode.weaponColor.withOpacity(0.3);
+            ..color = mode.weaponColor.withValues(alpha: 0.3);
           canvas.drawCircle(center, cs * 0.35, glowPaint);
           final paint = Paint()..color = mode.weaponColor;
           final halfSize = cs * 0.25;
@@ -873,7 +873,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
         case _CollectibleType.bow:
           // Upward triangle (purple)
-          final glowPaint = Paint()..color = mode.bowColor.withOpacity(0.3);
+          final glowPaint = Paint()..color = mode.bowColor.withValues(alpha: 0.3);
           canvas.drawCircle(center, cs * 0.35, glowPaint);
           final paint = Paint()..color = mode.bowColor;
           final halfSize = cs * 0.25;
@@ -886,7 +886,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
         case _CollectibleType.hammer:
           // T-shape (steel grey)
-          final glowPaint = Paint()..color = mode.hammerColor.withOpacity(0.3);
+          final glowPaint = Paint()..color = mode.hammerColor.withValues(alpha: 0.3);
           canvas.drawCircle(center, cs * 0.35, glowPaint);
           final paint = Paint()..color = mode.hammerColor;
           canvas.drawRect(
@@ -906,7 +906,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
         case _CollectibleType.shield:
           // Ringed circle (silver)
-          final glowPaint = Paint()..color = mode.shieldColor.withOpacity(0.3);
+          final glowPaint = Paint()..color = mode.shieldColor.withValues(alpha: 0.3);
           canvas.drawCircle(center, cs * 0.35, glowPaint);
           final paint = Paint()..color = mode.shieldColor;
           canvas.drawCircle(center, cs * 0.2, paint);
@@ -925,7 +925,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
     if (_exitOpen) {
       // Glowing green cell
-      final glowPaint = Paint()..color = mode.exitColor.withOpacity(0.4);
+      final glowPaint = Paint()..color = mode.exitColor.withValues(alpha: 0.4);
       canvas.drawCircle(center, cs * 0.6, glowPaint);
       final paint = Paint()..color = mode.exitColor;
       canvas.drawRect(
@@ -1002,7 +1002,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       );
 
       // Eye glow
-      final eyeGlow = Paint()..color = mode.monsterEyeColor.withOpacity(0.3);
+      final eyeGlow = Paint()..color = mode.monsterEyeColor.withValues(alpha: 0.3);
       canvas.drawCircle(
         Offset(sp.x + cs * 0.35, sp.y + cs * 0.35),
         cs * 0.12,
@@ -1087,7 +1087,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     // Sword indicator on snake — bump-kills are currently free
     if (swordHits > 0) {
       final buffPaint = Paint()
-        ..color = mode.weaponColor.withOpacity(0.4)
+        ..color = mode.weaponColor.withValues(alpha: 0.4)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawCircle(
@@ -1109,7 +1109,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'ROOM $_roomNumber',
         style: TextStyle(
-          color: mode.exitColor.withOpacity(0.8),
+          color: mode.exitColor.withValues(alpha: 0.8),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -1123,7 +1123,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       text: TextSpan(
         text: 'HP ${snakeSegments.length}',
         style: TextStyle(
-          color: mode.potionColor.withOpacity(0.9),
+          color: mode.potionColor.withValues(alpha: 0.9),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -1140,7 +1140,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       parts.add(TextSpan(
         text: '${parts.isEmpty ? '' : '  '}$label $count',
         style: TextStyle(
-          color: color.withOpacity(0.9),
+          color: color.withValues(alpha: 0.9),
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -1169,7 +1169,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
     final iconSize = cs * 0.7;
     final textStyle = TextStyle(
-      color: Colors.white.withOpacity(0.7),
+      color: Colors.white.withValues(alpha: 0.7),
       fontSize: 10,
     );
     final items = <(Color, String, _LegendShape)>[

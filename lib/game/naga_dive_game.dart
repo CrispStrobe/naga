@@ -276,7 +276,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     // Light rays from surface
     final rayPaint = Paint()
-      ..color = const Color(0xFF80D8FF).withOpacity(0.04);
+      ..color = const Color(0xFF80D8FF).withValues(alpha: 0.04);
     for (int i = 0; i < 5; i++) {
       final rx = (i * size.x / 4) + sin(_scrollOffset * 0.003 + i) * 30;
       final path = Path()
@@ -289,7 +289,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
 
     // Sandy bottom
-    final sandPaint = Paint()..color = const Color(0xFF3E2723).withOpacity(0.3);
+    final sandPaint = Paint()..color = const Color(0xFF3E2723).withValues(alpha: 0.3);
     canvas.drawRect(Rect.fromLTWH(0, size.y - 15, size.x, 15), sandPaint);
 
     // Seaweed tufts at bottom — taller, more organic
@@ -297,7 +297,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
       final sway = sin(x * 0.15 + _scrollOffset * 0.008) * 12;
       final h = 25 + sin(x * 0.4) * 20 + cos(x * 0.7) * 10;
       final brightness = 0.3 + sin(x * 0.5) * 0.15;
-      final seaweedPaint = Paint()..color = mode.seaweedColor.withOpacity(brightness);
+      final seaweedPaint = Paint()..color = mode.seaweedColor.withValues(alpha: brightness);
 
       // Each tuft is 2-3 curved blades
       for (final dx in [-3.0, 0.0, 3.0]) {
@@ -319,7 +319,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
 
     // Distant background particles (plankton)
-    final planktonPaint = Paint()..color = Colors.white.withOpacity(0.06);
+    final planktonPaint = Paint()..color = Colors.white.withValues(alpha: 0.06);
     for (int i = 0; i < 15; i++) {
       final px = (i * 73.0 + _scrollOffset * 0.15) % size.x;
       final py = (i * 47.0 + sin(i + _scrollOffset * 0.01) * 20) % size.y;
@@ -331,18 +331,18 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
     for (final b in _bubbles) {
       // Outer ring
       final ringPaint = Paint()
-        ..color = mode.bubbleColor.withOpacity(0.25)
+        ..color = mode.bubbleColor.withValues(alpha: 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.8;
       canvas.drawCircle(Offset(b.x, b.y), b.radius, ringPaint);
 
       // Fill with subtle gradient effect
-      final fillPaint = Paint()..color = mode.bubbleColor.withOpacity(0.06);
+      final fillPaint = Paint()..color = mode.bubbleColor.withValues(alpha: 0.06);
       canvas.drawCircle(Offset(b.x, b.y), b.radius, fillPaint);
 
       // Specular highlight
       if (b.radius > 2.5) {
-        final hlPaint = Paint()..color = Colors.white.withOpacity(0.2);
+        final hlPaint = Paint()..color = Colors.white.withValues(alpha: 0.2);
         canvas.drawCircle(
           Offset(b.x - b.radius * 0.25, b.y - b.radius * 0.3),
           b.radius * 0.3,
@@ -559,7 +559,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
       // Glow
       final glowPaint = Paint()
-        ..color = mode.fishColor.withOpacity(0.15)
+        ..color = mode.fishColor.withValues(alpha: 0.15)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
       canvas.drawCircle(Offset(fish.x, fish.y), 12, glowPaint);
 
@@ -575,7 +575,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
       canvas.drawPath(bodyPath, bodyPaint);
 
       // Tail fin
-      final tailPaint = Paint()..color = mode.fishColor.withOpacity(0.8);
+      final tailPaint = Paint()..color = mode.fishColor.withValues(alpha: 0.8);
       final tailPath = Path()
         ..moveTo(fish.x - 7, fish.y)
         ..lineTo(fish.x - 14 + tailWag, fish.y - 5)
@@ -591,7 +591,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
       // Belly stripe
       final stripePaint = Paint()
-        ..color = Colors.white.withOpacity(0.3)
+        ..color = Colors.white.withValues(alpha: 0.3)
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
       canvas.drawLine(Offset(fish.x + 6, fish.y + 1), Offset(fish.x - 4, fish.y + 2), stripePaint);
@@ -614,19 +614,19 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
       final drawX = pos.dx - i * 3.5;
 
       final bodyPaint = Paint()
-        ..color = mode.snakeColor.withOpacity(0.3 + 0.5 * t);
+        ..color = mode.snakeColor.withValues(alpha: 0.3 + 0.5 * t);
       canvas.drawCircle(Offset(drawX, pos.dy), radius, bodyPaint);
 
       // Lighter belly
       final bellyPaint = Paint()
-        ..color = Colors.white.withOpacity(0.1 * t);
+        ..color = Colors.white.withValues(alpha: 0.1 * t);
       canvas.drawCircle(Offset(drawX, pos.dy + radius * 0.3), radius * 0.5, bellyPaint);
     }
 
     // Head
     final headPaint = Paint()..color = mode.snakeColor;
     final headGlow = Paint()
-      ..color = mode.snakeColor.withOpacity(0.3)
+      ..color = mode.snakeColor.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
     canvas.drawCircle(Offset(_snakeX, snakeY), _headRadius + 4, headGlow);
@@ -668,7 +668,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
       text: TextSpan(
         text: '$score',
         style: TextStyle(
-          color: Colors.white.withOpacity(0.8),
+          color: Colors.white.withValues(alpha: 0.8),
           fontSize: 48,
           fontWeight: FontWeight.bold,
         ),
@@ -686,7 +686,7 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
       text: TextSpan(
         text: 'TAP or SPACE to swim',
         style: TextStyle(
-          color: mode.snakeColor.withOpacity(0.7),
+          color: mode.snakeColor.withValues(alpha: 0.7),
           fontSize: 18,
           fontWeight: FontWeight.bold,
         ),

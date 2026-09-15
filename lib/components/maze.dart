@@ -400,7 +400,7 @@ class Maze extends Component {
     canvas.drawRRect(rrect, paint);
 
     final borderPaint = Paint()
-      ..color = wallColor.withOpacity(0.5)
+      ..color = wallColor.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
     canvas.drawRRect(rrect, borderPaint);

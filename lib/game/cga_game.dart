@@ -285,7 +285,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
       );
       // Outer thick border on each cell
       final outerBorderPaint = Paint()
-        ..color = _cyan.withOpacity(0.5)
+        ..color = _cyan.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawRect(
@@ -329,7 +329,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
 
     // ─── CRT scanline effect ───────────────────────────────────────
     final scanlinePaint = Paint()
-      ..color = _black.withOpacity(0.15);
+      ..color = _black.withValues(alpha: 0.15);
     final screenRect = Rect.fromLTWH(
       boardOffset.x - 2,
       boardOffset.y - 2,
