@@ -29,7 +29,7 @@ class RushGame extends FlameGame with KeyboardEvents {
   double _tickTimer = 0;
 
   // Scrolling obstacles
-  List<_Obstacle> obstacles = [];
+  final List<_Obstacle> _obstacles = [];
   List<Point<int>> food = [];
   double _scrollTimer = 0;
   double _scrollInterval = 2.0; // how often new row spawns
@@ -75,7 +75,7 @@ class RushGame extends FlameGame with KeyboardEvents {
     gameState = GameState.playing;
     currentDirection = Direction.up;
     _directionQueue.clear();
-    obstacles.clear();
+    _obstacles.clear();
     food.clear();
 
     // Snake starts at bottom center, moving up
@@ -108,7 +108,7 @@ class RushGame extends FlameGame with KeyboardEvents {
       }
       // Only place obstacle with low probability (20%) to keep it playable
       if (_random.nextDouble() < 0.2) {
-        obstacles.add(_Obstacle(position: Point(x, y)));
+        _obstacles.add(_Obstacle(position: Point(x, y)));
       }
     }
   }
@@ -159,7 +159,7 @@ class RushGame extends FlameGame with KeyboardEvents {
     newHead = Point((newHead.x + gridWidth) % gridWidth, newHead.y);
 
     // Obstacle collision
-    if (obstacles.any((o) => o.position.x == newHead.x && o.position.y == newHead.y)) {
+    if (_obstacles.any((o) => o.position.x == newHead.x && o.position.y == newHead.y)) {
       _die();
       return;
     }
@@ -199,7 +199,7 @@ class RushGame extends FlameGame with KeyboardEvents {
     _scrollInterval = max(0.5, 2.0 - _distanceTraveled * 0.002);
 
     // Move everything down by 1
-    for (final obs in obstacles) {
+    for (final obs in _obstacles) {
       obs.position = Point(obs.position.x, obs.position.y + 1);
     }
     for (int i = 0; i < food.length; i++) {
@@ -207,7 +207,7 @@ class RushGame extends FlameGame with KeyboardEvents {
     }
 
     // Remove off-screen
-    obstacles.removeWhere((o) => o.position.y >= gridHeight);
+    _obstacles.removeWhere((o) => o.position.y >= gridHeight);
     food.removeWhere((f) => f.y >= gridHeight);
 
     // Spawn new row at top
@@ -215,7 +215,7 @@ class RushGame extends FlameGame with KeyboardEvents {
 
     // Check if obstacles landed on snake
     final head = snakeSegments.first;
-    if (obstacles.any((o) => o.position.x == head.x && o.position.y == head.y)) {
+    if (_obstacles.any((o) => o.position.x == head.x && o.position.y == head.y)) {
       _die();
       return;
     }
@@ -394,7 +394,7 @@ class RushGame extends FlameGame with KeyboardEvents {
 
     // Obstacles
     final obsPaint = Paint()..color = mode.obstacleColor;
-    for (final obs in obstacles) {
+    for (final obs in _obstacles) {
       final sp = _gridToScreen(obs.position);
       canvas.drawRRect(
         RRect.fromRectAndRadius(

@@ -29,7 +29,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
   double _tickTimer = 0;
 
   // Enemies — rows of bugs marching down
-  List<_Enemy> enemies = [];
+  final List<_Enemy> _enemies = [];
   double _enemyTickTimer = 0;
   double _enemyTickInterval = 0.6;
   int _enemyDirection = 1; // 1 = right, -1 = left
@@ -98,7 +98,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
   }
 
   void _spawnWave() {
-    enemies.clear();
+    _enemies.clear();
     powerUps.clear();
     _enemyDirection = 1;
     _enemyTickInterval = max(0.2, 0.6 - _wave * 0.05);
@@ -110,7 +110,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
     for (int row = 0; row < rows; row++) {
       for (int col = 0; col < cols; col++) {
-        enemies.add(_Enemy(
+        _enemies.add(_Enemy(
           position: Point(startX + col, 2 + row * 2),
           color: _enemyColorForRow(row),
           points: (rows - row) * 10, // top rows worth more
@@ -187,7 +187,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
     // Collision with enemies — horizontal approach = eat, vertical = death
     // (enemies have spikes on top/bottom)
-    final hitEnemy = enemies.where(
+    final hitEnemy = _enemies.where(
       (e) => e.position.x == newHead.x && e.position.y == newHead.y,
     ).toList();
 
@@ -197,7 +197,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
           currentDirection == Direction.right;
       if (isHorizontal || _isInGrace) {
         // Eat from the side (or during grace period)
-        enemies.remove(enemy);
+        _enemies.remove(enemy);
         score += enemy.points;
         ate = true;
         onScoreChanged(score);
@@ -231,7 +231,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     }
 
     // All enemies killed — next wave
-    if (enemies.isEmpty) {
+    if (_enemies.isEmpty) {
       _wave++;
       _resetSnakeToBottom();
       _spawnWave();
@@ -239,11 +239,11 @@ class SwarmGame extends FlameGame with KeyboardEvents {
   }
 
   void _tickEnemies() {
-    if (enemies.isEmpty) return;
+    if (_enemies.isEmpty) return;
 
     // Check if any enemy is at the edge
     bool hitEdge = false;
-    for (final enemy in enemies) {
+    for (final enemy in _enemies) {
       if (_enemyDirection > 0 && enemy.position.x >= gridWidth - 1) {
         hitEdge = true;
         break;
@@ -256,13 +256,13 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
     if (hitEdge) {
       // Move down one row and reverse direction
-      for (final enemy in enemies) {
+      for (final enemy in _enemies) {
         enemy.position = Point(enemy.position.x, enemy.position.y + 1);
       }
       _enemyDirection *= -1;
 
       // Check if any enemy reached snake row — game over
-      for (final enemy in enemies) {
+      for (final enemy in _enemies) {
         if (enemy.position.y >= gridHeight - 2) {
           _die();
           return;
@@ -271,7 +271,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
       // Enemies stepped down onto snake — deadly (spikes from above)
       if (!_isInGrace) {
-        for (final enemy in enemies) {
+        for (final enemy in _enemies) {
           if (snakeSegments.any((s) => s.x == enemy.position.x && s.y == enemy.position.y)) {
             _die();
             return;
@@ -280,7 +280,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
       }
     } else {
       // Move sideways
-      for (final enemy in enemies) {
+      for (final enemy in _enemies) {
         enemy.position = Point(
           enemy.position.x + _enemyDirection,
           enemy.position.y,
@@ -289,11 +289,11 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
       // Sideways movement onto snake head = eaten (snake eats from sides)
       final head = snakeSegments.first;
-      final eatenByHead = enemies.where(
+      final eatenByHead = _enemies.where(
         (e) => e.position.x == head.x && e.position.y == head.y,
       ).toList();
       for (final enemy in eatenByHead) {
-        enemies.remove(enemy);
+        _enemies.remove(enemy);
         score += enemy.points;
         onScoreChanged(score);
       }
@@ -304,11 +304,11 @@ class SwarmGame extends FlameGame with KeyboardEvents {
     // During grace period, eat any enemy on head
     if (_isInGrace) {
       final head = snakeSegments.first;
-      final eatenByHead = enemies.where(
+      final eatenByHead = _enemies.where(
         (e) => e.position.x == head.x && e.position.y == head.y,
       ).toList();
       for (final enemy in eatenByHead) {
-        enemies.remove(enemy);
+        _enemies.remove(enemy);
         score += enemy.points;
         onScoreChanged(score);
       }
@@ -488,7 +488,7 @@ class SwarmGame extends FlameGame with KeyboardEvents {
 
     // Draw enemies — with spikes top/bottom to show vertical danger
     final spikePaint = Paint()..color = Colors.white.withOpacity(0.9);
-    for (final enemy in enemies) {
+    for (final enemy in _enemies) {
       final sp = _gridToScreen(enemy.position);
       final paint = Paint()..color = enemy.color;
       final cx = sp.x + cs * 0.5;

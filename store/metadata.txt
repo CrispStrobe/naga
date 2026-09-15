@@ -1,5 +1,6 @@
 App Name: Naga
-Subtitle: The Snake Game
+Subtitle (en): 19 modes, one snake game
+Subtitle (de): 19 Spielmodi, ein Snake
 Bundle ID (iOS): com.crispstrobe.naga
 Application ID (Android): com.naga.naga
 Game Modes: 19

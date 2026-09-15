@@ -1,0 +1,46 @@
+Dear App Review team,
+
+Thank you for the review. We respectfully contest the 4.3(a) determination. Naga is not a repackaged template, a reskin, or a resubmitted binary. It is an original, independently written application, and its complete source code is public and timestamped, so every claim below can be verified.
+
+VERIFIABLE ORIGINAL AUTHORSHIP
+
+The entire app is open source at https://github.com/CrispStrobe/naga
+
+The repository holds the full development history — the app was written from scratch, commit by commit, the earliest dated 2026-07-05. No third-party app template, code-generation service, or purchased codebase was used at any point. The dependency list (visible in pubspec.yaml) is nine standard, widely used Flutter/Dart packages. There is no template runtime, no white-label SDK, and no ad or attribution SDK of any kind.
+
+This addresses each of the four factors in the rejection notice checkably:
+
+- Same source code or assets as other apps: the source is public; a diff against any app you believe it resembles will show no shared code.
+- Repackaged app template: there is none — the git history shows the app being built from an empty repository.
+- Purchased template from a third party: nothing was purchased; every line is our own work and is publicly licensed as such.
+- Similar apps across multiple accounts: we operate exactly one Apple Developer account and have never submitted this app, or any part of it, under another.
+
+SCOPE AND ORIGINALITY
+
+Naga is roughly 18,300 lines of Dart, about 11,000 of it per-mode gameplay logic. Its 19 modes are genuinely different games rather than palette swaps of one loop — each is a separate game class with its own rules, state model, and even its own notion of time:
+
+- Dungeon is a turn-based roguelike with procedurally generated rooms, monsters that act only after the player moves, traps, descending floors, and an inventory of swords, arrows, wall-breaking hammers and shields. It advances one step per keypress and has no real-time tick at all.
+- Naga Dive is a continuous-physics side-scroller with gravity, flap impulse and terminal velocity.
+- Fangs is a Breakout variant with ball physics and destructible blocks.
+- Venom is a Bomberman-style mode with fused bombs, radial blast propagation and a five-level campaign.
+- VS AI offers four difficulty tiers backed by a real AI implementation: breadth-first pathfinding with tail-reachability verification and flood-fill space evaluation, falling back to longest-path tail-following when no safe route to food exists.
+- Stampede is a five-lane racer, Trail a Tron light-cycle mode, Maze Hunter a pursuit mode with pathfinding ghosts, and Snake II, ASCII, CGA and Nibbles distinct recreations of different historical styles.
+
+The app also has a configurable rules system, five power-up types, achievements, local high scores, per-mode music, and English and German localisation.
+
+NO SPAM INCENTIVE
+
+Naga is free, with no advertising, in-app purchases, subscriptions, accounts, analytics, tracking or data collection. It needs no network access and works fully offline. No monetisation path exists that submitting duplicative apps could serve.
+
+ON THE OTHER SUBMISSIONS
+
+We submitted several apps within a short window, and suspect that timing, not the content of any individual app, surfaced this review. Those apps are separate products serving different purposes, built independently, sharing no code or assets.
+
+REQUEST
+
+We respectfully ask that you reconsider the 4.3(a) rejection. We would also appreciate clarification on the "Extended Review" paragraph, which cites "significant safety, security, or quality concerns" — 4.3(a) is the only issue named in the review. If a separate concern was found we would like to fix it, but the app requests no permissions, makes no network requests, and collects no user data.
+
+Thank you for your time.
+
+Kind regards,
+Christian Ströbele

@@ -29,7 +29,7 @@ class PitGame extends FlameGame with KeyboardEvents {
   double _tickTimer = 0;
 
   // AI snakes
-  List<_AISnake> aiSnakes = [];
+  final List<_AISnake> _aiSnakes = [];
 
   // Danger zone — number of cells shrunk from each edge
   int _dangerInset = 0;
@@ -94,7 +94,7 @@ class PitGame extends FlameGame with KeyboardEvents {
     ];
 
     // Spawn AI snakes in corners / edges
-    aiSnakes = [];
+    _aiSnakes.clear();
     final spawnPoints = [
       (Point(3, 3), Direction.right),
       (Point(gridWidth - 4, 3), Direction.left),
@@ -106,7 +106,7 @@ class PitGame extends FlameGame with KeyboardEvents {
       final (pos, dir) = spawnPoints[i];
       final dx = dir == Direction.left ? 1 : (dir == Direction.right ? -1 : 0);
       final dy = dir == Direction.up ? 1 : (dir == Direction.down ? -1 : 0);
-      aiSnakes.add(_AISnake(
+      _aiSnakes.add(_AISnake(
         segments: [
           pos,
           Point(pos.x + dx, pos.y + dy),
@@ -133,7 +133,7 @@ class PitGame extends FlameGame with KeyboardEvents {
 
   bool _isOccupied(Point<int> p) {
     if (snakeSegments.any((s) => s.x == p.x && s.y == p.y)) return true;
-    for (final ai in aiSnakes) {
+    for (final ai in _aiSnakes) {
       if (ai.segments.any((s) => s.x == p.x && s.y == p.y)) return true;
     }
     if (food.any((f) => f.x == p.x && f.y == p.y)) return true;
@@ -202,13 +202,13 @@ class PitGame extends FlameGame with KeyboardEvents {
 
     // Check AI snakes
     final deadAI = <_AISnake>[];
-    for (final ai in aiSnakes) {
+    for (final ai in _aiSnakes) {
       if (ai.segments.isNotEmpty && !_isInSafeZone(ai.segments.first)) {
         deadAI.add(ai);
       }
     }
     for (final ai in deadAI) {
-      aiSnakes.remove(ai);
+      _aiSnakes.remove(ai);
       score += 50;
       onScoreChanged(score);
     }
@@ -238,7 +238,7 @@ class PitGame extends FlameGame with KeyboardEvents {
     }
 
     // AI snake body collision
-    for (final ai in aiSnakes) {
+    for (final ai in _aiSnakes) {
       if (ai.segments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
         _die();
         return;
@@ -268,7 +268,7 @@ class PitGame extends FlameGame with KeyboardEvents {
 
     final deadAI = <_AISnake>[];
 
-    for (final ai in aiSnakes) {
+    for (final ai in _aiSnakes) {
       // Decide direction
       ai.direction = _aiChooseDirection(ai);
 
@@ -295,7 +295,7 @@ class PitGame extends FlameGame with KeyboardEvents {
 
       // Collision with other AI snakes
       bool hitOther = false;
-      for (final other in aiSnakes) {
+      for (final other in _aiSnakes) {
         if (other == ai) continue;
         if (other.segments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
           hitOther = true;
@@ -324,7 +324,7 @@ class PitGame extends FlameGame with KeyboardEvents {
     }
 
     for (final ai in deadAI) {
-      aiSnakes.remove(ai);
+      _aiSnakes.remove(ai);
       score += 50;
       onScoreChanged(score);
     }
@@ -392,7 +392,7 @@ class PitGame extends FlameGame with KeyboardEvents {
       if (snakeSegments.any((s) => s.x == next.x && s.y == next.y)) continue;
 
       bool hitsOtherAI = false;
-      for (final other in aiSnakes) {
+      for (final other in _aiSnakes) {
         if (other == ai) continue;
         if (other.segments.any((s) => s.x == next.x && s.y == next.y)) {
           hitsOtherAI = true;
@@ -429,7 +429,7 @@ class PitGame extends FlameGame with KeyboardEvents {
 
   void _checkWinCondition() {
     if (gameState != GameState.playing) return;
-    if (aiSnakes.isEmpty) {
+    if (_aiSnakes.isEmpty) {
       // Player wins — big bonus
       score += 500;
       onScoreChanged(score);
@@ -706,7 +706,7 @@ class PitGame extends FlameGame with KeyboardEvents {
     }
 
     // Draw AI snakes
-    for (final ai in aiSnakes) {
+    for (final ai in _aiSnakes) {
       final aiPaint = Paint()..color = ai.color;
       final aiHeadPaint = Paint()..color = ai.color.withOpacity(0.8);
       for (int i = 0; i < ai.segments.length; i++) {
@@ -751,7 +751,7 @@ class PitGame extends FlameGame with KeyboardEvents {
     }
 
     // HUD — alive count
-    final aliveCount = aiSnakes.length + 1;
+    final aliveCount = _aiSnakes.length + 1;
     final tp = TextPainter(
       text: TextSpan(
         text: 'ALIVE: $aliveCount',

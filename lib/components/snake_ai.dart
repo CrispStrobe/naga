@@ -99,9 +99,13 @@ class SnakeAI {
   Set<Point<int>> _allOccupied(
       List<Point<int>> self, List<List<Point<int>>> others) {
     final set = <Point<int>>{};
-    for (final s in self) set.add(s);
+    for (final s in self) {
+      set.add(s);
+    }
     for (final snake in others) {
-      for (final s in snake) set.add(s);
+      for (final s in snake) {
+        set.add(s);
+      }
     }
     return set;
   }

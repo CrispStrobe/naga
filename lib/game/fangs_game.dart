@@ -34,7 +34,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
   double _ballTickTimer = 0;
 
   // Blocks
-  List<_Block> blocks = [];
+  final List<_Block> _blocks = [];
   int _level = 1;
   int _lives = 3;
 
@@ -96,12 +96,12 @@ class FangsGame extends FlameGame with KeyboardEvents {
   }
 
   void _spawnBlocks() {
-    blocks.clear();
+    _blocks.clear();
     final rows = min(2 + _level, 7); // rows 2..8 max
     for (int row = 0; row < rows; row++) {
       final color = _blockColorForRow(row);
       for (int col = 1; col < gridWidth - 1; col++) {
-        blocks.add(_Block(
+        _blocks.add(_Block(
           position: Point(col, 2 + row),
           color: color,
         ));
@@ -240,23 +240,23 @@ class FangsGame extends FlameGame with KeyboardEvents {
 
     // Check block collision at next position
     final nextPos = Point(_ballPos.x + _ballDx, _ballPos.y + _ballDy);
-    final hitBlock = blocks.where(
+    final hitBlock = _blocks.where(
       (b) => b.position.x == nextPos.x && b.position.y == nextPos.y,
     ).toList();
 
     if (hitBlock.isNotEmpty) {
-      final int blocksBeforeCount = blocks.length;
+      final int blocksBeforeCount = _blocks.length;
       for (final block in hitBlock) {
-        blocks.remove(block);
+        _blocks.remove(block);
         score += 5;
         onScoreChanged(score);
       }
 
       // Determine reflection axis
-      final sameRowBlock = blocks.any(
+      final sameRowBlock = _blocks.any(
         (b) => b.position.x == _ballPos.x + _ballDx && b.position.y == _ballPos.y,
       );
-      final sameColBlock = blocks.any(
+      final sameColBlock = _blocks.any(
         (b) => b.position.x == _ballPos.x && b.position.y == _ballPos.y + _ballDy,
       );
 
@@ -270,12 +270,12 @@ class FangsGame extends FlameGame with KeyboardEvents {
 
       // Check if an entire row was cleared — grow the snake
       // A row is cleared when blocks were removed and fewer remain
-      if (blocks.length < blocksBeforeCount) {
+      if (_blocks.length < blocksBeforeCount) {
         // Check each row that had blocks removed — if the row is now empty, grow
         final clearedRows = <int>{};
         for (final block in hitBlock) {
           final rowY = block.position.y;
-          final remaining = blocks.where((b) => b.position.y == rowY).length;
+          final remaining = _blocks.where((b) => b.position.y == rowY).length;
           if (remaining == 0) {
             clearedRows.add(rowY);
           }
@@ -286,7 +286,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
       }
 
       // All blocks cleared — next level
-      if (blocks.isEmpty) {
+      if (_blocks.isEmpty) {
         _level++;
         score += 50; // level clear bonus
         onScoreChanged(score);
@@ -413,7 +413,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
     );
 
     // Draw blocks
-    for (final block in blocks) {
+    for (final block in _blocks) {
       final sp = _gridToScreen(block.position);
       final paint = Paint()..color = block.color;
       final blockRect = Rect.fromLTWH(
