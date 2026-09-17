@@ -1,4 +1,4 @@
-// Usage: node modes.cjs PORT OUTPUT_DIR [MODE_LIMIT]
+// Usage: node web_modes.cjs PORT OUTPUT_DIR [MODE_LIMIT]
 // Launch smoke test: real accessibility semantics, not canvas/PNG existence.
 const {chromium} = require('playwright');
 const fs = require('fs');
@@ -12,7 +12,7 @@ const width = Number(process.env.QA_WIDTH || 1280);
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-');
 fs.mkdirSync(outdir,{recursive:true});
 (async()=>{
- const browser=await chromium.launch({channel:'chrome',headless:true});
+ const browser=await chromium.launch({headless:true,...(process.env.QA_BROWSER_CHANNEL?{channel:process.env.QA_BROWSER_CHANNEL}:{})});
  const page=await browser.newPage({viewport:{width,height:800}});
  const errors=[];
  page.on('pageerror',e=>errors.push(`page: ${e}`));

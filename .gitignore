@@ -50,3 +50,6 @@ app.*.map.json
 # App Store Connect API key (never commit)
 .appstoreconnect/
 *.p8
+
+# Browser QA dependencies
+scripts/qa/node_modules/
