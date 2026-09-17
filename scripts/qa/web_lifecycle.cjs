@@ -1,6 +1,7 @@
 // Real WASM UI checks. No app-state injection or screenshot-difference oracles.
 // Usage: node web_lifecycle.cjs PORT OUTPUT_DIR
 const {chromium} = require('playwright');
+const {stableTarget} = require('./stable_target.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -13,18 +14,10 @@ const test = (name, run) => scenarios.push({name, run});
 const button = (page, name) => page.getByRole('button', {name, exact: true});
 const groupText = (page, prefix) =>
   page.getByRole('group', {name: new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))});
-// Flutter web headless ignores Playwright touchscreen taps; use raw CDP touch
-// on the accessibility node's live bounding box.
-async function touchAt(page, x, y) {
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x, y}]});
-  await page.waitForTimeout(80);
-  await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
-  await cdp.detach();
-}
+// Playwright locator.tap() delivers trusted pointer+touch+click input that
+// Flutter web receives headless; raw CDP Input.dispatchTouchEvent does not.
 async function touchButton(page, name) {
-  const box = await button(page, name).evaluate(e => { const r = e.getBoundingClientRect(); return {x: r.x + r.width / 2, y: r.y + r.height / 2}; });
-  await touchAt(page, Math.round(box.x), Math.round(box.y));
+  await button(page, name).tap();
 }
 async function boot(page) {
   await page.goto(`http://127.0.0.1:${port}/`);
@@ -123,24 +116,24 @@ for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wi
 
 test('touch-tap-pause-and-swipe-duel', async page => {
   await mode(page, 17);
-  // Semantics appears before the route slide finishes; wait for stable bounds.
-  await page.waitForTimeout(400);
-  const box = await page.getByRole('button').nth(2).boundingBox();
-  assert.ok(box && box.x + box.width <= width);
-  await touchAt(page, box.x + box.width / 2, box.y + box.height / 2);
+  // Semantics can appear before the route slide finishes; wait for stable
+  // bounds (rAF-based) so the tap targets the pause button at its final point.
+  const pauseButton = page.getByRole('button').nth(2);
+  await stableTarget(pauseButton);
+  await pauseButton.tap();
   await button(page, 'PAUSED Tap to resume').waitFor();
   await page.waitForTimeout(1200); // Longer than the unattended head-on death.
   assert.equal(await button(page, 'PLAY AGAIN').count(), 0);
   await touchButton(page, 'PAUSED Tap to resume');
   await button(page, 'PAUSED Tap to resume').waitFor({state: 'hidden'});
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x: width / 2, y: 400}]});
-  for (const y of [380, 350, 320, 290]) {
-    await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x: width / 2, y}]});
+  // A swipe is a drag, not a tap: Playwright touch drag on the board.
+  await page.mouse.move(width / 2, 400);
+  await page.mouse.down();
+  for (const y of [390, 380, 370, 350, 330, 310, 290]) {
+    await page.mouse.move(width / 2, y);
+    await page.waitForTimeout(16);
   }
-  await page.waitForTimeout(80);
-  await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
-  await cdp.detach();
+  await page.mouse.up();
   const winner = 'Player 1 Wins!'; // Player 2 diverted upward hits the top wall first.
   await over(page, winner);
   await menu(page, true);

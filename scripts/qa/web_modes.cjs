@@ -1,6 +1,7 @@
 // Usage: node web_modes.cjs PORT OUTPUT_DIR [MODE_LIMIT]
 // Launch smoke test: real accessibility semantics, not canvas/PNG existence.
 const {chromium} = require('playwright');
+const {stableTarget} = require('./stable_target.cjs');
 const fs = require('fs');
 const port = process.argv[2] || '8765';
 const outdir = process.argv[3] || '/tmp/naga-qa/modes';
@@ -37,7 +38,7 @@ fs.mkdirSync(outdir,{recursive:true});
     fs.writeFileSync(`${outdir}/${slug(name)}-menu.txt`,focused);
     await page.keyboard.press('Enter');
     await page.waitForFunction(()=>/^SCORE:\s*\d+/m.test(document.body.innerText),{},{timeout:10000});
-    await page.waitForTimeout(350);
+    await stableTarget(page.getByRole('button').nth(2));
     entry.launchedText=await page.locator('body').innerText();
     if(entry.launchedText.includes('THE SNAKE GAME'))throw Error('Still on home screen');
     await page.screenshot({path:`${outdir}/${slug(name)}-screen.png`});

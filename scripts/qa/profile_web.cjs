@@ -3,6 +3,7 @@
 // See docs/verification/performance.md. No production instrumentation/state injection.
 'use strict';
 const assert = require('node:assert/strict');
+const {stableTarget} = require('./stable_target.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
@@ -149,7 +150,7 @@ async function main() {
         await page.keyboard.press('Enter');
         await page.waitForFunction(()=>/^SCORE:\s*\d+/m.test(document.body.innerText));
         // The first HUD semantics precede completion of the route transition.
-        await page.waitForTimeout(350);
+        await stableTarget(page.getByRole('button').nth(2));
         await page.mouse.click(1280-74,28);
         await page.getByRole('button',{name:'OK',exact:true}).waitFor();
         await page.getByText(mode.name,{exact:true}).waitFor();
