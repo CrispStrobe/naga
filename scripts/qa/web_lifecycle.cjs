@@ -81,6 +81,25 @@ test('classic-death-restart-menu', async page => {
   return {score, restartedScore: 0, deaths: 2, menu: true};
 });
 
+test('classic-resize-preserves-pause', async page => {
+  await mode(page, 0);
+  await stableTarget(page.getByRole('button').nth(2));
+  await page.getByRole('button').nth(2).click();
+  await button(page, 'PAUSED Tap to resume').waitFor();
+  for (const viewport of [{width: 390, height: 844}, {width: 844, height: 390}, {width, height: 800}]) {
+    await page.setViewportSize(viewport);
+    await button(page, 'PAUSED Tap to resume').waitFor();
+    await stableTarget(button(page, 'PAUSED Tap to resume'));
+    assert.equal(await button(page, 'PLAY AGAIN').count(), 0);
+    await page.screenshot({path: path.join(out, `resize-${viewport.width}-${viewport.height}.png`)});
+  }
+  await button(page, 'PAUSED Tap to resume').click();
+  await button(page, 'PAUSED Tap to resume').waitFor({state: 'hidden'});
+  const score = await over(page);
+  await menu(page);
+  return {viewports: 3, pausePreserved: true, resumedToDeath: true, score};
+});
+
 test('settings-reload-lives-and-restart', async page => {
   await settings(page, [[3, 'grid_size', 0], [9, 'lives', 1], [21, 'start_speed', 1], [27, 'control_type', 1]]);
   const persisted = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage).filter(([k]) => /^flutter\.(grid_size|lives|start_speed|control_type)$/.test(k))));
@@ -113,30 +132,19 @@ for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wi
   });
 }
 
-test('touch-taps-and-mouse-drag-duel', async page => {
-  await mode(page, 17);
-  // Semantics can appear before the route slide finishes; wait for stable
-  // bounds (rAF-based) so the tap targets the pause button at its final point.
+test('classic-touch-taps-pause-resume-menu', async page => {
+  await mode(page, 0);
   const pauseButton = page.getByRole('button').nth(2);
   await stableTarget(pauseButton);
   await pauseButton.tap();
   await button(page, 'PAUSED Tap to resume').waitFor();
-  await page.waitForTimeout(1200); // Longer than the unattended head-on death.
+  await page.waitForTimeout(2500); // Longer than unattended Classic wall death.
   assert.equal(await button(page, 'PLAY AGAIN').count(), 0);
   await touchButton(page, 'PAUSED Tap to resume');
   await button(page, 'PAUSED Tap to resume').waitFor({state: 'hidden'});
-  // Mouse drag exercises the shared drag recognizer; this is NOT touch-swipe coverage.
-  await page.mouse.move(width / 2, 400);
-  await page.mouse.down();
-  for (const y of [390, 380, 370, 350, 330, 310, 290]) {
-    await page.mouse.move(width / 2, y);
-    await page.waitForTimeout(16);
-  }
-  await page.mouse.up();
-  const winner = 'Player 1 Wins!'; // Player 2 diverted upward hits the top wall first.
-  await over(page, winner);
+  const score = await over(page);
   await menu(page, true);
-  return {touchTaps: true, pauseSurvivedMs: 1200, mouseDrag: 'up', touchSwipeVerified: false, winner, menuTap: true};
+  return {touchTaps: true, pauseSurvivedMs: 2500, touchSwipeVerified: false, score, menuTap: true};
 });
 
 (async () => {

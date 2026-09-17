@@ -23,7 +23,7 @@
 
 ## Final-build performance observation
 
-performance-final.json contains 12/12 passing samples (Classic/VS AI × unthrottled/4× CPU, three repetitions). Build hashes stayed unchanged and loaded WASM matched; no JS fallback. Each sample includes at least five seconds of guarded active RAF timestamps.
+performance-final.json.gz contains 12/12 passing samples (Classic/VS AI × unthrottled/4× CPU, three repetitions). Build hashes stayed unchanged and loaded WASM matched; no JS fallback. Each sample includes at least five seconds of guarded active RAF timestamps.
 
 App-ready times on local headless Chrome: 482–570 ms unthrottled; 805–1016 ms at 4× CPU slowdown. These include semantics activation and local-server loading, not production cold-start or exact first-pixel timing. RAF p95/p99 around 16.67 ms is scheduler cadence, not rendered FPS; one throttled VS AI sample had a 233 ms maximum gap. No before/after speedup claim is supported by these runs. Heap/network counters and limitations are documented in performance.md. Earlier failed/incomplete diagnostics remain explicitly separate from successful samples.
 

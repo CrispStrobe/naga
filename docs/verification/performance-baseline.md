@@ -32,7 +32,7 @@ Physical audio output latency: **unmeasured**; headless Chrome is muted and down
 
 ## Evidence and verification
 
-- Completed raw matrix: `performance-baseline-complete.json`, including exact script hash, runtime/GPU metadata, every raw RAF timestamp and transition, per-sample errors, and build hashes.
+- Completed raw matrix: `performance-baseline-complete.json.gz`, including exact script hash, runtime/GPU metadata, every raw RAF timestamp and transition, per-sample errors, and build hashes.
 - Served Dart WASM: 2,336,894 bytes; SHA-256 `091363de2367b7a46e595316448292eae1df25c278399f9a4cb6a42064dcc8fa`.
 - Independent Node assertions verified 12 unique samples, all 12 passed, unchanged build, exact mode identity and ≥5000 ms guarded live time each. Syntax and embedded percentile/boundary tests pass.
 - Failed/incomplete attempts remain separate and are not pooled: readiness pilot 0/4, immediate-info diagnostic 0/1, first matrix interrupted after six successes with a seventh target-crashed record during termination. Successful one-sample diagnostics are also separate. `performance.md` records the causes known and unresolved browser hang.

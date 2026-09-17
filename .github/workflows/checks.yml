@@ -16,7 +16,8 @@ concurrency:
 jobs:
   macos-raster:
     name: macos-raster
-    runs-on: macos-15
+    # Text baselines were captured on macOS 26, not macOS 15.
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

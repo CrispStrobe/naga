@@ -8,7 +8,7 @@ Serve an **immutable release-WASM build directory** with `scripts/qa/serve_web.p
 node --check scripts/qa/profile_web.cjs
 node scripts/qa/profile_web.cjs --self-test
 QA_BUILD_LABEL='describe exact immutable build here' \
-  node scripts/qa/profile_web.cjs 8766 docs/verification/performance-final.json 3 5000
+  node scripts/qa/profile_web.cjs 8766 /tmp/naga-qa/performance-new.json 3 5000
 ```
 
 Arguments: port (or full base URL), new output JSON path, repetitions per scenario, minimum **guarded active** milliseconds per repetition. Existing output files are refused, not overwritten. Default matrix: Classic / VS AI × unthrottled / CDP 4× CPU slowdown, three fresh browser contexts each. For a diagnostic single sample:
@@ -39,11 +39,11 @@ Physical audio onset/output latency is **UNMEASURED**. Downloading an audio asse
 
 ## Diagnostic history (not performance claims)
 
-- `performance-pilot.json`: **0/4 failed**. The original startup predicate incorrectly required `THE SNAKE GAME` in `body.innerText`; actual inspection showed that string only as an AX group label, while innerText contained the exact Classic menu button and Settings. Summaries are empty. The file is retained unchanged.
-- `performance-readiness-check.json`: **0/1 failed** after correcting readiness. Immediate info-button click preceded the route transition completing; the final failure evidence records GAME OVER and no info dialog. No performance summary.
-- `performance-classic-check.json`: **1/1 passed**, unthrottled Classic, after matching the existing smoke harness's 350 ms route settle before info. This diagnostic is separate from the baseline matrix, not an extra pooled sample.
+- `performance-pilot.json.gz`: **0/4 failed**. The original startup predicate incorrectly required `THE SNAKE GAME` in `body.innerText`; actual inspection showed that string only as an AX group label, while innerText contained the exact Classic menu button and Settings. Summaries are empty. The file is retained unchanged.
+- `performance-readiness-check.json.gz`: **0/1 failed** after correcting readiness. Immediate info-button click preceded the route transition completing; the final failure evidence records GAME OVER and no info dialog. No performance summary.
+- `performance-classic-check.json.gz`: **1/1 passed**, unthrottled Classic, after matching the existing smoke harness's 350 ms route settle before info. This diagnostic is separate from the baseline matrix, not an extra pooled sample.
 
-- `performance-baseline.json`: first matrix attempt was interrupted after six successful unthrottled samples when the first 4× run became unresponsive for several minutes. Only the owned profiling process was terminated; the seventh record reports a crashed target from that termination. It remains `complete: false`, with no final summary or end fingerprint. This is not a completed matrix or a demonstrated app regression.
-- `performance-throttle-check.json`: an isolated fresh-browser 4× Classic diagnostic passed. Root cause of the preceding hang was not established. A 90-second per-sample watchdog now checkpoints failure with its phase and aborts rather than waiting indefinitely for an unresponsive browser/CDP call.
+- `performance-baseline.json.gz`: first matrix attempt was interrupted after six successful unthrottled samples when the first 4× run became unresponsive for several minutes. Only the owned profiling process was terminated; the seventh record reports a crashed target from that termination. It remains `complete: false`, with no final summary or end fingerprint. This is not a completed matrix or a demonstrated app regression.
+- `performance-throttle-check.json.gz`: an isolated fresh-browser 4× Classic diagnostic passed. Root cause of the preceding hang was not established. A 90-second per-sample watchdog now checkpoints failure with its phase and aborts rather than waiting indefinitely for an unresponsive browser/CDP call.
 
-The retried available-build matrix and numeric summary are recorded in `performance-baseline-complete.json` and `performance-baseline.md`. Diagnostic/failed/incomplete attempts are not pooled into it. The parent must rebuild and rerun to establish evidence for final source changes.
+The retried available-build matrix and numeric summary are recorded in `performance-baseline-complete.json.gz` and `performance-baseline.md`. Diagnostic/failed/incomplete attempts are not pooled into it. The parent must rebuild and rerun to establish evidence for final source changes.
