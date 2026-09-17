@@ -1,5 +1,6 @@
 import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/free_cell.dart';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
@@ -14,6 +15,8 @@ import 'snake_game.dart' show Direction, GameState;
 class NibblesGame extends FlameGame with KeyboardEvents {
   final NibblesMode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   final int gridWidth;
@@ -62,6 +65,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   NibblesGame({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
@@ -90,6 +94,8 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   }
 
   void _startNewGame() {
+    hasWon = false;
+    _tickTimer = 0;
     score = 0;
     _level = 1;
     _foodNumber = 1;
@@ -115,6 +121,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   }
 
   void respawn() {
+    hasWon = false;
     _tickTimer = 0;
     currentDirection = Direction.right;
     _directionQueue.clear();
@@ -130,13 +137,18 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   }
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(
-        _playMinX + _random.nextInt(_playMaxX - _playMinX + 1),
-        _playMinY + _random.nextInt(_playMaxY - _playMinY + 1),
-      );
-    } while (snakeSegments.contains(pos));
+    final pos = randomFreeCell(
+      width: _playMaxX - _playMinX + 1,
+      height: _playMaxY - _playMinY + 1,
+      left: _playMinX,
+      top: _playMinY,
+      occupied: snakeSegments,
+      random: _random,
+    );
+    if (pos == null) {
+      _win();
+      return;
+    }
     foodPosition = pos;
     _foodNumber = (_foodNumber % 9) + 1;
   }
@@ -193,6 +205,13 @@ class NibblesGame extends FlameGame with KeyboardEvents {
       }
       _spawnFood();
     }
+  }
+
+  void _win() {
+    if (gameState == GameState.gameOver) return;
+    hasWon = true;
+    gameState = GameState.gameOver;
+    (onVictory ?? onGameOver)();
   }
 
   void _die() {
@@ -413,6 +432,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
     }
 
     // ─── Food — numbered digit in bright yellow ─────────────────────
+    if (hasWon) return;
     final fontSize = cs * 0.85;
     final numberPainter = _getNumberPainter(_foodNumber, fontSize);
     final fsp = _gridToScreen(foodPosition);

@@ -7,7 +7,7 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../components/snake_ai.dart' show AiDifficulty;
+import '../modes/ai_difficulty.dart' show AiDifficulty;
 import '../modes/vs_ai_mode.dart';
 import 'snake_game.dart' show Direction, GameState;
 

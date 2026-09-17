@@ -1,6 +1,7 @@
 import 'shared/direction_buffer.dart';
 import 'dart:math';
 import 'shared/grid_motion.dart';
+import 'shared/free_cell.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,8 @@ enum GameState { playing, paused, gameOver }
 class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   final GameMode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   late Snake snake;
@@ -58,13 +61,14 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   SnakeGame({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
     this.wallsKillOverride,
     this.speedOverride,
-  })  : gridWidth = gridWidth ?? 20,
-        gridHeight = gridHeight ?? 28;
+  }) : gridWidth = gridWidth ?? 20,
+       gridHeight = gridHeight ?? 28;
 
   bool get _wallsKill => wallsKillOverride ?? mode.wallsKill;
 
@@ -93,6 +97,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   }
 
   void _startNewGame() {
+    hasWon = false;
     score = 0;
     _tickTimer = 0;
     currentDirection = Direction.right;
@@ -124,17 +129,32 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   }
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-    } while (snake.occupies(pos));
+    final pos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: snake.segments,
+      random: _random,
+    );
+    if (pos == null) {
+      if (gameState != GameState.gameOver) {
+        hasWon = true;
+        gameState = GameState.gameOver;
+        (onVictory ?? onGameOver)();
+      }
+      return;
+    }
 
+    // Food takes priority when a power-up occupies the last free cell.
+    if (_currentPowerUp?.gridPosition == pos) {
+      removePowerUp(_currentPowerUp!);
+    }
     food = Food(this, gridPosition: pos);
     add(food);
   }
 
   /// Respawn snake after losing a life — keeps score, resets position.
   void respawn() {
+    hasWon = false;
     removeAll(children.where((c) => c is Snake || c is Food || c is PowerUp));
     _tickTimer = 0;
     currentDirection = Direction.right;
@@ -217,14 +237,13 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   void _trySpawnPowerUp() {
     if (_currentPowerUp != null) return; // only one at a time
 
-    Point<int> pos;
-    int attempts = 0;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-      attempts++;
-      if (attempts > 100) return;
-    } while (snake.occupies(pos) ||
-        (pos.x == food.gridPosition.x && pos.y == food.gridPosition.y));
+    final pos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: [...snake.segments, food.gridPosition],
+      random: _random,
+    );
+    if (pos == null) return;
 
     final types = PowerUpType.values;
     final type = types[_random.nextInt(types.length)];
@@ -237,9 +256,8 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     if (_currentPowerUp == powerUp) {
       _currentPowerUp = null;
     }
-    if (powerUp.isMounted) {
-      remove(powerUp);
-    }
+    // Flame also removes pending additions; mounting is not a prerequisite.
+    remove(powerUp);
   }
 
   void _collectPowerUp(PowerUp powerUp) {
@@ -323,8 +341,8 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     }
 
     // Check food
-    final ate = newHead.x == food.gridPosition.x &&
-        newHead.y == food.gridPosition.y;
+    final ate =
+        newHead.x == food.gridPosition.x && newHead.y == food.gridPosition.y;
 
     snake.move(newHead, grow: ate);
 
@@ -334,6 +352,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       remove(food);
       _spawnFood();
       HapticFeedback.selectionClick();
+      if (gameState != GameState.playing) return;
     }
 
     // Check power-up collection
@@ -474,8 +493,11 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     }
 
     // Prune stale cache entries periodically
-    final newKey = activeBuffs.entries.map((e) =>
-        '${e.key.index}_${e.value > 100 ? '∞' : '${e.value.ceil()}s'}').join(',');
+    final newKey = activeBuffs.entries
+        .map(
+          (e) => '${e.key.index}_${e.value > 100 ? '∞' : '${e.value.ceil()}s'}',
+        )
+        .join(',');
     if (newKey != _lastBuffCacheKey) {
       _lastBuffCacheKey = newKey;
       _buffTextCache.removeWhere((k, _) => !newKey.contains(k));
@@ -496,5 +518,4 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
         return Colors.red;
     }
   }
-
 }

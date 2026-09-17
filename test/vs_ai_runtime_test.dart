@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:naga/components/snake_ai.dart' show AiDifficulty;
+import 'package:naga/modes/ai_difficulty.dart' show AiDifficulty;
 import 'package:naga/game/snake_game.dart' show Direction, GameState;
 import 'package:naga/game/vs_ai_game.dart';
 import 'package:naga/modes/vs_ai_mode.dart';

@@ -1,6 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
-import '../components/snake_ai.dart' show AiDifficulty;
+import '../modes/ai_difficulty.dart' show AiDifficulty;
 import '../modes/game_mode.dart';
 import '../services/settings_service.dart';
 import 'snake_game.dart';
@@ -206,6 +206,7 @@ abstract final class GameRegistry {
       final game = Snake2Game(
         mode: mode,
         onGameOver: onGameOver,
+        onVictory: onVictory,
         onScoreChanged: onScoreChanged,
         gridWidth: settings.gridSize.width,
         gridHeight: settings.gridSize.height,
@@ -217,12 +218,14 @@ abstract final class GameRegistry {
         state: () => game.gameState,
         setState: (state) => game.gameState = state,
         respawn: game.respawn,
+        result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
       );
     }
     if (mode is AsciiMode) {
       final game = AsciiGame(
         mode: mode,
         onGameOver: onGameOver,
+        onVictory: onVictory,
         onScoreChanged: onScoreChanged,
         gridWidth: settings.gridSize.width,
         gridHeight: settings.gridSize.height,
@@ -234,12 +237,14 @@ abstract final class GameRegistry {
         state: () => game.gameState,
         setState: (state) => game.gameState = state,
         respawn: game.respawn,
+        result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
       );
     }
     if (mode is CgaMode) {
       final game = CgaGame(
         mode: mode,
         onGameOver: onGameOver,
+        onVictory: onVictory,
         onScoreChanged: onScoreChanged,
         gridWidth: settings.gridSize.width,
         gridHeight: settings.gridSize.height,
@@ -251,12 +256,14 @@ abstract final class GameRegistry {
         state: () => game.gameState,
         setState: (state) => game.gameState = state,
         respawn: game.respawn,
+        result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
       );
     }
     if (mode is NibblesMode) {
       final game = NibblesGame(
         mode: mode,
         onGameOver: onGameOver,
+        onVictory: onVictory,
         onScoreChanged: onScoreChanged,
         gridWidth: settings.gridSize.width,
         gridHeight: settings.gridSize.height,
@@ -268,6 +275,7 @@ abstract final class GameRegistry {
         state: () => game.gameState,
         setState: (state) => game.gameState = state,
         respawn: game.respawn,
+        result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
       );
     }
     if (mode is MultiplayerMode) {
@@ -366,6 +374,7 @@ abstract final class GameRegistry {
     final classic = mode is ClassicMode;
     final game = SnakeGame(
       mode: mode,
+      onVictory: onVictory,
       onGameOver: onGameOver,
       onScoreChanged: onScoreChanged,
       gridWidth: classic ? null : settings.gridSize.width,
@@ -383,6 +392,7 @@ abstract final class GameRegistry {
       state: () => game.gameState,
       setState: (state) => game.gameState = state,
       respawn: classic ? null : game.respawn,
+      result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
     );
   }
 

@@ -1,5 +1,6 @@
 import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/free_cell.dart';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
@@ -13,6 +14,8 @@ import 'snake_game.dart' show Direction, GameState;
 class Snake2Game extends FlameGame with KeyboardEvents {
   final Snake2Mode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   final int gridWidth;
@@ -61,6 +64,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   Snake2Game({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
@@ -89,6 +93,8 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void _startNewGame() {
+    hasWon = false;
+    _tickTimer = 0;
     score = 0;
     _currentMaze = 0;
     gameState = GameState.playing;
@@ -108,6 +114,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void respawn() {
+    hasWon = false;
     _tickTimer = 0;
     currentDirection = Direction.right;
     _directionQueue.clear();
@@ -230,36 +237,40 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void _spawnOneFood() {
-    Point<int> pos;
-    int attempts = 0;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-      attempts++;
-      if (attempts > 200) return; // Safety
-    } while (_isOccupied(pos));
-    foodPositions.add(pos);
+    final pos = _freeCell();
+    if (pos != null) foodPositions.add(pos);
   }
 
-  bool _isOccupied(Point<int> pos) {
-    if (snakeSegments.contains(pos)) return true;
-    if (foodPositions.any((f) => f.x == pos.x && f.y == pos.y)) return true;
-    if (_isWall(pos)) return true;
-    if (bonusPosition != null &&
-        bonusPosition!.x == pos.x &&
-        bonusPosition!.y == pos.y) {
-      return true;
+  Point<int>? _freeCell() => randomFreeCell(
+    width: gridWidth,
+    height: gridHeight,
+    occupied: [
+      ...snakeSegments,
+      ...mazeWalls,
+      ...foodPositions,
+      ?bonusPosition,
+    ],
+    random: _random,
+  );
+
+  // Food and bonuses reserve cells but do not complete the arena.
+  bool _checkArenaComplete() {
+    if (randomFreeCell(
+          width: gridWidth,
+          height: gridHeight,
+          occupied: [...snakeSegments, ...mazeWalls],
+          random: _random,
+        ) !=
+        null) {
+      return false;
     }
-    return false;
+    _win();
+    return true;
   }
 
   void _spawnBonus() {
-    Point<int> pos;
-    int attempts = 0;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-      attempts++;
-      if (attempts > 200) return;
-    } while (_isOccupied(pos));
+    final pos = _freeCell();
+    if (pos == null) return;
     bonusPosition = pos;
     _bonusTimer = mode.bonusDuration;
   }
@@ -276,6 +287,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       _bonusTimer -= dt;
       if (_bonusTimer <= 0) {
         bonusPosition = null;
+        if (foodPositions.isEmpty) _spawnOneFood();
       }
     }
 
@@ -337,6 +349,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       foodPositions.removeAt(foodIndex);
       score += mode.pointsPerFood(score);
       onScoreChanged(score);
+      if (_checkArenaComplete()) return;
       _spawnOneFood();
 
       // Advance maze every 100 points
@@ -346,6 +359,15 @@ class Snake2Game extends FlameGame with KeyboardEvents {
         _loadMaze(_currentMaze);
         // Clear walls that overlap snake
         mazeWalls.removeWhere((w) => snakeSegments.contains(w));
+        // Existing items must not become trapped inside newly loaded walls.
+        foodPositions.removeWhere(_isWall);
+        if (bonusPosition != null && _isWall(bonusPosition!)) {
+          bonusPosition = null;
+        }
+        final missing = mode.foodCount - foodPositions.length;
+        for (var i = 0; i < missing; i++) {
+          _spawnOneFood();
+        }
       }
     }
 
@@ -353,7 +375,17 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       score += mode.pointsPerBonus;
       onScoreChanged(score);
       bonusPosition = null;
+      if (_checkArenaComplete()) return;
+      // Restore food if a bonus had reserved the only remaining cell.
+      if (foodPositions.isEmpty) _spawnOneFood();
     }
+  }
+
+  void _win() {
+    if (gameState == GameState.gameOver) return;
+    hasWon = true;
+    gameState = GameState.gameOver;
+    (onVictory ?? onGameOver)();
   }
 
   void _die() {

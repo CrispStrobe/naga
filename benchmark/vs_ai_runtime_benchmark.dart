@@ -5,7 +5,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:naga/components/snake_ai.dart' show AiDifficulty;
+import 'package:naga/modes/ai_difficulty.dart' show AiDifficulty;
 
 import '../test/vs_ai_runtime_test.dart' as runtime;
 

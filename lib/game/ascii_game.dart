@@ -1,5 +1,6 @@
 import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/free_cell.dart';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
@@ -13,6 +14,8 @@ import 'snake_game.dart' show Direction, GameState;
 class AsciiGame extends FlameGame with KeyboardEvents {
   final AsciiMode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   final int gridWidth;
@@ -43,6 +46,7 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   AsciiGame({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
@@ -71,6 +75,8 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   }
 
   void _startNewGame() {
+    hasWon = false;
+    _tickTimer = 0;
     score = 0;
     gameState = GameState.playing;
     currentDirection = Direction.right;
@@ -93,6 +99,7 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   }
 
   void respawn() {
+    hasWon = false;
     _tickTimer = 0;
     currentDirection = Direction.right;
     _directionQueue.clear();
@@ -108,10 +115,16 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   }
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-    } while (snakeSegments.contains(pos));
+    final pos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: snakeSegments,
+      random: _random,
+    );
+    if (pos == null) {
+      _win();
+      return;
+    }
     foodPosition = pos;
     _foodIsSpecial = _random.nextBool();
   }
@@ -157,6 +170,13 @@ class AsciiGame extends FlameGame with KeyboardEvents {
       onScoreChanged(score);
       _spawnFood();
     }
+  }
+
+  void _win() {
+    if (gameState == GameState.gameOver) return;
+    hasWon = true;
+    gameState = GameState.gameOver;
+    (onVictory ?? onGameOver)();
   }
 
   void _die() {
@@ -344,10 +364,12 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     }
 
     // ─── Food ────────────────────────────────────────────────────────
-    final foodChar = _foodIsSpecial ? r'$' : '*';
-    final foodPainter = _getCharPainter(foodChar, green, fontSize);
-    final fsp = _gridToScreen(foodPosition);
-    _paintCharCentered(canvas, foodPainter, fsp.x, fsp.y, cs);
+    if (!hasWon) {
+      final foodChar = _foodIsSpecial ? r'$' : '*';
+      final foodPainter = _getCharPainter(foodChar, green, fontSize);
+      final fsp = _gridToScreen(foodPosition);
+      _paintCharCentered(canvas, foodPainter, fsp.x, fsp.y, cs);
+    }
 
     // Resolve just twice per frame, rather than a key allocation per segment.
     final headPainter = _getCharPainter('@', green, fontSize);

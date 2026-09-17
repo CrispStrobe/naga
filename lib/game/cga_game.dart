@@ -1,5 +1,6 @@
 import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/free_cell.dart';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
@@ -14,6 +15,8 @@ import 'snake_game.dart' show Direction, GameState;
 class CgaGame extends FlameGame with KeyboardEvents {
   final CgaMode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   final int gridWidth;
@@ -55,6 +58,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
   CgaGame({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
@@ -83,6 +87,8 @@ class CgaGame extends FlameGame with KeyboardEvents {
   }
 
   void _startNewGame() {
+    hasWon = false;
+    _tickTimer = 0;
     score = 0;
     gameState = GameState.playing;
     currentDirection = Direction.right;
@@ -105,6 +111,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
   }
 
   void respawn() {
+    hasWon = false;
     _tickTimer = 0;
     currentDirection = Direction.right;
     _directionQueue.clear();
@@ -120,10 +127,16 @@ class CgaGame extends FlameGame with KeyboardEvents {
   }
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-    } while (snakeSegments.contains(pos));
+    final pos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: snakeSegments,
+      random: _random,
+    );
+    if (pos == null) {
+      _win();
+      return;
+    }
     foodPosition = pos;
   }
 
@@ -174,6 +187,13 @@ class CgaGame extends FlameGame with KeyboardEvents {
       onScoreChanged(score);
       _spawnFood();
     }
+  }
+
+  void _win() {
+    if (gameState == GameState.gameOver) return;
+    hasWon = true;
+    gameState = GameState.gameOver;
+    (onVictory ?? onGameOver)();
   }
 
   void _die() {
@@ -310,18 +330,20 @@ class CgaGame extends FlameGame with KeyboardEvents {
     }
 
     // ─── Food — magenta diamond shape ──────────────────────────────
-    final foodPaint = _foodPaint;
-    final fsp = _gridToScreen(foodPosition);
-    final centerX = fsp.x + cs / 2;
-    final centerY = fsp.y + cs / 2;
-    final diamondRadius = cs * 0.4;
-    final diamondPath = Path()
-      ..moveTo(centerX, centerY - diamondRadius) // top
-      ..lineTo(centerX + diamondRadius, centerY) // right
-      ..lineTo(centerX, centerY + diamondRadius) // bottom
-      ..lineTo(centerX - diamondRadius, centerY) // left
-      ..close();
-    canvas.drawPath(diamondPath, foodPaint);
+    if (!hasWon) {
+      final foodPaint = _foodPaint;
+      final fsp = _gridToScreen(foodPosition);
+      final centerX = fsp.x + cs / 2;
+      final centerY = fsp.y + cs / 2;
+      final diamondRadius = cs * 0.4;
+      final diamondPath = Path()
+        ..moveTo(centerX, centerY - diamondRadius) // top
+        ..lineTo(centerX + diamondRadius, centerY) // right
+        ..lineTo(centerX, centerY + diamondRadius) // bottom
+        ..lineTo(centerX - diamondRadius, centerY) // left
+        ..close();
+      canvas.drawPath(diamondPath, foodPaint);
+    }
 
     // ─── Score text — blocky monospace ──────────────────────────────
     final scoreTp = _getScoreTp();
