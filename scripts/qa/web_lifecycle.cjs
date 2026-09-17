@@ -14,8 +14,7 @@ const test = (name, run) => scenarios.push({name, run});
 const button = (page, name) => page.getByRole('button', {name, exact: true});
 const groupText = (page, prefix) =>
   page.getByRole('group', {name: new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))});
-// Playwright locator.tap() delivers trusted pointer+touch+click input that
-// Flutter web receives headless; raw CDP Input.dispatchTouchEvent does not.
+// Trusted locator taps wait for actionability before targeting Flutter semantics.
 async function touchButton(page, name) {
   await button(page, name).tap();
 }
@@ -103,7 +102,7 @@ test('settings-reload-lives-and-restart', async page => {
 
 // With no input the two snakes collide head-on. Diverting only one player
 // makes a different named winner. This proves routing, not just key dispatch.
-// Production mapping is P1=WASD, P2=arrows (instructions currently reverse it).
+// Production mapping and instructions: P1=WASD, P2=arrows.
 for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wins!']]) {
   test(`duel-${key.toLowerCase()}`, async page => {
     await mode(page, 17);
@@ -114,7 +113,7 @@ for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wi
   });
 }
 
-test('touch-tap-pause-and-swipe-duel', async page => {
+test('touch-taps-and-mouse-drag-duel', async page => {
   await mode(page, 17);
   // Semantics can appear before the route slide finishes; wait for stable
   // bounds (rAF-based) so the tap targets the pause button at its final point.
@@ -126,7 +125,7 @@ test('touch-tap-pause-and-swipe-duel', async page => {
   assert.equal(await button(page, 'PLAY AGAIN').count(), 0);
   await touchButton(page, 'PAUSED Tap to resume');
   await button(page, 'PAUSED Tap to resume').waitFor({state: 'hidden'});
-  // A swipe is a drag, not a tap: Playwright touch drag on the board.
+  // Mouse drag exercises the shared drag recognizer; this is NOT touch-swipe coverage.
   await page.mouse.move(width / 2, 400);
   await page.mouse.down();
   for (const y of [390, 380, 370, 350, 330, 310, 290]) {
@@ -137,7 +136,7 @@ test('touch-tap-pause-and-swipe-duel', async page => {
   const winner = 'Player 1 Wins!'; // Player 2 diverted upward hits the top wall first.
   await over(page, winner);
   await menu(page, true);
-  return {touchEvents: true, pauseSurvivedMs: 1200, swipe: 'up', winner, menuTap: true};
+  return {touchTaps: true, pauseSurvivedMs: 1200, mouseDrag: 'up', touchSwipeVerified: false, winner, menuTap: true};
 });
 
 (async () => {

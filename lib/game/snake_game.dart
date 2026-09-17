@@ -84,6 +84,14 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     _startNewGame();
   }
 
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Flame sends the first resize before onLoad. Layout depends only on
+    // constructor dimensions, not on the board/snake/food created during load.
+    _calculateGrid();
+  }
+
   void _calculateGrid() {
     final availableWidth = size.x;
     final availableHeight = size.y;

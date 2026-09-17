@@ -29,8 +29,10 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   late GameSession _session;
+  int _sessionGeneration = 0;
+  int _backgroundGeneration = 0;
   final FocusNode _gameFocus = FocusNode();
   bool get _inputBlocked => _isPaused || _isGameOver;
   final ValueNotifier<int> _scoreNotifier = ValueNotifier<int>(0);
@@ -49,6 +51,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _livesRemaining = _isClassicMode ? 0 : _settings.lives;
     _useButtons = _settings.controlType == ControlType.buttons;
     _createGame();
@@ -57,20 +60,40 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _gameFocus.dispose();
     _scoreNotifier.dispose();
     widget.audioService.stopMusic();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning to the app never resumes a covered match automatically.
+    if (state != AppLifecycleState.resumed) {
+      _backgroundGeneration++;
+      if (!_isPaused && !_isGameOver) _togglePause();
+    }
+  }
+
   void _createGame() {
+    final generation = ++_sessionGeneration;
+    bool isCurrent() => mounted && generation == _sessionGeneration;
     _session = GameRegistry.create(
       mode: widget.mode,
       settings: _settings,
-      onGameOver: _handleDeath,
-      onScoreChanged: (score) => _scoreNotifier.value = score,
-      onVictory: () => _onGameOver(victory: true),
+      onGameOver: () {
+        if (isCurrent()) _handleDeath();
+      },
+      onScoreChanged: (score) {
+        if (isCurrent()) _scoreNotifier.value = score;
+      },
+      onVictory: () {
+        if (isCurrent()) _onGameOver(victory: true);
+      },
     );
+    // The screen owns lifecycle pause; Flame otherwise resumes on return.
+    _session.game.pauseWhenBackgrounded = false;
   }
 
   void _handleDeath() {
@@ -100,8 +123,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showInstructions() {
-    // Pause the game while showing instructions
-    if (!_isPaused && !_isGameOver) _togglePause();
+    // Only undo the pause introduced by this dialog, not a user/app pause.
+    final resumeOnClose = !_isPaused && !_isGameOver;
+    final backgroundGeneration = _backgroundGeneration;
+    if (resumeOnClose) _togglePause();
 
     final modeName = widget.mode.name;
     final instructions = _getInstructions(modeName);
@@ -114,7 +139,13 @@ class _GameScreenState extends State<GameScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (_isPaused && !_isGameOver) _togglePause();
+              if (mounted &&
+                  resumeOnClose &&
+                  backgroundGeneration == _backgroundGeneration &&
+                  _isPaused &&
+                  !_isGameOver) {
+                _togglePause();
+              }
             },
             child: const Text('OK'),
           ),
@@ -197,7 +228,7 @@ class _GameScreenState extends State<GameScreen> {
             'Faithful recreation of the classic QBasic snake game.';
       case 'Duel':
         return 'Local 2-player!\n\n'
-            'Player 1: Arrow keys. Player 2: WASD.\n'
+            'Player 1: WASD. Player 2: Arrow keys.\n'
             'Eat food to grow. Last snake standing wins!';
       case 'VS AI':
         return 'Battle the AI!\n\n'
@@ -219,19 +250,32 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onGameOver({bool victory = false}) async {
+    if (!mounted || _isGameOver) return;
+    final session = _session;
+    // The result and restart controls must not wait for disk/plugin I/O.
+    setState(() {
+      _isGameOver = true;
+      _isNewHighScore = false;
+      _quipIndex = Random().nextInt(8);
+      _overlayFocus = 0;
+    });
     if (victory) {
       widget.audioService.playLevelUp();
     } else {
       widget.audioService.playDie();
     }
-    final isNew = await widget.highScoreService
-        .submitScore(widget.mode.name, _scoreNotifier.value);
-    setState(() {
-      _isGameOver = true;
-      _isNewHighScore = isNew;
-      _quipIndex = Random().nextInt(8);
-      _overlayFocus = 0;
-    });
+    try {
+      final isNew = await widget.highScoreService.submitScore(
+        widget.mode.name,
+        _scoreNotifier.value,
+      );
+      if (!mounted || !identical(session, _session)) return;
+      setState(() => _isNewHighScore = isNew);
+    } catch (error) {
+      // Persistence failure must not break the result screen or escape after
+      // disposal. Do not claim a high score that could not be saved.
+      debugPrint('Could not save high score: $error');
+    }
   }
 
   @override
@@ -248,7 +292,10 @@ class _GameScreenState extends State<GameScreen> {
                 children: [
                   ExcludeFocus(
                     excluding: _inputBlocked,
-                    child: GameWidget(game: _session.game, focusNode: _gameFocus),
+                    child: GameWidget(
+                      game: _session.game,
+                      focusNode: _gameFocus,
+                    ),
                   ),
                   if (!_useButtons && !_isPaused) _buildSwipeControls(),
                   if (_isPaused && !_isGameOver) _buildPauseOverlay(),
@@ -264,8 +311,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildScoreBar(S s) {
-    final textColor =
-        _isClassicMode ? const Color(0xFF0F380F) : Colors.green.shade300;
+    final textColor = _isClassicMode
+        ? const Color(0xFF0F380F)
+        : Colors.green.shade300;
     final highScore = widget.highScoreService.getHighScore(widget.mode.name);
 
     return Container(
@@ -352,8 +400,11 @@ class _GameScreenState extends State<GameScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.pause_circle_outline,
-                      size: 64, color: Colors.green.shade400),
+                  Icon(
+                    Icons.pause_circle_outline,
+                    size: 64,
+                    color: Colors.green.shade400,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'PAUSED',
@@ -413,16 +464,16 @@ class _GameScreenState extends State<GameScreen> {
       _session.action == GameAction.bomb || _session.action == GameAction.shoot;
 
   String get _actionLabel => switch (_session.action) {
-        GameAction.bomb => 'BOMB',
-        GameAction.shoot => 'SHOOT',
-        _ => '',
-      };
+    GameAction.bomb => 'BOMB',
+    GameAction.shoot => 'SHOOT',
+    _ => '',
+  };
 
   IconData get _actionIcon => switch (_session.action) {
-        GameAction.bomb => Icons.local_fire_department,
-        GameAction.shoot => Icons.gps_fixed,
-        _ => Icons.circle,
-      };
+    GameAction.bomb => Icons.local_fire_department,
+    GameAction.shoot => Icons.gps_fixed,
+    _ => Icons.circle,
+  };
 
   Widget _buildDPad() {
     return Container(
@@ -476,20 +527,20 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   String _getResultText(S s) => switch (_session.result) {
-        SessionResult.victory => 'YOU WIN!',
-        SessionResult.player1Wins => s.player1Wins,
-        SessionResult.player2Wins => s.player2Wins,
-        SessionResult.draw => s.draw,
-        SessionResult.loss => s.gameOver,
-      };
+    SessionResult.victory => 'YOU WIN!',
+    SessionResult.player1Wins => s.player1Wins,
+    SessionResult.player2Wins => s.player2Wins,
+    SessionResult.draw => s.draw,
+    SessionResult.loss => s.gameOver,
+  };
 
   Color _getResultColor() => switch (_session.result) {
-        SessionResult.victory => Colors.green.shade400,
-        SessionResult.player1Wins => widget.mode.snakeColor,
-        SessionResult.player2Wins => Colors.blue.shade400,
-        SessionResult.draw => Colors.amber,
-        SessionResult.loss => Colors.red.shade400,
-      };
+    SessionResult.victory => Colors.green.shade400,
+    SessionResult.player1Wins => widget.mode.snakeColor,
+    SessionResult.player2Wins => Colors.blue.shade400,
+    SessionResult.draw => Colors.amber,
+    SessionResult.loss => Colors.red.shade400,
+  };
 
   String _getQuip(S s) {
     final quips = [
@@ -554,103 +605,102 @@ class _GameScreenState extends State<GameScreen> {
           autofocus: true,
           onKeyEvent: _onOverlayKey,
           child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                resultText,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: resultColor,
-                  letterSpacing: 4,
-                ),
-              ),
-              if (isLoss) ...[
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(
-                    _getQuip(s),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      color: Color(0xFFFFD740),
-                    ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  resultText,
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: resultColor,
+                    letterSpacing: 4,
                   ),
                 ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                '${s.score}: ${_scoreNotifier.value}',
-                style: const TextStyle(
-                  fontSize: 24,
-                  color: Colors.white70,
-                ),
-              ),
-              if (_isNewHighScore) ...[
+                if (isLoss) ...[
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      _getQuip(s),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                        color: Color(0xFFFFD740),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Text(
-                  s.newHighScore,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.amber,
-                    fontWeight: FontWeight.bold,
+                  '${s.score}: ${_scoreNotifier.value}',
+                  style: const TextStyle(fontSize: 24, color: Colors.white70),
+                ),
+                if (_isNewHighScore) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    s.newHighScore,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 32),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _overlayFocus == 0
+                          ? const Color(0xFFFFD740)
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _playAgain,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                    ),
+                    child: Text(
+                      s.playAgain,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        letterSpacing: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _overlayFocus == 1
+                          ? const Color(0xFFFFD740)
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      s.backToMenu,
+                      style: TextStyle(
+                        color: Colors.green.shade400,
+                        letterSpacing: 2,
+                      ),
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: 32),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: _overlayFocus == 0
-                        ? const Color(0xFFFFD740)
-                        : Colors.transparent,
-                    width: 2.5,
-                  ),
-                ),
-                child: ElevatedButton(
-                  onPressed: _playAgain,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade700,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                  ),
-                  child: Text(
-                    s.playAgain,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      letterSpacing: 2,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: _overlayFocus == 1
-                        ? const Color(0xFFFFD740)
-                        : Colors.transparent,
-                    width: 2.5,
-                  ),
-                ),
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    s.backToMenu,
-                    style: TextStyle(
-                      color: Colors.green.shade400,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ),
-              ),
-            ],
             ),
           ),
         ),
@@ -704,7 +754,10 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 2),
+          border: Border.all(
+            color: Colors.red.withValues(alpha: 0.5),
+            width: 2,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
