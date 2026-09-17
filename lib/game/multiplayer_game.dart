@@ -1,10 +1,12 @@
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../modes/multiplayer_mode.dart';
-import 'snake_game.dart' show Direction;
+
 
 /// Result of the multiplayer match.
 enum MatchResult { player1Wins, player2Wins, draw }
@@ -36,13 +38,13 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   final Random _random = Random();
 
   // Player 1
-  List<Point<int>> _p1Segments = [];
+  List<Point<int>> _p1Segments = GridSnakeBody([]);
   Direction _p1Direction = Direction.right;
   Direction _p1NextDirection = Direction.right;
   bool p1Alive = true;
 
   // Player 2
-  List<Point<int>> _p2Segments = [];
+  List<Point<int>> _p2Segments = GridSnakeBody([]);
   Direction _p2Direction = Direction.left;
   Direction _p2NextDirection = Direction.left;
   bool p2Alive = true;
@@ -100,22 +102,22 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     // Player 1 starts left side going right
     final p1X = gridWidth ~/ 4;
     final p1Y = gridHeight ~/ 2;
-    _p1Segments = [
+    _p1Segments = GridSnakeBody([
       Point(p1X, p1Y),
       Point(p1X - 1, p1Y),
       Point(p1X - 2, p1Y),
-    ];
+    ]);
     _p1Direction = Direction.right;
     _p1NextDirection = Direction.right;
 
     // Player 2 starts right side going left
     final p2X = (gridWidth * 3) ~/ 4;
     final p2Y = gridHeight ~/ 2;
-    _p2Segments = [
+    _p2Segments = GridSnakeBody([
       Point(p2X, p2Y),
       Point(p2X + 1, p2Y),
       Point(p2X + 2, p2Y),
-    ];
+    ]);
     _p2Direction = Direction.left;
     _p2NextDirection = Direction.left;
 
@@ -141,7 +143,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   }
 
   bool _occupies(Point<int> pos, List<Point<int>> segs) {
-    return segs.any((s) => s.x == pos.x && s.y == pos.y);
+    return segs.contains(pos);
   }
 
   // ------------------------------------------------------------------
@@ -326,16 +328,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   }
 
   Point<int> _advance(Point<int> head, Direction dir) {
-    switch (dir) {
-      case Direction.up:
-        return Point(head.x, head.y - 1);
-      case Direction.down:
-        return Point(head.x, head.y + 1);
-      case Direction.left:
-        return Point(head.x - 1, head.y);
-      case Direction.right:
-        return Point(head.x + 1, head.y);
-    }
+    return gridStep(head, dir);
   }
 
   bool _outOfBounds(Point<int> p) {

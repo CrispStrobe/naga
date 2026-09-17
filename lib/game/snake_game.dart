@@ -1,5 +1,6 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/grid_motion.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,7 @@ import '../components/food.dart';
 import '../components/power_up.dart';
 import '../components/grid_board.dart';
 
-enum Direction { up, down, left, right }
+export 'shared/grid_motion.dart' show Direction;
 
 enum GameState { playing, paused, gameOver }
 
@@ -26,7 +27,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   GameState gameState = GameState.playing;
   int score = 0;
   double _tickTimer = 0;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   Direction currentDirection = Direction.right;
   final Random _random = Random();
@@ -292,23 +293,12 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
 
   void _tick() {
     // Dequeue next buffered input
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
 
     final head = snake.segments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, currentDirection);
 
     // Wall collision
     if (_wallsKill) {
@@ -322,10 +312,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       }
     } else {
       // Wrap around
-      newHead = Point(
-        (newHead.x + gridWidth) % gridWidth,
-        (newHead.y + gridHeight) % gridHeight,
-      );
+      newHead = wrapGrid(newHead, gridWidth, gridHeight);
     }
 
     // Self collision
@@ -383,23 +370,9 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   bool get isPaused => gameState == GameState.paused;
 
   void changeDirection(Direction dir) {
-    // Check against the last queued direction (or current if queue empty)
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-
-    // Prevent 180-degree turns
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-
-    // Don't queue duplicate directions
-    if (dir == lastDir) return;
-
-    // Buffer up to N inputs
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
 
     // If queue was empty, trigger early tick for responsiveness

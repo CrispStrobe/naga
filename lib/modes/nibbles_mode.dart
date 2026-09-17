@@ -46,4 +46,9 @@ class NibblesMode extends GameMode {
 
   /// Wall/border color.
   Color get borderColor => _brightBlue;
+
+  // The playfield uses DOS dark blue, not the bright menu accent above.
+  Color get statusBarColor => const Color(0xFF0000AA);
+  Color get playfieldBorderColor => statusBarColor;
+  Color get statusTextColor => const Color(0xFFFFFFFF);
 }

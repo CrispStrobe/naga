@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'shared/grid_motion.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,7 @@ import '../components/trail_snake.dart';
 import '../components/ai_snake.dart';
 
 /// Re-export Direction so other files can import it from here.
-enum Direction { up, down, left, right }
+export 'shared/grid_motion.dart' show Direction;
 
 enum TrailGameState { playing, paused, gameOver }
 

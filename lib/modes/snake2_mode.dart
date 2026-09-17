@@ -55,4 +55,7 @@ class Snake2Mode extends GameMode {
 
   /// Wall color for maze obstacles.
   Color get wallColor => _lcdDark;
+  Color get borderColor => snakeColor;
+  Color get bonusColor => snakeColor;
+  late final Color mazeLabelColor = snakeColor.withValues(alpha: 0.6);
 }

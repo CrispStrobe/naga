@@ -8,6 +8,8 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
   final SnakeGame _game;
   ui.Picture? _cachedPicture;
   double _cachedCellSize = 0;
+  double _cachedOffsetX = 0;
+  double _cachedOffsetY = 0;
 
   GridBoard(this._game);
 
@@ -24,9 +26,13 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
     final gh = _game.gridHeight;
     final isClassic = _game.mode.name == 'Classic';
 
-    // Rebuild cache if cell size changed (e.g. resize)
-    if (_cachedPicture == null || _cachedCellSize != cs) {
+    // Pictures contain absolute coordinates. Compare offset values rather
+    // than Vector2 identity: layout can mutate the existing vector in place.
+    if (_cachedPicture == null || _cachedCellSize != cs ||
+        _cachedOffsetX != offset.x || _cachedOffsetY != offset.y) {
       _cachedCellSize = cs;
+      _cachedOffsetX = offset.x;
+      _cachedOffsetY = offset.y;
       final recorder = ui.PictureRecorder();
       final recCanvas = Canvas(recorder);
 

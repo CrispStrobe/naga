@@ -1,53 +1,100 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../game/snake_game.dart';
 import 'power_up.dart';
+import '../game/shared/grid_snake_body.dart';
+
+/// Re-evaluates the current public list, so retained views survive replacement.
+class _SnakeOccupancy extends SetBase<int> {
+  final Snake snake;
+  _SnakeOccupancy(this.snake);
+
+  @override
+  Iterator<int> get iterator => toSet().iterator;
+  @override
+  int get length => toSet().length;
+  @override
+  bool contains(Object? value) =>
+      snake.segments.any((cell) => Snake.encodePos(cell) == value);
+  @override
+  int? lookup(Object? value) => toSet().lookup(value);
+  @override
+  Set<int> toSet() => snake.segments.map(Snake.encodePos).toSet();
+  @override
+  bool add(int value) => throw UnsupportedError('Mutate Snake.segments');
+  @override
+  bool remove(Object? value) => throw UnsupportedError('Mutate Snake.segments');
+}
 
 class Snake extends Component with HasGameReference<SnakeGame> {
+  // Keep the public mutable List API, including replacement/alias semantics.
+  // Internally created bodies use the indexed ring; assigned Lists still work.
   List<Point<int>> segments;
   final SnakeGame _game;
-  final Set<int> occupiedCells = {};
+
+  // Paints live with the component, not the frame. Only size/dynamic color
+  // properties are updated while rendering; geometry still follows live state.
+  final Paint _fillPaint = Paint();
+  final Paint _borderPaint = Paint()..style = PaintingStyle.stroke;
+  final Paint _darkerPaint = Paint();
+  final Paint _eyePaint = Paint()..color = Colors.white;
+  final Paint _pupilPaint = Paint()..color = Colors.black;
+  final Paint _tonguePaint = Paint()
+    ..color = Colors.red.shade400
+    ..strokeCap = StrokeCap.round;
+  final Paint _glowPaint = Paint()
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+  final Path _tailPath = Path();
+  Color? _bodyColor;
+  Color? _lastGlowColor;
+  double? _lastGlowOpacity;
+
+  void _syncBodyColor() {
+    final color = _game.mode.snakeColor;
+    if (_bodyColor == color) return;
+    _bodyColor = color;
+    _fillPaint.color = color;
+    _borderPaint.color = color;
+    _darkerPaint.color = Color.lerp(color, Colors.black, 0.2)!;
+  }
+
+  /// Stable, live view of legacy encoded occupancy, including aliased list edits.
+  ///
+  /// Unlike the historical mutable cache, this view is read-only: change
+  /// [segments] to change occupancy. Independent set writes cannot safely
+  /// describe a body with duplicate cells. Collision checks use exact Points
+  /// via [occupies], not this legacy (potentially colliding) integer encoding.
+  /// Reading the view scans the body; normal movement remains O(1) amortized.
+  late final Set<int> occupiedCells = UnmodifiableSetView(
+    _SnakeOccupancy(this),
+  );
 
   Snake(this._game, {required List<Point<int>> initialSegments})
-      : segments = List.from(initialSegments) {
-    _rebuildOccupiedSet();
-  }
-
-  void _rebuildOccupiedSet() {
-    occupiedCells.clear();
-    for (final seg in segments) {
-      occupiedCells.add(encodePos(seg));
-    }
-  }
+    : segments = GridSnakeBody(initialSegments);
 
   static int encodePos(Point<int> pos) => pos.y * 10000 + pos.x;
 
-  bool occupies(Point<int> pos) {
-    return occupiedCells.contains(encodePos(pos));
-  }
+  bool occupies(Point<int> pos) => segments.contains(pos);
 
   void move(Point<int> newHead, {bool grow = false}) {
     segments.insert(0, newHead);
-    occupiedCells.add(encodePos(newHead));
-    if (!grow) {
-      final removed = segments.removeLast();
-      occupiedCells.remove(encodePos(removed));
-    }
+    if (!grow) segments.removeLast();
   }
 
-  /// Remove tail segments (for shrink power-up). Keeps occupied set in sync.
+  /// Remove tail segments (for shrink power-up), retaining at least the head.
   void removeTailSegments(int count) {
-    final toRemove = count.clamp(0, segments.length - 1);
+    final toRemove = count.clamp(0, max(0, segments.length - 1));
     for (int i = 0; i < toRemove; i++) {
-      final removed = segments.removeLast();
-      occupiedCells.remove(encodePos(removed));
+      segments.removeLast();
     }
   }
 
   @override
   void render(Canvas canvas) {
     if (segments.isEmpty) return;
+    _syncBodyColor();
     final cs = _game.cellSize;
     final isClassic = _game.mode.name == 'Classic';
 
@@ -60,12 +107,8 @@ class Snake extends Component with HasGameReference<SnakeGame> {
 
   /// Retro-style chain-link rendering (authentic retro phone look)
   void _renderClassic(Canvas canvas, double cs) {
-    final color = _game.mode.snakeColor;
-    final fillPaint = Paint()..color = color;
-    final borderPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = cs * 0.12;
+    final fillPaint = _fillPaint;
+    final borderPaint = _borderPaint..strokeWidth = cs * 0.12;
     final inset = cs * 0.12;
     final gap = cs * 0.06;
 
@@ -82,7 +125,12 @@ class Snake extends Component with HasGameReference<SnakeGame> {
       } else {
         // Body/tail — outlined square (chain-link look)
         canvas.drawRect(
-          Rect.fromLTWH(sp.x + inset, sp.y + inset, cs - inset * 2, cs - inset * 2),
+          Rect.fromLTWH(
+            sp.x + inset,
+            sp.y + inset,
+            cs - inset * 2,
+            cs - inset * 2,
+          ),
           borderPaint,
         );
         // Small center dot for chain-link detail
@@ -100,9 +148,8 @@ class Snake extends Component with HasGameReference<SnakeGame> {
 
   /// Smooth modern rendering with rounded body, corners, tapered tail, head with face
   void _renderSmooth(Canvas canvas, double cs) {
-    final color = _game.mode.snakeColor;
-    final paint = Paint()..color = color;
-    final darkerPaint = Paint()..color = Color.lerp(color, Colors.black, 0.2)!;
+    final paint = _fillPaint;
+    final darkerPaint = _darkerPaint;
 
     // Determine buff glow color
     Color? glowColor;
@@ -124,9 +171,12 @@ class Snake extends Component with HasGameReference<SnakeGame> {
       final glowOpacity = _game.shieldFlashTimer > 0
           ? (_game.shieldFlashTimer / 0.5).clamp(0.0, 1.0) * 0.5
           : 0.3;
-      final glowPaint = Paint()
-        ..color = glowColor.withValues(alpha: glowOpacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      if (_lastGlowColor != glowColor || _lastGlowOpacity != glowOpacity) {
+        _glowPaint.color = glowColor.withValues(alpha: glowOpacity);
+        _lastGlowColor = glowColor;
+        _lastGlowOpacity = glowOpacity;
+      }
+      final glowPaint = _glowPaint;
       final headSp = _game.gridToScreen(segments.first);
       canvas.drawCircle(
         Offset(headSp.x + cs / 2, headSp.y + cs / 2),
@@ -154,7 +204,14 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     }
   }
 
-  void _drawHead(Canvas canvas, double cx, double cy, double cs, Paint paint, Paint darkerPaint) {
+  void _drawHead(
+    Canvas canvas,
+    double cx,
+    double cy,
+    double cs,
+    Paint paint,
+    Paint darkerPaint,
+  ) {
     final radius = cs * 0.45;
 
     // Head body — circle
@@ -179,8 +236,8 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     }
 
     // Eyes
-    final eyePaint = Paint()..color = Colors.white;
-    final pupilPaint = Paint()..color = Colors.black;
+    final eyePaint = _eyePaint;
+    final pupilPaint = _pupilPaint;
     final eyeR = cs * 0.13;
     final pupilR = cs * 0.07;
 
@@ -188,25 +245,41 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     double px1, py1, px2, py2; // pupil offsets
     switch (_game.currentDirection) {
       case Direction.right:
-        e1x = cx + cs * 0.12; e1y = cy - cs * 0.14;
-        e2x = cx + cs * 0.12; e2y = cy + cs * 0.14;
-        px1 = e1x + cs * 0.04; py1 = e1y;
-        px2 = e2x + cs * 0.04; py2 = e2y;
+        e1x = cx + cs * 0.12;
+        e1y = cy - cs * 0.14;
+        e2x = cx + cs * 0.12;
+        e2y = cy + cs * 0.14;
+        px1 = e1x + cs * 0.04;
+        py1 = e1y;
+        px2 = e2x + cs * 0.04;
+        py2 = e2y;
       case Direction.left:
-        e1x = cx - cs * 0.12; e1y = cy - cs * 0.14;
-        e2x = cx - cs * 0.12; e2y = cy + cs * 0.14;
-        px1 = e1x - cs * 0.04; py1 = e1y;
-        px2 = e2x - cs * 0.04; py2 = e2y;
+        e1x = cx - cs * 0.12;
+        e1y = cy - cs * 0.14;
+        e2x = cx - cs * 0.12;
+        e2y = cy + cs * 0.14;
+        px1 = e1x - cs * 0.04;
+        py1 = e1y;
+        px2 = e2x - cs * 0.04;
+        py2 = e2y;
       case Direction.up:
-        e1x = cx - cs * 0.14; e1y = cy - cs * 0.12;
-        e2x = cx + cs * 0.14; e2y = cy - cs * 0.12;
-        px1 = e1x; py1 = e1y - cs * 0.04;
-        px2 = e2x; py2 = e2y - cs * 0.04;
+        e1x = cx - cs * 0.14;
+        e1y = cy - cs * 0.12;
+        e2x = cx + cs * 0.14;
+        e2y = cy - cs * 0.12;
+        px1 = e1x;
+        py1 = e1y - cs * 0.04;
+        px2 = e2x;
+        py2 = e2y - cs * 0.04;
       case Direction.down:
-        e1x = cx - cs * 0.14; e1y = cy + cs * 0.12;
-        e2x = cx + cs * 0.14; e2y = cy + cs * 0.12;
-        px1 = e1x; py1 = e1y + cs * 0.04;
-        px2 = e2x; py2 = e2y + cs * 0.04;
+        e1x = cx - cs * 0.14;
+        e1y = cy + cs * 0.12;
+        e2x = cx + cs * 0.14;
+        e2y = cy + cs * 0.12;
+        px1 = e1x;
+        py1 = e1y + cs * 0.04;
+        px2 = e2x;
+        py2 = e2y + cs * 0.04;
     }
 
     canvas.drawCircle(Offset(e1x, e1y), eyeR, eyePaint);
@@ -215,34 +288,51 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     canvas.drawCircle(Offset(px2, py2), pupilR, pupilPaint);
 
     // Tongue (small red flick in movement direction)
-    final tongPaint = Paint()
-      ..color = Colors.red.shade400
-      ..strokeWidth = cs * 0.04
-      ..strokeCap = StrokeCap.round;
+    final tongPaint = _tonguePaint..strokeWidth = cs * 0.04;
     double tx, ty, tx2a, ty2a, tx2b, ty2b;
     switch (_game.currentDirection) {
       case Direction.right:
-        tx = cx + cs * 0.45; ty = cy;
-        tx2a = tx + cs * 0.12; ty2a = ty - cs * 0.06;
-        tx2b = tx + cs * 0.12; ty2b = ty + cs * 0.06;
+        tx = cx + cs * 0.45;
+        ty = cy;
+        tx2a = tx + cs * 0.12;
+        ty2a = ty - cs * 0.06;
+        tx2b = tx + cs * 0.12;
+        ty2b = ty + cs * 0.06;
       case Direction.left:
-        tx = cx - cs * 0.45; ty = cy;
-        tx2a = tx - cs * 0.12; ty2a = ty - cs * 0.06;
-        tx2b = tx - cs * 0.12; ty2b = ty + cs * 0.06;
+        tx = cx - cs * 0.45;
+        ty = cy;
+        tx2a = tx - cs * 0.12;
+        ty2a = ty - cs * 0.06;
+        tx2b = tx - cs * 0.12;
+        ty2b = ty + cs * 0.06;
       case Direction.up:
-        tx = cx; ty = cy - cs * 0.45;
-        tx2a = tx - cs * 0.06; ty2a = ty - cs * 0.12;
-        tx2b = tx + cs * 0.06; ty2b = ty - cs * 0.12;
+        tx = cx;
+        ty = cy - cs * 0.45;
+        tx2a = tx - cs * 0.06;
+        ty2a = ty - cs * 0.12;
+        tx2b = tx + cs * 0.06;
+        ty2b = ty - cs * 0.12;
       case Direction.down:
-        tx = cx; ty = cy + cs * 0.45;
-        tx2a = tx - cs * 0.06; ty2a = ty + cs * 0.12;
-        tx2b = tx + cs * 0.06; ty2b = ty + cs * 0.12;
+        tx = cx;
+        ty = cy + cs * 0.45;
+        tx2a = tx - cs * 0.06;
+        ty2a = ty + cs * 0.12;
+        tx2b = tx + cs * 0.06;
+        ty2b = ty + cs * 0.12;
     }
     canvas.drawLine(Offset(tx, ty), Offset(tx2a, ty2a), tongPaint);
     canvas.drawLine(Offset(tx, ty), Offset(tx2b, ty2b), tongPaint);
   }
 
-  void _drawBody(Canvas canvas, int i, double cx, double cy, double cs, Paint paint, Paint darkerPaint) {
+  void _drawBody(
+    Canvas canvas,
+    int i,
+    double cx,
+    double cy,
+    double cs,
+    Paint paint,
+    Paint darkerPaint,
+  ) {
     final prev = segments[i - 1];
     final curr = segments[i];
     final next = segments[i + 1];
@@ -261,7 +351,11 @@ class Snake extends Component with HasGameReference<SnakeGame> {
       if (isHorizontal) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(cx, cy), width: cs, height: bodyWidth),
+            Rect.fromCenter(
+              center: Offset(cx, cy),
+              width: cs,
+              height: bodyWidth,
+            ),
             Radius.circular(cs * 0.08),
           ),
           paint,
@@ -269,7 +363,11 @@ class Snake extends Component with HasGameReference<SnakeGame> {
       } else {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(cx, cy), width: bodyWidth, height: cs),
+            Rect.fromCenter(
+              center: Offset(cx, cy),
+              width: bodyWidth,
+              height: cs,
+            ),
             Radius.circular(cs * 0.08),
           ),
           paint,
@@ -312,14 +410,21 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     canvas.drawCircle(Offset(cx, cy), cs * 0.12, darkerPaint);
   }
 
-  void _drawTail(Canvas canvas, int i, double cx, double cy, double cs, Paint paint) {
+  void _drawTail(
+    Canvas canvas,
+    int i,
+    double cx,
+    double cy,
+    double cs,
+    Paint paint,
+  ) {
     final prev = segments[i - 1];
     final curr = segments[i];
     final dx = prev.x - curr.x;
     final dy = prev.y - curr.y;
 
     // Tapered triangle pointing away from the previous segment
-    final path = Path();
+    final path = _tailPath..reset();
     final tipX = cx - dx * cs * 0.4;
     final tipY = cy - dy * cs * 0.4;
 

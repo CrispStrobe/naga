@@ -1,9 +1,11 @@
-import 'dart:typed_data';
+// Allocation-heavy reference after the tested behavior corrections, before
+// integer-buffer refactoring. Used to isolate optimization from policy changes.
+import 'dart:collection';
 import 'dart:math';
-import '../game/snake_game.dart' show Direction;
+import 'package:naga/game/snake_game.dart' show Direction;
+import 'package:naga/components/snake_ai.dart' show AiDifficulty;
 
 /// AI difficulty levels for computer-controlled snakes.
-enum AiDifficulty { easy, medium, hard, expert }
 
 /// A reusable AI brain that decides the next direction for a snake.
 ///
@@ -15,78 +17,14 @@ enum AiDifficulty { easy, medium, hard, expert }
 /// - **Expert** — BFS pathfinding, tail-reachability verification (Hawstein
 ///   technique), flood-fill space evaluation, opponent trapping. Falls back to
 ///   longest-path tail-following when no safe food path exists.
-class SnakeAI {
+class CorrectedSnakeAI {
   final AiDifficulty difficulty;
   final Random _random;
   int _width = 0;
   int _height = 0;
   bool _wallsKill = true;
-  late _GridMask _occupied;
-  late _GridMask _scratch;
-  Int32List _neighbors = Int32List(0);
-  Int32List _queue = Int32List(0);
-  Int32List _seen = Int32List(0);
-  Int32List _distance = Int32List(0);
-  Uint8List _first = Uint8List(0);
-  int _epoch = 0;
 
-  // All O(grid area) storage is owned by this brain and reused between searches.
-  // Direction.values order is deliberately preserved for stable BFS tie breaks.
-  void _prepare(int w, int h, bool wallsKill) {
-    if (w == _width && h == _height && wallsKill == _wallsKill) return;
-    _width = w;
-    _height = h;
-    _wallsKill = wallsKill;
-    final size = w * h;
-    _occupied = _GridMask(w, size);
-    _scratch = _GridMask(w, size);
-    _neighbors = Int32List(size * 4);
-    _queue = Int32List(size);
-    _seen = Int32List(size);
-    _distance = Int32List(size);
-    _first = Uint8List(size);
-    _epoch = 0;
-    for (var cell = 0; cell < size; cell++) {
-      final x = cell % w;
-      final y = cell ~/ w;
-      for (final d in Direction.values) {
-        final nx =
-            x +
-            (d == Direction.right
-                ? 1
-                : d == Direction.left
-                ? -1
-                : 0);
-        final ny =
-            y +
-            (d == Direction.down
-                ? 1
-                : d == Direction.up
-                ? -1
-                : 0);
-        _neighbors[cell * 4 +
-            d.index] = wallsKill && (nx < 0 || nx >= w || ny < 0 || ny >= h)
-            ? -1
-            : (ny % h) * w + nx % w;
-      }
-    }
-  }
-
-  int _beginSearch() {
-    // Keep the generation inside signed Int32 on both native and web runtimes.
-    if (_epoch == 0x7fffffff) {
-      _seen.fillRange(0, _seen.length, 0);
-      _epoch = 0;
-    }
-    return ++_epoch;
-  }
-
-  _GridMask _copyOccupied() {
-    _scratch.cells.setAll(0, _occupied.cells);
-    return _scratch;
-  }
-
-  SnakeAI({required this.difficulty, Random? random})
+  CorrectedSnakeAI({required this.difficulty, Random? random})
     : _random = random ?? Random();
 
   Direction decideDirection(
@@ -97,28 +35,9 @@ class SnakeAI {
     int gridHeight,
     bool wallsKill,
   ) {
-    if (gridWidth <= 0 || gridHeight <= 0 || snakeSegments.isEmpty) {
-      throw ArgumentError(
-        'SnakeAI requires a nonempty snake and positive grid',
-      );
-    }
-    // Easy performs no searches: do not clear or allocate a grid for three
-    // local collision probes (especially costly on large, mostly empty boards).
-    if (difficulty == AiDifficulty.easy) {
-      _width = gridWidth;
-      _height = gridHeight;
-      _wallsKill = wallsKill;
-      return _decideEasy(
-        snakeSegments,
-        otherSnakes,
-        food,
-        gridWidth,
-        gridHeight,
-        wallsKill,
-      );
-    }
-    _prepare(gridWidth, gridHeight, wallsKill);
-    _allOccupied(snakeSegments, otherSnakes);
+    _width = gridWidth;
+    _height = gridHeight;
+    _wallsKill = wallsKill;
     switch (difficulty) {
       case AiDifficulty.easy:
         return _decideEasy(
@@ -208,17 +127,31 @@ class SnakeAI {
     return p.x < 0 || p.x >= w || p.y < 0 || p.y >= h;
   }
 
-  _GridMask _allOccupied(List<Point<int>> self, List<List<Point<int>>> others) {
-    _occupied.cells.fillRange(0, _occupied.cells.length, 0);
-    for (final p in self) {
-      _occupied.add(p);
+  bool _hitsBody(Point<int> p, List<Point<int>> body) {
+    return body.any((s) => s.x == p.x && s.y == p.y);
+  }
+
+  bool _hitsAnySnake(Point<int> p, List<List<Point<int>>> snakes) {
+    for (final s in snakes) {
+      if (_hitsBody(p, s)) return true;
+    }
+    return false;
+  }
+
+  Set<Point<int>> _allOccupied(
+    List<Point<int>> self,
+    List<List<Point<int>>> others,
+  ) {
+    final set = <Point<int>>{};
+    for (final s in self) {
+      set.add(s);
     }
     for (final snake in others) {
-      for (final p in snake) {
-        _occupied.add(p);
+      for (final s in snake) {
+        set.add(s);
       }
     }
-    return _occupied;
+    return set;
   }
 
   List<Direction> _safeDirs(
@@ -235,14 +168,8 @@ class SnakeAI {
       if (_isOpposite(d, cur)) continue;
       final next = _move(head, d);
       if (wallsKill && _outOfBounds(next, w, h)) continue;
-      if (difficulty == AiDifficulty.easy) {
-        if (segments.contains(next) ||
-            others.any((snake) => snake.contains(next))) {
-          continue;
-        }
-      } else if (_occupied.contains(next)) {
-        continue;
-      }
+      if (_hitsBody(next, segments)) continue;
+      if (_hitsAnySnake(next, others)) continue;
       safe.add(d);
     }
     return safe;
@@ -270,89 +197,115 @@ class SnakeAI {
   // BFS — shortest path between two points avoiding obstacles
   // ---------------------------------------------------------------------------
 
+  /// Returns the first direction to take on the BFS shortest path from [start]
+  /// to [target], or null if unreachable. [blocked] cells are impassable.
   Direction? _bfsDirection(
     Point<int> start,
     Point<int> target,
-    _GridMask blocked,
+    Set<Point<int>> blocked,
     int w,
     int h,
   ) {
-    final distance = _search(start, target, blocked);
-    return distance <= 0
-        ? null
-        : Direction.values[_first[target.y * w + target.x]];
+    if (start.x == target.x && start.y == target.y) return null;
+    final visited = <int>{};
+    // Queue entries: (point, firstDirection)
+    final queue = Queue<_BfsNode>();
+
+    for (final d in Direction.values) {
+      final next = _move(start, d);
+      if (_outOfBounds(next, w, h)) continue;
+      if (blocked.contains(next)) continue;
+      if (next.x == target.x && next.y == target.y) return d;
+      queue.add(_BfsNode(next, d));
+      visited.add(next.x * 10000 + next.y);
+    }
+
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
+      for (final d in Direction.values) {
+        final next = _move(node.point, d);
+        if (_outOfBounds(next, w, h)) continue;
+        final key = next.x * 10000 + next.y;
+        if (visited.contains(key)) continue;
+        if (blocked.contains(next)) continue;
+        if (next.x == target.x && next.y == target.y) return node.firstDir;
+        visited.add(key);
+        queue.add(_BfsNode(next, node.firstDir));
+      }
+    }
+    return null; // unreachable
   }
 
+  /// Returns BFS distance from [start] to [target], or -1 if unreachable.
   int _bfsDistance(
     Point<int> start,
     Point<int> target,
-    _GridMask blocked,
+    Set<Point<int>> blocked,
     int w,
     int h,
-  ) => _search(start, target, blocked);
+  ) {
+    if (start.x == target.x && start.y == target.y) return 0;
+    final visited = <int>{};
+    final queue = Queue<_BfsDistNode>();
+    visited.add(start.x * 10000 + start.y);
+    queue.add(_BfsDistNode(start, 0));
 
-  bool _isReachable(
-    Point<int> start,
-    Point<int> target,
-    _GridMask blocked,
-    int w,
-    int h,
-  ) => _search(start, target, blocked) >= 0;
-
-  // Each cell enters the fixed-size FIFO at most once. No Point, node, Set,
-  // queue, or path objects are allocated while traversing the grid.
-  int _search(Point<int> start, Point<int> target, _GridMask blocked) {
-    if (_outOfBounds(start, _width, _height) ||
-        _outOfBounds(target, _width, _height)) {
-      return -1;
-    }
-    final origin = start.y * _width + start.x;
-    final goal = target.y * _width + target.x;
-    if (origin == goal) return 0;
-    final epoch = _beginSearch();
-    var read = 0;
-    var write = 1;
-    _queue[0] = origin;
-    _seen[origin] = epoch;
-    _distance[origin] = 0;
-    while (read < write) {
-      final cell = _queue[read++];
-      for (var d = 0; d < 4; d++) {
-        final next = _neighbors[cell * 4 + d];
-        if (next < 0 || _seen[next] == epoch || blocked.cells[next] != 0) {
-          continue;
-        }
-        _seen[next] = epoch;
-        _distance[next] = _distance[cell] + 1;
-        _first[next] = cell == origin ? d : _first[cell];
-        if (next == goal) return _distance[next];
-        _queue[write++] = next;
+    while (queue.isNotEmpty) {
+      final node = queue.removeFirst();
+      for (final d in Direction.values) {
+        final next = _move(node.point, d);
+        if (_outOfBounds(next, w, h)) continue;
+        final key = next.x * 10000 + next.y;
+        if (visited.contains(key)) continue;
+        if (blocked.contains(next)) continue;
+        if (next.x == target.x && next.y == target.y) return node.dist + 1;
+        visited.add(key);
+        queue.add(_BfsDistNode(next, node.dist + 1));
       }
     }
     return -1;
   }
 
-  int _floodFill(Point<int> start, _GridMask blocked, int w, int h) {
-    if (_outOfBounds(start, w, h)) return 0;
-    final origin = start.y * w + start.x;
-    if (blocked.cells[origin] != 0) return 0;
-    final epoch = _beginSearch();
-    var read = 0;
-    var write = 1;
-    _queue[0] = origin;
-    _seen[origin] = epoch;
-    while (read < write) {
-      final cell = _queue[read++];
-      for (var d = 0; d < 4; d++) {
-        final next = _neighbors[cell * 4 + d];
-        if (next < 0 || _seen[next] == epoch || blocked.cells[next] != 0) {
-          continue;
-        }
-        _seen[next] = epoch;
-        _queue[write++] = next;
-      }
+  /// Check if [target] is reachable from [start] via BFS.
+  bool _isReachable(
+    Point<int> start,
+    Point<int> target,
+    Set<Point<int>> blocked,
+    int w,
+    int h,
+  ) {
+    return _bfsDistance(start, target, blocked, w, h) >= 0;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Flood fill — count reachable cells (uncapped for Expert, capped for others)
+  // ---------------------------------------------------------------------------
+
+  int _floodFill(
+    Point<int> start,
+    Set<Point<int>> blocked,
+    int w,
+    int h, {
+    int cap = 999999,
+  }) {
+    final visited = <int>{};
+    final stack = <Point<int>>[start];
+    int count = 0;
+    while (stack.isNotEmpty) {
+      final p = stack.removeLast();
+      final key = p.x * 10000 + p.y;
+      if (visited.contains(key)) continue;
+      if (p.x < 0 || p.x >= w || p.y < 0 || p.y >= h) continue;
+      if (blocked.contains(p)) continue;
+      visited.add(key);
+      count++;
+      if (count >= cap) return count;
+      stack.add(Point(p.x + 1, p.y));
+      stack.add(Point(p.x - 1, p.y));
+      stack.add(Point(p.x, p.y + 1));
+      stack.add(Point(p.x, p.y - 1));
     }
-    return write;
+    return count;
   }
 
   // ---------------------------------------------------------------------------
@@ -398,7 +351,7 @@ class SnakeAI {
     if (safe.isEmpty) return cur;
 
     // BFS to nearest food
-    final blocked = _occupied;
+    final blocked = _allOccupied(segments, others);
     blocked.remove(head);
     final target = _nearestFood(head, food);
     if (target != null) {
@@ -434,7 +387,7 @@ class SnakeAI {
     final safe = _safeDirs(segments, others, w, h, wallsKill);
     if (safe.isEmpty) return cur;
 
-    final occupied = _occupied;
+    final occupied = _allOccupied(segments, others);
     occupied.remove(head);
 
     int bestScore = -999999;
@@ -512,7 +465,7 @@ class SnakeAI {
     final safe = _safeDirs(segments, others, w, h, wallsKill);
     if (safe.isEmpty) return cur;
 
-    final occupied = _occupied;
+    final occupied = _allOccupied(segments, others);
     occupied.remove(head);
 
     // --- Strategy 1: Try BFS to food with tail-reachability check ---
@@ -522,7 +475,7 @@ class SnakeAI {
       if (foodDir != null && safe.contains(foodDir)) {
         // Simulate taking this step: head moves to next, tail pops
         final next = _move(head, foodDir);
-        final simOccupied = _copyOccupied();
+        final simOccupied = Set<Point<int>>.from(occupied);
         simOccupied.add(head);
         simOccupied.add(next);
         // After moving, tail cell becomes free (unless we eat food)
@@ -547,7 +500,7 @@ class SnakeAI {
 
     // --- Strategy 2: Follow own tail (longest path / buy time) ---
     // Try to move toward tail while maximizing available space
-    final tailBlocked = _copyOccupied()..remove(tail);
+    final tailBlocked = Set<Point<int>>.from(occupied)..remove(tail);
     final tailDir = _bfsDirection(head, tail, tailBlocked, w, h);
 
     // --- Strategy 3: Score all safe directions ---
@@ -559,7 +512,7 @@ class SnakeAI {
       double score = 0;
 
       // Flood fill: available space (uncapped)
-      final ffBlocked = _copyOccupied();
+      final ffBlocked = Set<Point<int>>.from(occupied);
       ffBlocked.add(head);
       final willEat = food.contains(next);
       if (!willEat) ffBlocked.remove(tail);
@@ -628,31 +581,14 @@ class SnakeAI {
   }
 }
 
-// Point conversion is confined to the decision boundary, never the searches.
-class _GridMask {
-  final int width;
-  final Uint8List cells;
-  _GridMask(this.width, int size) : cells = Uint8List(size);
+class _BfsNode {
+  final Point<int> point;
+  final Direction firstDir;
+  _BfsNode(this.point, this.firstDir);
+}
 
-  int _index(Point<int> p) {
-    if (p.x < 0 || p.x >= width || p.y < 0 || p.y >= cells.length ~/ width) {
-      return -1;
-    }
-    return p.y * width + p.x;
-  }
-
-  bool contains(Point<int> p) {
-    final index = _index(p);
-    return index >= 0 && cells[index] != 0;
-  }
-
-  void add(Point<int> p) {
-    final index = _index(p);
-    if (index >= 0) cells[index] = 1;
-  }
-
-  void remove(Point<int> p) {
-    final index = _index(p);
-    if (index >= 0) cells[index] = 0;
-  }
+class _BfsDistNode {
+  final Point<int> point;
+  final int dist;
+  _BfsDistNode(this.point, this.dist);
 }

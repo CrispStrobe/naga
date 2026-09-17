@@ -1,5 +1,7 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -19,10 +21,10 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   late List<Ghost> ghosts;
 
   // Snake state — fixed length, does NOT grow on dots
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody([]);
   static const int _snakeLength = 4;
   Direction currentDirection = Direction.right;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
 
   GameState gameState = GameState.playing;
@@ -92,7 +94,7 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   void respawn() {
     // Reset snake position, keep score
     if (maze.ghostStarts.isNotEmpty) {
-      snakeSegments = [maze.snakeStart];
+      snakeSegments = GridSnakeBody([maze.snakeStart]);
       for (int i = 1; i < _snakeLength; i++) {
         snakeSegments.add(Point(maze.snakeStart.x - i, maze.snakeStart.y));
       }
@@ -118,7 +120,7 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
 
     maze.onLoad().then((_) {
       // Snake starts at maze start, fixed length
-      snakeSegments = [maze.snakeStart];
+      snakeSegments = GridSnakeBody([maze.snakeStart]);
       for (int i = 1; i < _snakeLength; i++) {
         snakeSegments.add(Point(maze.snakeStart.x - i, maze.snakeStart.y));
       }
@@ -185,23 +187,12 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   }
 
   void _tick() {
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
 
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, currentDirection);
 
     // Wall — just block, don't die
     if (maze.isWall(newHead.x, newHead.y)) {
@@ -285,23 +276,13 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   }
 
   bool _snakeOccupies(Point<int> pos) {
-    return snakeSegments.any((s) => s.x == pos.x && s.y == pos.y);
+    return snakeSegments.contains(pos);
   }
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-
-    if (dir == lastDir) return;
-
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
   }
 
