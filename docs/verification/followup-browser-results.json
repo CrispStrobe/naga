@@ -1,0 +1,483 @@
+{
+  "final-desktop": {
+    "expected": 20,
+    "passed": 20,
+    "results": [
+      {
+        "mode": "Classic",
+        "index": 0,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Classic",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Arcade",
+        "index": 1,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Arcade",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Zen",
+        "index": 2,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Zen",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Maze Hunter",
+        "index": 3,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Maze Hunter",
+        "pauseResume": true,
+        "finalText": "SCORE: 40\nHIGH SCORE: 40\nPLAY AGAIN\nBACK TO MENU"
+      },
+      {
+        "mode": "Trail",
+        "index": 4,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 3",
+        "verifiedMode": "Trail",
+        "pauseResume": true,
+        "finalText": "SCORE: 12"
+      },
+      {
+        "mode": "Fangs",
+        "index": 5,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Fangs",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Venom",
+        "index": 6,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Venom",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Pit",
+        "index": 7,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Pit",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Swarm",
+        "index": 8,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Swarm",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Rush",
+        "index": 9,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Rush",
+        "pauseResume": true,
+        "finalText": "SCORE: 10\nHIGH SCORE: 10\nPLAY AGAIN\nBACK TO MENU"
+      },
+      {
+        "mode": "Snake II",
+        "index": 10,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Snake II",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "ASCII",
+        "index": 11,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "ASCII",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "CGA",
+        "index": 12,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "CGA",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Nibbles",
+        "index": 13,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Nibbles",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Stampede",
+        "index": 14,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Stampede",
+        "pauseResume": true,
+        "finalText": "SCORE: 3"
+      },
+      {
+        "mode": "Naga Dive",
+        "index": 15,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Naga Dive",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Dungeon",
+        "index": 16,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Dungeon",
+        "pauseResume": true,
+        "finalText": "SCORE: 50"
+      },
+      {
+        "mode": "Duel",
+        "index": 17,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Duel",
+        "pauseResume": true,
+        "finalText": "SCORE: 0\nPLAY AGAIN\nBACK TO MENU"
+      },
+      {
+        "mode": "VS AI",
+        "index": 18,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "VS AI",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "VS AI Split",
+        "index": 19,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "VS AI Split",
+        "pauseResume": true,
+        "finalText": "SCORE: 0\nPLAY AGAIN\nBACK TO MENU"
+      }
+    ]
+  },
+  "final-narrow": {
+    "expected": 20,
+    "passed": 20,
+    "results": [
+      {
+        "mode": "Classic",
+        "index": 0,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Classic",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Arcade",
+        "index": 1,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Arcade",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Zen",
+        "index": 2,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Zen",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Maze Hunter",
+        "index": 3,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Maze Hunter",
+        "pauseResume": true,
+        "finalText": "SCORE: 40\nHIGH SCORE: 40\nPLAY AGAIN\nBACK TO MENU"
+      },
+      {
+        "mode": "Trail",
+        "index": 4,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 3",
+        "verifiedMode": "Trail",
+        "pauseResume": true,
+        "finalText": "SCORE: 11"
+      },
+      {
+        "mode": "Fangs",
+        "index": 5,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Fangs",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Venom",
+        "index": 6,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Venom",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Pit",
+        "index": 7,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Pit",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Swarm",
+        "index": 8,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Swarm",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Rush",
+        "index": 9,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Rush",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Snake II",
+        "index": 10,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Snake II",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "ASCII",
+        "index": 11,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "ASCII",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "CGA",
+        "index": 12,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "CGA",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Nibbles",
+        "index": 13,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Nibbles",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Stampede",
+        "index": 14,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Stampede",
+        "pauseResume": true,
+        "finalText": "SCORE: 3"
+      },
+      {
+        "mode": "Naga Dive",
+        "index": 15,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Naga Dive",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "Dungeon",
+        "index": 16,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Dungeon",
+        "pauseResume": true,
+        "finalText": "SCORE: 10"
+      },
+      {
+        "mode": "Duel",
+        "index": 17,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "Duel",
+        "pauseResume": true,
+        "finalText": "SCORE: 0\nPLAY AGAIN\nBACK TO MENU"
+      },
+      {
+        "mode": "VS AI",
+        "index": 18,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "VS AI",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      },
+      {
+        "mode": "VS AI Split",
+        "index": 19,
+        "ok": true,
+        "errors": [],
+        "launchedText": "SCORE: 0",
+        "verifiedMode": "VS AI Split",
+        "pauseResume": true,
+        "finalText": "SCORE: 0"
+      }
+    ]
+  },
+  "final-lifecycle": {
+    "expected": 5,
+    "passed": 5,
+    "results": [
+      {
+        "name": "classic-death-restart-menu",
+        "ok": true,
+        "errors": [],
+        "evidence": {
+          "score": 0,
+          "restartedScore": 0,
+          "deaths": 2,
+          "menu": true
+        }
+      },
+      {
+        "name": "settings-reload-lives-and-restart",
+        "ok": true,
+        "errors": [],
+        "evidence": {
+          "persisted": {
+            "flutter.control_type": "1",
+            "flutter.lives": "1",
+            "flutter.start_speed": "1",
+            "flutter.grid_size": "0"
+          },
+          "lives": [
+            1,
+            0,
+            1
+          ],
+          "score": 0,
+          "restartedScore": 0
+        }
+      },
+      {
+        "name": "duel-w",
+        "ok": true,
+        "errors": [],
+        "evidence": {
+          "key": "w",
+          "winner": "Player 2 Wins!",
+          "score": 0
+        }
+      },
+      {
+        "name": "duel-arrowdown",
+        "ok": true,
+        "errors": [],
+        "evidence": {
+          "key": "ArrowDown",
+          "winner": "Player 1 Wins!",
+          "score": 0
+        }
+      },
+      {
+        "name": "touch-tap-pause-and-swipe-duel",
+        "ok": true,
+        "errors": [],
+        "evidence": {
+          "touchEvents": true,
+          "pauseSurvivedMs": 1200,
+          "swipe": "up",
+          "winner": "Player 1 Wins!",
+          "menuTap": true
+        }
+      }
+    ]
+  }
+}
