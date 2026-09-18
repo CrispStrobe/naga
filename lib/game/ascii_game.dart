@@ -262,7 +262,7 @@ class AsciiGame extends FlameGame with KeyboardEvents {
         style: TextStyle(
           color: color,
           fontSize: fontSize,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -286,7 +286,7 @@ class AsciiGame extends FlameGame with KeyboardEvents {
         style: TextStyle(
           color: mode.scoreColor,
           fontSize: 12,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
         ),
       ),

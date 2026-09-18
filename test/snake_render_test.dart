@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io' show Platform, zlib;
+import 'dart:io' show File, zlib;
+import 'package:flutter/services.dart';
 import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -158,18 +158,49 @@ const _body = [Point(7, 6), Point(6, 6), Point(5, 6), Point(5, 7), Point(5, 8)];
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    final loader = FontLoader('NagaMono')
+      ..addFont(
+        Future.value(
+          ByteData.sublistView(
+            File('assets/fonts/JetBrainsMono-Regular.ttf').readAsBytesSync(),
+          ),
+        ),
+      )
+      ..addFont(
+        Future.value(
+          ByteData.sublistView(
+            File('assets/fonts/JetBrainsMono-Bold.ttf').readAsBytesSync(),
+          ),
+        ),
+      );
+    await loader.load();
+  });
   test('pre-optimization rasters: classic, modern and retro renderers', () async {
     final captured = <String, String>{};
+    const update = bool.fromEnvironment('UPDATE_MONO_RASTERS');
+    final monoFile = File('test/fixtures/mono_rasters.json');
+    final mono = monoFile.existsSync()
+        ? Map<String, String>.from(
+            jsonDecode(monoFile.readAsStringSync()) as Map,
+          )
+        : <String, String>{};
     Future<void> check(String key, void Function(ui.Canvas) render) async {
       final bytes = await _raster(render);
       captured[key] = base64Encode(zlib.encode(bytes));
       expect(_baselines, contains(key));
-      if (Platform.isMacOS) {
-        // Byte-exact baselines were captured with the macOS software
-        // rasterizer; Linux/Windows engines rasterize text subtly differently.
+      final isMono =
+          key.startsWith('ASCII-') ||
+          key.startsWith('CGA-') ||
+          key.startsWith('Nibbles-');
+      if (isMono && update) {
+        mono[key] = captured[key]!;
+      } else {
         expect(
           bytes,
-          orderedEquals(zlib.decode(base64Decode(_baselines[key]!))),
+          orderedEquals(
+            zlib.decode(base64Decode(isMono ? mono[key]! : _baselines[key]!)),
+          ),
           reason: key,
         );
       }
@@ -275,5 +306,12 @@ void main() {
       game.onRemove();
     }
     expect(captured.keys.toSet(), _baselines.keys.toSet());
+    expect(mono.length, 15);
+    if (update) {
+      monoFile.parent.createSync(recursive: true);
+      monoFile.writeAsStringSync(
+        '${const JsonEncoder.withIndent('  ').convert(mono)}\n',
+      );
+    }
   });
 }

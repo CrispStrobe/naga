@@ -297,7 +297,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
         style: TextStyle(
           color: mode.foodColor,
           fontSize: fontSize,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -323,7 +323,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
         style: TextStyle(
           color: mode.statusTextColor,
           fontSize: cs * 0.7,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -342,7 +342,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
         style: TextStyle(
           color: mode.statusTextColor,
           fontSize: cs * 0.7,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
         ),
       ),

@@ -276,7 +276,7 @@ class CgaGame extends FlameGame with KeyboardEvents {
         style: TextStyle(
           color: mode.scoreColor,
           fontSize: 14,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
           letterSpacing: 2,
         ),
