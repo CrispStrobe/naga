@@ -185,6 +185,37 @@ void main() {
             jsonDecode(monoFile.readAsStringSync()) as Map,
           )
         : <String, String>{};
+    (List<int>, int) fingerprint(List<int> rgba) {
+      final colors = <int>{};
+      var ink = 0;
+      for (var i = 0; i < rgba.length; i += 4) {
+        final a = rgba[i + 3];
+        if (a >= 250) {
+          colors.add(
+            (rgba[i] << 24) | (rgba[i + 1] << 16) | (rgba[i + 2] << 8) | a,
+          );
+        }
+        if (a >= 128) ink++;
+      }
+      return (colors.toList()..sort(), ink);
+    }
+
+    void checkMono(String key, List<int> bytes, List<int> reference) {
+      expect(bytes.length, reference.length, reason: '$key dimensions');
+      final (colors, ink) = fingerprint(bytes);
+      final (referenceColors, referenceInk) = fingerprint(reference);
+      expect(
+        colors,
+        orderedEquals(referenceColors),
+        reason: '$key solid colors',
+      );
+      expect(
+        (ink - referenceInk).abs(),
+        lessThanOrEqualTo(max(4, (referenceInk * 0.005).ceil())),
+        reason: '$key ink coverage $ink vs $referenceInk',
+      );
+    }
+
     Future<void> check(String key, void Function(ui.Canvas) render) async {
       final bytes = await _raster(render);
       captured[key] = base64Encode(zlib.encode(bytes));
@@ -195,12 +226,17 @@ void main() {
           key.startsWith('Nibbles-');
       if (isMono && update) {
         mono[key] = captured[key]!;
+      } else if (isMono) {
+        // Glyph antialiasing is resolved by the host rasterizer, so the
+        // text-bearing renderers are compared structurally and stay stable
+        // across macOS, Linux and engine builds: exact frame dimensions,
+        // exact set of solid colors, and ink coverage within a small
+        // tolerance. Shape-only renderers below remain byte-exact.
+        checkMono(key, bytes, zlib.decode(base64Decode(mono[key]!)));
       } else {
         expect(
           bytes,
-          orderedEquals(
-            zlib.decode(base64Decode(isMono ? mono[key]! : _baselines[key]!)),
-          ),
+          orderedEquals(zlib.decode(base64Decode(_baselines[key]!))),
           reason: key,
         );
       }
