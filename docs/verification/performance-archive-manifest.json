@@ -1,0 +1,44 @@
+[
+  {
+    "file": "performance-baseline-complete.json.gz",
+    "sha256_uncompressed": "eb0334af0a851b3c9cb3d99e2f31e31b8dd2cd4a20df3551784f17663c74f767",
+    "original_bytes": 788619,
+    "compressed_bytes": 84955
+  },
+  {
+    "file": "performance-baseline.json.gz",
+    "sha256_uncompressed": "e24365d3ef3b900e37ea1f8c6b81afcb7fa4cbb20858760edab82fb01a0d69a9",
+    "original_bytes": 406183,
+    "compressed_bytes": 45974
+  },
+  {
+    "file": "performance-classic-check.json.gz",
+    "sha256_uncompressed": "4fd04188d5e7b12974c23dff0e33fccd9e788163ab7630e5ae03bf5f3b9e4d47",
+    "original_bytes": 78491,
+    "compressed_bytes": 12437
+  },
+  {
+    "file": "performance-final.json.gz",
+    "sha256_uncompressed": "a6d3ba1c09ba2adbd3c405a0aff070145e6530828625c880dc966dea625a3e3d",
+    "original_bytes": 780708,
+    "compressed_bytes": 83671
+  },
+  {
+    "file": "performance-pilot.json.gz",
+    "sha256_uncompressed": "c1894d77027b504d409414f9ba4fb4de555339f92f211743beb8545c798cc85a",
+    "original_bytes": 49705,
+    "compressed_bytes": 7718
+  },
+  {
+    "file": "performance-readiness-check.json.gz",
+    "sha256_uncompressed": "2d55d7c575e59bb5d020e865bb96a622afffe7a2f4b6ad194e14c4ff5f7ff54a",
+    "original_bytes": 26471,
+    "compressed_bytes": 7072
+  },
+  {
+    "file": "performance-throttle-check.json.gz",
+    "sha256_uncompressed": "7a44730c9402da30f608620b5396c6d75bba8689ff65acb227673c01077c84ce",
+    "original_bytes": 78452,
+    "compressed_bytes": 12519
+  }
+]

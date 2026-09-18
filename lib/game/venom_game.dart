@@ -1,5 +1,7 @@
 import 'dart:collection';
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +32,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
   late Vector2 boardOffset;
 
   // Snake
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody([]);
   int targetLength = startLength;
   Direction currentDirection = Direction.right;
   final Queue<Direction> _directionQueue = Queue<Direction>();
@@ -167,11 +169,11 @@ class VenomGame extends FlameGame with KeyboardEvents {
     // Snake starting position — bottom-left area
     final startX = 1;
     final startY = gridHeight - 2;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX + 2, startY),
       Point(startX + 1, startY),
       Point(startX, startY),
-    ];
+    ]);
     currentDirection = Direction.right;
     _directionQueue.clear();
 
@@ -293,16 +295,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
   }
 
   Point<int> _neighbor(Point<int> from, Direction dir) {
-    switch (dir) {
-      case Direction.up:
-        return Point(from.x, from.y - 1);
-      case Direction.down:
-        return Point(from.x, from.y + 1);
-      case Direction.left:
-        return Point(from.x - 1, from.y);
-      case Direction.right:
-        return Point(from.x + 1, from.y);
-    }
+    return gridStep(from, dir);
   }
 
   bool _cellFree(Point<int> p) =>
@@ -333,11 +326,11 @@ class VenomGame extends FlameGame with KeyboardEvents {
 
     // Blocked by own body (e.g. wedged in a dead end after a blocked turn):
     // turn around — head becomes tail — so the snake can always back out
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
-      final flipped = snakeSegments.reversed.toList();
+    if (snakeSegments.contains(newHead)) {
+      final flipped = GridSnakeBody(snakeSegments.reversed);
       final flippedHead = _neighbor(flipped.first, currentDirection);
       if (!_cellFree(flippedHead) ||
-          flipped.any((s) => s.x == flippedHead.x && s.y == flippedHead.y)) {
+          flipped.contains(flippedHead)) {
         return; // truly stuck this tick
       }
       snakeSegments = flipped;
@@ -561,7 +554,7 @@ class VenomGame extends FlameGame with KeyboardEvents {
         (dir == Direction.right && lastDir == Direction.left);
     if (isOpposite) {
       // Turn around: head becomes tail, so dead ends are always escapable
-      snakeSegments = snakeSegments.reversed.toList();
+      snakeSegments = GridSnakeBody(snakeSegments.reversed);
       currentDirection = dir;
       _directionQueue.clear();
       return;

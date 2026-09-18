@@ -1,10 +1,13 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'dart:typed_data';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../components/snake_ai.dart' show AiDifficulty;
+import '../modes/ai_difficulty.dart' show AiDifficulty;
 import '../modes/vs_ai_mode.dart';
 import 'snake_game.dart' show Direction, GameState;
 
@@ -39,15 +42,15 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   int score = 0;
   double _tickTimer = 0;
   double _foodPulse = 0;
-  final Random _random = Random();
+  final Random _random;
 
   /// True when the player won (all AI dead).
   bool playerWon = false;
 
   // Player
-  List<Point<int>> playerSegments = [];
+  List<Point<int>> playerSegments = GridSnakeBody([]);
   Direction currentDirection = Direction.right;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
 
   // AI opponents
@@ -72,11 +75,38 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     this.splitArena = false,
     int? gridWidth,
     int? gridHeight,
+    Random? random,
   })  : gridWidth = gridWidth ?? (splitArena ? 21 : 20),
-        gridHeight = gridHeight ?? 28;
+        gridHeight = gridHeight ?? 28,
+        _random = random ?? Random();
+
+  /// Detached state for deterministic runtime regression tests and benchmarks.
+  @visibleForTesting
+  Map<String, Object?> debugSnapshot() {
+    List<List<int>> cells(Iterable<Point<int>> body) =>
+        [for (final p in body) [p.x, p.y]];
+    return {
+      'player': cells(playerSegments),
+      'direction': currentDirection.name,
+      'queue': [for (final d in _directionQueue) d.name],
+      'food': [_foodPos.x, _foodPos.y],
+      'aiFood': _aiFoodPos == null ? null : [_aiFoodPos!.x, _aiFoodPos!.y],
+      'ai': [for (final ai in _aiOpponents) {
+        'body': cells(ai.segments), 'direction': ai.direction.name,
+        'score': ai.score,
+      }],
+      'fallen': [for (final entry in _fallenAiScores) entry.$2],
+      'score': score, 'state': gameState.name, 'won': playerWon,
+    };
+  }
 
   /// Column occupied by the divider wall (split arena only).
   int get _dividerX => gridWidth ~/ 2;
+
+  // Reused across candidates, opponents and ticks. Decisions see one immutable
+  // occupancy snapshot; movement below still uses the sequential live bodies.
+  late final _AiSearchGrid _search =
+      _AiSearchGrid(gridWidth, gridHeight, splitArena);
 
   // ------------------------------------------------------------------
   // Lifecycle
@@ -114,11 +144,11 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     // Player starts centre-left (of its half in split mode)
     final px = splitArena ? _dividerX ~/ 2 : gridWidth ~/ 4;
     final py = gridHeight ~/ 2;
-    playerSegments = [
+    playerSegments = GridSnakeBody([
       Point(px, py),
       Point(px - 1, py),
       Point(px - 2, py),
-    ];
+    ]);
 
     // Spawn AI opponents at different positions
     final List<(Point<int>, Direction)> spawnConfigs;
@@ -150,11 +180,11 @@ class VsAiGame extends FlameGame with KeyboardEvents {
           ? 1
           : (dir == Direction.down ? -1 : 0);
       _aiOpponents.add(_AiOpponent(
-        segments: [
+        segments: GridSnakeBody([
           pos,
           Point(pos.x + dx, pos.y + dy),
           Point(pos.x + dx * 2, pos.y + dy * 2),
-        ],
+        ]),
         direction: dir,
         color: VsAiMode.aiColors[i],
       ));
@@ -199,9 +229,9 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   }
 
   bool _isOccupied(Point<int> p) {
-    if (playerSegments.any((s) => s.x == p.x && s.y == p.y)) return true;
+    if (playerSegments.contains(p)) return true;
     for (final ai in _aiOpponents) {
-      if (ai.segments.any((s) => s.x == p.x && s.y == p.y)) return true;
+      if (ai.segments.contains(p)) return true;
     }
     return false;
   }
@@ -211,13 +241,9 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   // ------------------------------------------------------------------
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-    if (_isOpposite(dir, lastDir)) return;
-    if (dir == lastDir) return;
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
     _maybeEarlyTick();
   }
@@ -305,17 +331,18 @@ class VsAiGame extends FlameGame with KeyboardEvents {
         _directionQueue.isNotEmpty ? _directionQueue.first : currentDirection;
     final playerNext = _advance(playerSegments.first, upcomingDir);
 
-    final allOccupied = <Point<int>>{
-      ...playerSegments,
-      for (final ai in _aiOpponents) ...ai.segments,
-    };
+    _search.clearOccupancy();
+    _search.occupy(playerSegments);
+    for (final ai in _aiOpponents) {
+      _search.occupy(ai.segments);
+    }
 
     // Baseline of the player's reachable space (for offensive squeeze moves).
     int basePlayerSpace = 0;
     if (!splitArena) {
-      final blocked = Set<Point<int>>.from(allOccupied)
-        ..remove(playerSegments.last);
-      basePlayerSpace = _floodFill(playerNext, blocked);
+      basePlayerSpace = _search.floodFill(
+        playerNext, free: playerSegments.last,
+      );
     }
 
     for (final ai in _aiOpponents) {
@@ -323,7 +350,6 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       final chosen = _decideAiDirection(
         ai,
         food,
-        allOccupied,
         playerNext,
         upcomingDir,
         basePlayerSpace,
@@ -334,9 +360,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     }
 
     // --- Player movement ---
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
     final playerHead = _advance(playerSegments.first, currentDirection);
 
     // Player death checks
@@ -344,12 +368,12 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       _playerDies();
       return;
     }
-    if (playerSegments.any((s) => s.x == playerHead.x && s.y == playerHead.y)) {
+    if (playerSegments.contains(playerHead)) {
       _playerDies();
       return;
     }
     for (final ai in _aiOpponents) {
-      if (ai.segments.any((s) => s.x == playerHead.x && s.y == playerHead.y)) {
+      if (ai.segments.contains(playerHead)) {
         _playerDies();
         return;
       }
@@ -375,11 +399,11 @@ class VsAiGame extends FlameGame with KeyboardEvents {
         deadAi.add(ai);
         continue;
       }
-      if (ai.segments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+      if (ai.segments.contains(newHead)) {
         deadAi.add(ai);
         continue;
       }
-      if (playerSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+      if (playerSegments.contains(newHead)) {
         deadAi.add(ai);
         continue;
       }
@@ -392,7 +416,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       bool hitOther = false;
       for (final other in _aiOpponents) {
         if (other == ai) continue;
-        if (other.segments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+        if (other.segments.contains(newHead)) {
           hitOther = true;
           break;
         }
@@ -439,16 +463,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   }
 
   Point<int> _advance(Point<int> head, Direction dir) {
-    switch (dir) {
-      case Direction.up:
-        return Point(head.x, head.y - 1);
-      case Direction.down:
-        return Point(head.x, head.y + 1);
-      case Direction.left:
-        return Point(head.x - 1, head.y);
-      case Direction.right:
-        return Point(head.x + 1, head.y);
-    }
+    return gridStep(head, dir);
   }
 
   /// True if [p] is outside the grid or on the divider wall (split arena).
@@ -502,7 +517,6 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   Direction _decideAiDirection(
     _AiOpponent ai,
     Point<int>? food,
-    Set<Point<int>> allOccupied,
     Point<int> playerNext,
     Direction playerDir,
     int basePlayerSpace,
@@ -522,15 +536,13 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       final next = _advance(head, d);
 
       // Instantly lethal moves are never taken.
-      if (_isWall(next) || allOccupied.contains(next)) continue;
+      if (_isWall(next) || _search.isOccupied(next)) continue;
 
       double score = 0;
 
       // --- Survival: flood-fill reachable space from the candidate cell.
       // Own tail moves away next tick, so treat it as free.
-      final blocked = Set<Point<int>>.from(allOccupied)
-        ..remove(ai.segments.last);
-      final space = _floodFill(next, blocked);
+      final space = _search.floodFill(next, free: ai.segments.last);
       score += min(space, 80) * 3.0;
       if (space < ownLength + 2) {
         // Pocket smaller than own body — near-certain death.
@@ -552,7 +564,7 @@ class VsAiGame extends FlameGame with KeyboardEvents {
 
       // --- Base drive: seek food via BFS distance.
       if (food != null) {
-        final dist = _bfsDistance(next, food, blocked);
+        final dist = _search.distance(next, food, free: ai.segments.last);
         if (dist >= 0) {
           score += (100 - dist * 3).clamp(0, 100).toDouble();
         } else {
@@ -568,10 +580,9 @@ class VsAiGame extends FlameGame with KeyboardEvents {
           space >= ownLength + 6 &&
           next != playerNext) {
         if (basePlayerSpace > 0) {
-          final pBlocked = Set<Point<int>>.from(allOccupied)
-            ..remove(playerSegments.last)
-            ..add(next);
-          final pSpace = _floodFill(playerNext, pBlocked);
+          final pSpace = _search.floodFill(
+            playerNext, free: playerSegments.last, extra: next,
+          );
           final squeeze = (basePlayerSpace - pSpace).toDouble();
           if (squeeze > 0) {
             score += _offenseWeight * min(squeeze, 40) * 4;
@@ -609,52 +620,6 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       if (i >= 1 && probe.x == cell.x && probe.y == cell.y) return true;
     }
     return false;
-  }
-
-  /// Count of free cells reachable from [start] ([blocked] and walls are
-  /// impassable). Capped — the grid is small, this runs per candidate
-  /// direction per tick.
-  int _floodFill(Point<int> start, Set<Point<int>> blocked, {int cap = 300}) {
-    if (_isWall(start) || blocked.contains(start)) return 0;
-    final visited = <int>{};
-    final stack = <Point<int>>[start];
-    int count = 0;
-    while (stack.isNotEmpty) {
-      final p = stack.removeLast();
-      final key = p.x * 1000 + p.y;
-      if (visited.contains(key)) continue;
-      if (_isWall(p) || blocked.contains(p)) continue;
-      visited.add(key);
-      count++;
-      if (count >= cap) return count;
-      stack.add(Point(p.x + 1, p.y));
-      stack.add(Point(p.x - 1, p.y));
-      stack.add(Point(p.x, p.y + 1));
-      stack.add(Point(p.x, p.y - 1));
-    }
-    return count;
-  }
-
-  /// BFS shortest-path distance from [start] to [target], or -1 if
-  /// unreachable. Walls (incl. the divider) and [blocked] are impassable.
-  int _bfsDistance(
-      Point<int> start, Point<int> target, Set<Point<int>> blocked) {
-    if (start.x == target.x && start.y == target.y) return 0;
-    final visited = <int>{start.x * 1000 + start.y};
-    final queue = Queue<(Point<int>, int)>()..add((start, 0));
-    while (queue.isNotEmpty) {
-      final (p, dist) = queue.removeFirst();
-      for (final d in Direction.values) {
-        final next = _advance(p, d);
-        if (_isWall(next) || blocked.contains(next)) continue;
-        if (next.x == target.x && next.y == target.y) return dist + 1;
-        final key = next.x * 1000 + next.y;
-        if (visited.contains(key)) continue;
-        visited.add(key);
-        queue.add((next, dist + 1));
-      }
-    }
-    return -1;
   }
 
   // ------------------------------------------------------------------
@@ -1065,6 +1030,121 @@ class VsAiGame extends FlameGame with KeyboardEvents {
       radius * 0.3,
       highlightPaint,
     );
+  }
+}
+
+/// Allocation-free searches over the decision-time board. A padded wall border
+/// makes neighbor lookup safe without allocating Points or checking coordinates
+/// in the inner loop. Each cell is enqueued at most once per search.
+class _AiSearchGrid {
+  final int width;
+  final int height;
+  final int stride;
+  final Uint8List _walls;
+  final Uint8List _occupied;
+  final Uint32List _visited;
+  final Int32List _queue;
+  final Int32List _distance;
+  late final List<int> _offsets = [-stride, stride, -1, 1];
+  int _epoch = 0;
+
+  _AiSearchGrid(this.width, this.height, bool split)
+      : stride = width + 2,
+        _walls = Uint8List((width + 2) * (height + 2)),
+        _occupied = Uint8List((width + 2) * (height + 2)),
+        _visited = Uint32List((width + 2) * (height + 2)),
+        _queue = Int32List((width + 2) * (height + 2)),
+        _distance = Int32List((width + 2) * (height + 2)) {
+    _walls.fillRange(0, _walls.length, 1);
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        if (!split || x != width ~/ 2) _walls[(y + 1) * stride + x + 1] = 0;
+      }
+    }
+  }
+
+  int _cell(Point<int> p) =>
+      p.x < 0 || p.x >= width || p.y < 0 || p.y >= height
+          ? 0 // guaranteed sentinel wall
+          : (p.y + 1) * stride + p.x + 1;
+
+  void clearOccupancy() => _occupied.fillRange(0, _occupied.length, 0);
+
+  void occupy(Iterable<Point<int>> body) {
+    for (final cell in body) {
+      _occupied[_cell(cell)] = 1;
+    }
+  }
+
+  bool isOccupied(Point<int> p) => _occupied[_cell(p)] != 0;
+
+  int _nextEpoch() {
+    // Keep stamps valid on both the VM and JS typed arrays after long sessions.
+    if (_epoch == 0xffffffff) {
+      _visited.fillRange(0, _visited.length, 0);
+      _epoch = 0;
+    }
+    return ++_epoch;
+  }
+
+  bool _blocked(int cell, int free, int extra) =>
+      _walls[cell] != 0 || cell == extra ||
+      (_occupied[cell] != 0 && cell != free);
+
+  // The old Set.remove(tail) frees that cell even when bodies overlap. Preserve
+  // that behavior; 'extra' wins over 'free', like remove(tail)..add(candidate).
+  int floodFill(Point<int> start, {required Point<int> free, Point<int>? extra}) {
+    final first = _cell(start);
+    final freeCell = _cell(free);
+    final extraCell = extra == null ? -1 : _cell(extra);
+    if (_blocked(first, freeCell, extraCell)) return 0;
+    final epoch = _nextEpoch();
+    var read = 0;
+    var write = 1;
+    _queue[0] = first;
+    _visited[first] = epoch;
+    while (read < write) {
+      final cell = _queue[read++];
+      // Only the capped connected-component size affects scoring, not traversal
+      // order: FIFO and the old DFS return exactly min(component size, 300).
+      if (read == 300) return 300;
+      for (final offset in _offsets) {
+        final next = cell + offset;
+        if (_visited[next] == epoch || _blocked(next, freeCell, extraCell)) {
+          continue;
+        }
+        _visited[next] = epoch;
+        _queue[write++] = next;
+      }
+    }
+    return read;
+  }
+
+  int distance(Point<int> start, Point<int> target, {required Point<int> free}) {
+    if (start == target) return 0;
+    final first = _cell(start);
+    final goal = _cell(target);
+    final freeCell = _cell(free);
+    if (_walls[first] != 0 || _blocked(goal, freeCell, -1)) return -1;
+    final epoch = _nextEpoch();
+    var read = 0;
+    var write = 1;
+    _queue[0] = first;
+    _visited[first] = epoch;
+    _distance[first] = 0;
+    while (read < write) {
+      final cell = _queue[read++];
+      final distance = _distance[cell] + 1;
+      for (final offset in _offsets) {
+        final next = cell + offset;
+        if (_visited[next] == epoch || _blocked(next, freeCell, -1)) continue;
+        if (next == goal) return distance;
+        _visited[next] = epoch;
+        _distance[next] = distance;
+        _queue[write++] = next;
+      }
+    }
+    return -1;
   }
 }
 

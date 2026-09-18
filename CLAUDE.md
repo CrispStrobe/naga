@@ -54,8 +54,10 @@ assets/audio/      Music (OGG per mode) and SFX
 2. Create `lib/game/foo_game.dart` extending `FlameGame with KeyboardEvents`
    - Must have: `changeDirection(Direction dir)`, `onGameOver` callback, `onScoreChanged` callback
 3. Add i18n strings to both ARB files, run `flutter gen-l10n`
-4. Wire into `lib/ui/game_screen.dart` (import, mode detection, _createGame branch, _changeDirection branch)
-5. Wire into `lib/ui/home_screen.dart` (import, add _ModeButton to the list)
+4. Register construction and typed controls in `lib/game/game_registry.dart` (`GameSession`: direction, pause, respawn, action and result). Preserve mode-specific lifecycle rules; do not add concrete-game casts to the screen.
+5. Add a `_MenuEntry` in `lib/ui/home_screen.dart` and mode instructions in `GameScreen._getInstructions`.
+6. Add registry, gameplay and mounted-screen regression tests. Reuse `lib/game/shared/` primitives only where rules match. `Snake.occupiedCells` is a live read-only view; edit the body rather than that view.
+7. Run `flutter test`, `flutter analyze`, and WASM browser checks. Raster fixtures were recorded with Flutter 3.44.4; pin that SDK for reproducible tests. Shape-only renderers stay byte-exact. Text renderers (ASCII, CGA, Nibbles, Snake II) are compared structurally instead — dimensions, ink bounding box and normalized 16x16 tile coverage — because glyph antialiasing and alpha banding are resolved by the host rasterizer and differ across macOS and Linux. `.github/workflows/checks.yml` runs the raster test on both.
 
 ## Conventions
 

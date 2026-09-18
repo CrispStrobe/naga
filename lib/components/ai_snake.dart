@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../game/shared/grid_motion.dart';
 import '../game/trail_game.dart';
 import 'trail_snake.dart';
 
@@ -52,16 +53,7 @@ class AiSnake {
   }
 
   Point<int> _move(Point<int> from, Direction dir) {
-    switch (dir) {
-      case Direction.up:
-        return Point(from.x, from.y - 1);
-      case Direction.down:
-        return Point(from.x, from.y + 1);
-      case Direction.left:
-        return Point(from.x - 1, from.y);
-      case Direction.right:
-        return Point(from.x + 1, from.y);
-    }
+    return gridStep(from, dir);
   }
 
   bool _isFatal(Point<int> pos) {

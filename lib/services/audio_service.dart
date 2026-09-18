@@ -51,6 +51,17 @@ class AudioService {
   static const String sfxLevelUp = 'audio/sfx/levelup.ogg';
   static const String sfxClick = 'audio/sfx/click.ogg';
 
+  /// Asset paths relative to the audioplayers `assets/` prefix.
+  /// Shared by preloading and asset-contract verification.
+  static Iterable<String> get assetPaths => {
+        ..._modeMusic.values,
+        sfxEat,
+        sfxDie,
+        sfxPowerUp,
+        sfxLevelUp,
+        sfxClick,
+      };
+
   AudioService._();
 
   static Future<AudioService> instance() {

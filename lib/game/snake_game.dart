@@ -1,5 +1,7 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/free_cell.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -10,13 +12,15 @@ import '../components/food.dart';
 import '../components/power_up.dart';
 import '../components/grid_board.dart';
 
-enum Direction { up, down, left, right }
+export 'shared/grid_motion.dart' show Direction;
 
 enum GameState { playing, paused, gameOver }
 
 class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   final GameMode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   late Snake snake;
@@ -26,7 +30,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   GameState gameState = GameState.playing;
   int score = 0;
   double _tickTimer = 0;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   Direction currentDirection = Direction.right;
   final Random _random = Random();
@@ -57,13 +61,14 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   SnakeGame({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
     this.wallsKillOverride,
     this.speedOverride,
-  })  : gridWidth = gridWidth ?? 20,
-        gridHeight = gridHeight ?? 28;
+  }) : gridWidth = gridWidth ?? 20,
+       gridHeight = gridHeight ?? 28;
 
   bool get _wallsKill => wallsKillOverride ?? mode.wallsKill;
 
@@ -79,6 +84,14 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     _startNewGame();
   }
 
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Flame sends the first resize before onLoad. Layout depends only on
+    // constructor dimensions, not on the board/snake/food created during load.
+    _calculateGrid();
+  }
+
   void _calculateGrid() {
     final availableWidth = size.x;
     final availableHeight = size.y;
@@ -92,6 +105,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   }
 
   void _startNewGame() {
+    hasWon = false;
     score = 0;
     _tickTimer = 0;
     currentDirection = Direction.right;
@@ -123,17 +137,32 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   }
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-    } while (snake.occupies(pos));
+    final pos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: snake.segments,
+      random: _random,
+    );
+    if (pos == null) {
+      if (gameState != GameState.gameOver) {
+        hasWon = true;
+        gameState = GameState.gameOver;
+        (onVictory ?? onGameOver)();
+      }
+      return;
+    }
 
+    // Food takes priority when a power-up occupies the last free cell.
+    if (_currentPowerUp?.gridPosition == pos) {
+      removePowerUp(_currentPowerUp!);
+    }
     food = Food(this, gridPosition: pos);
     add(food);
   }
 
   /// Respawn snake after losing a life — keeps score, resets position.
   void respawn() {
+    hasWon = false;
     removeAll(children.where((c) => c is Snake || c is Food || c is PowerUp));
     _tickTimer = 0;
     currentDirection = Direction.right;
@@ -216,14 +245,13 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   void _trySpawnPowerUp() {
     if (_currentPowerUp != null) return; // only one at a time
 
-    Point<int> pos;
-    int attempts = 0;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-      attempts++;
-      if (attempts > 100) return;
-    } while (snake.occupies(pos) ||
-        (pos.x == food.gridPosition.x && pos.y == food.gridPosition.y));
+    final pos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: [...snake.segments, food.gridPosition],
+      random: _random,
+    );
+    if (pos == null) return;
 
     final types = PowerUpType.values;
     final type = types[_random.nextInt(types.length)];
@@ -236,9 +264,8 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     if (_currentPowerUp == powerUp) {
       _currentPowerUp = null;
     }
-    if (powerUp.isMounted) {
-      remove(powerUp);
-    }
+    // Flame also removes pending additions; mounting is not a prerequisite.
+    remove(powerUp);
   }
 
   void _collectPowerUp(PowerUp powerUp) {
@@ -292,23 +319,12 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
 
   void _tick() {
     // Dequeue next buffered input
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
 
     final head = snake.segments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, currentDirection);
 
     // Wall collision
     if (_wallsKill) {
@@ -322,10 +338,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       }
     } else {
       // Wrap around
-      newHead = Point(
-        (newHead.x + gridWidth) % gridWidth,
-        (newHead.y + gridHeight) % gridHeight,
-      );
+      newHead = wrapGrid(newHead, gridWidth, gridHeight);
     }
 
     // Self collision
@@ -336,8 +349,8 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     }
 
     // Check food
-    final ate = newHead.x == food.gridPosition.x &&
-        newHead.y == food.gridPosition.y;
+    final ate =
+        newHead.x == food.gridPosition.x && newHead.y == food.gridPosition.y;
 
     snake.move(newHead, grow: ate);
 
@@ -347,6 +360,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       remove(food);
       _spawnFood();
       HapticFeedback.selectionClick();
+      if (gameState != GameState.playing) return;
     }
 
     // Check power-up collection
@@ -383,23 +397,9 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   bool get isPaused => gameState == GameState.paused;
 
   void changeDirection(Direction dir) {
-    // Check against the last queued direction (or current if queue empty)
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-
-    // Prevent 180-degree turns
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-
-    // Don't queue duplicate directions
-    if (dir == lastDir) return;
-
-    // Buffer up to N inputs
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
 
     // If queue was empty, trigger early tick for responsiveness
@@ -501,8 +501,11 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     }
 
     // Prune stale cache entries periodically
-    final newKey = activeBuffs.entries.map((e) =>
-        '${e.key.index}_${e.value > 100 ? '∞' : '${e.value.ceil()}s'}').join(',');
+    final newKey = activeBuffs.entries
+        .map(
+          (e) => '${e.key.index}_${e.value > 100 ? '∞' : '${e.value.ceil()}s'}',
+        )
+        .join(',');
     if (newKey != _lastBuffCacheKey) {
       _lastBuffCacheKey = newKey;
       _buffTextCache.removeWhere((k, _) => !newKey.contains(k));
@@ -523,5 +526,4 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
         return Colors.red;
     }
   }
-
 }

@@ -46,4 +46,8 @@ class CgaMode extends GameMode {
 
   /// CGA white for borders.
   Color get borderColor => _white;
+  Color get scoreColor => _white;
+  Color get blockInsetColor => _black;
+  late final Color blockOutlineColor = snakeColor.withValues(alpha: 0.5);
+  late final Color scanlineColor = backgroundColor.withValues(alpha: 0.15);
 }

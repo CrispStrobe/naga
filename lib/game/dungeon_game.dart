@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +21,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   late Vector2 boardOffset;
 
   // Snake — TURN-BASED: one move per keypress
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody([]);
   Direction currentDirection = Direction.right;
   GameState gameState = GameState.playing;
   int score = 0;
@@ -163,11 +165,11 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final firstRoom = rooms.first;
     final startX = firstRoom.center.dx.toInt();
     final startY = firstRoom.center.dy.toInt();
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX - 1, startY),
       Point(startX - 2, startY),
-    ];
+    ]);
     // Ensure snake cells are carved
     for (final seg in snakeSegments) {
       if (_inBounds(seg.x, seg.y)) {
@@ -251,7 +253,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
   bool _isCellOccupied(Point<int> pos) {
     // Check snake
-    if (snakeSegments.any((s) => s.x == pos.x && s.y == pos.y)) return true;
+    if (snakeSegments.contains(pos)) return true;
     // Check exit
     if (pos.x == _exitPos.x && pos.y == _exitPos.y) return true;
     // Check monsters
@@ -387,16 +389,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (dir) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, dir);
 
     // Wall collision — hammer smashes through, otherwise blocked (no turn)
     if (!_inBounds(newHead.x, newHead.y) ||
@@ -410,7 +403,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     }
 
     // Self collision
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+    if (snakeSegments.contains(newHead)) {
       _die();
       return;
     }
@@ -512,16 +505,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final trace = <Point<int>>[];
     var pos = snakeSegments.first;
     while (true) {
-      switch (currentDirection) {
-        case Direction.up:
-          pos = Point(pos.x, pos.y - 1);
-        case Direction.down:
-          pos = Point(pos.x, pos.y + 1);
-        case Direction.left:
-          pos = Point(pos.x - 1, pos.y);
-        case Direction.right:
-          pos = Point(pos.x + 1, pos.y);
-      }
+      pos = gridStep(pos, currentDirection);
       if (!_isFloor(pos.x, pos.y)) break;
       trace.add(pos);
       final hit = _monsters

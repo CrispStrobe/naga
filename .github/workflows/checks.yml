@@ -1,0 +1,94 @@
+name: Regression checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-raster:
+    name: macos-raster
+    # Text baselines were captured on macOS 26, not macOS 15.
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Byte-exact capture-platform raster checks
+        run: |
+          mkdir -p /tmp/naga-raster
+          set -o pipefail
+          flutter test --no-pub test/snake_render_test.dart test/component_render_test.dart --reporter expanded 2>&1 | tee /tmp/naga-raster/tests.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-raster-evidence
+          path: /tmp/naga-raster
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scripts/qa/package-lock.json
+      - name: Resolve dependencies
+        run: |
+          flutter pub get
+          npm ci --include=dev --ignore-scripts --prefix scripts/qa
+      - name: Analyze and test
+        run: |
+          mkdir -p /tmp/naga-qa
+          set -o pipefail
+          flutter analyze --no-pub 2>&1 | tee /tmp/naga-qa/analyze.log
+          flutter test --no-pub --reporter expanded 2>&1 | tee /tmp/naga-qa/unit.log
+      - name: Build release WASM
+        run: |
+          set -o pipefail
+          flutter build web --wasm --release --dart-define=GIT_COMMIT=${{ github.sha }} --dart-define=BUILD_MODE=wasm 2>&1 | tee /tmp/naga-qa/build.log
+      - name: Install pinned browser
+        working-directory: scripts/qa
+        run: npx playwright install --with-deps chromium
+      - name: Serve and verify WASM
+        run: |
+          python3 scripts/qa/serve_web.py build/web --port 8766 > /tmp/naga-qa/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID"' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8766/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8766/ > /dev/null
+          export QA_BROWSER_CHANNEL=chromium
+          node scripts/qa/stable_target_test.cjs
+          node scripts/qa/web_modes.cjs 8766 /tmp/naga-qa/desktop
+          QA_WIDTH=390 node scripts/qa/web_modes.cjs 8766 /tmp/naga-qa/narrow
+          node scripts/qa/web_lifecycle.cjs 8766 /tmp/naga-qa/lifecycle
+      - name: Upload logs, screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-evidence
+          path: /tmp/naga-qa
+          if-no-files-found: warn
+          retention-days: 14

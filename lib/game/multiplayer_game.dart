@@ -1,10 +1,12 @@
 import 'dart:math';
+import 'shared/free_cell.dart';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../modes/multiplayer_mode.dart';
-import 'snake_game.dart' show Direction;
 
 /// Result of the multiplayer match.
 enum MatchResult { player1Wins, player2Wins, draw }
@@ -36,19 +38,19 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   final Random _random = Random();
 
   // Player 1
-  List<Point<int>> _p1Segments = [];
+  List<Point<int>> _p1Segments = GridSnakeBody([]);
   Direction _p1Direction = Direction.right;
   Direction _p1NextDirection = Direction.right;
   bool p1Alive = true;
 
   // Player 2
-  List<Point<int>> _p2Segments = [];
+  List<Point<int>> _p2Segments = GridSnakeBody([]);
   Direction _p2Direction = Direction.left;
   Direction _p2NextDirection = Direction.left;
   bool p2Alive = true;
 
   // Food
-  late Point<int> _foodPos;
+  Point<int>? _foodPos;
   double _foodPulse = 0;
 
   MultiplayerGame({
@@ -58,8 +60,8 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     required this.onP2ScoreChanged,
     int? gridWidth,
     int? gridHeight,
-  })  : gridWidth = gridWidth ?? 20,
-        gridHeight = gridHeight ?? 28;
+  }) : gridWidth = gridWidth ?? 20,
+       gridHeight = gridHeight ?? 28;
 
   // ------------------------------------------------------------------
   // Lifecycle
@@ -100,22 +102,22 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     // Player 1 starts left side going right
     final p1X = gridWidth ~/ 4;
     final p1Y = gridHeight ~/ 2;
-    _p1Segments = [
+    _p1Segments = GridSnakeBody([
       Point(p1X, p1Y),
       Point(p1X - 1, p1Y),
       Point(p1X - 2, p1Y),
-    ];
+    ]);
     _p1Direction = Direction.right;
     _p1NextDirection = Direction.right;
 
     // Player 2 starts right side going left
     final p2X = (gridWidth * 3) ~/ 4;
     final p2Y = gridHeight ~/ 2;
-    _p2Segments = [
+    _p2Segments = GridSnakeBody([
       Point(p2X, p2Y),
       Point(p2X + 1, p2Y),
       Point(p2X + 2, p2Y),
-    ];
+    ]);
     _p2Direction = Direction.left;
     _p2NextDirection = Direction.left;
 
@@ -133,15 +135,38 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   // ------------------------------------------------------------------
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-    } while (_occupies(pos, _p1Segments) || _occupies(pos, _p2Segments));
-    _foodPos = pos;
+    _foodPos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: [..._p1Segments, ..._p2Segments],
+      random: _random,
+    );
+    if (_foodPos != null || _isGameOver) return;
+    // A filled shared arena is decided by score; ties are draws.
+    matchResult = p1Score == p2Score
+        ? MatchResult.draw
+        : p1Score > p2Score
+        ? MatchResult.player1Wins
+        : MatchResult.player2Wins;
+    _isGameOver = true;
+    onGameOver();
   }
 
+  @visibleForTesting
+  void debugSetBoard({
+    required List<Point<int>> player1,
+    required List<Point<int>> player2,
+  }) {
+    _p1Segments = GridSnakeBody(player1);
+    _p2Segments = GridSnakeBody(player2);
+    _spawnFood();
+  }
+
+  @visibleForTesting
+  Point<int>? get debugFoodPosition => _foodPos;
+
   bool _occupies(Point<int> pos, List<Point<int>> segs) {
-    return segs.any((s) => s.x == pos.x && s.y == pos.y);
+    return segs.contains(pos);
   }
 
   // ------------------------------------------------------------------
@@ -274,7 +299,10 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     if (!p2Dies && _occupies(p2NewHead, _p2Segments)) p2Dies = true;
 
     // Head-to-head collision
-    if (!p1Dies && !p2Dies && p1NewHead.x == p2NewHead.x && p1NewHead.y == p2NewHead.y) {
+    if (!p1Dies &&
+        !p2Dies &&
+        p1NewHead.x == p2NewHead.x &&
+        p1NewHead.y == p2NewHead.y) {
       p1Dies = true;
       p2Dies = true;
     }
@@ -299,10 +327,8 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     }
 
     // Check food
-    final p1Ate =
-        p1NewHead.x == _foodPos.x && p1NewHead.y == _foodPos.y;
-    final p2Ate =
-        p2NewHead.x == _foodPos.x && p2NewHead.y == _foodPos.y;
+    final p1Ate = p1NewHead == _foodPos;
+    final p2Ate = p2NewHead == _foodPos;
 
     // Move snakes
     _p1Segments.insert(0, p1NewHead);
@@ -326,16 +352,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   }
 
   Point<int> _advance(Point<int> head, Direction dir) {
-    switch (dir) {
-      case Direction.up:
-        return Point(head.x, head.y - 1);
-      case Direction.down:
-        return Point(head.x, head.y + 1);
-      case Direction.left:
-        return Point(head.x - 1, head.y);
-      case Direction.right:
-        return Point(head.x + 1, head.y);
-    }
+    return gridStep(head, dir);
   }
 
   bool _outOfBounds(Point<int> p) {
@@ -419,7 +436,16 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
       final cy = sp.y + cs / 2;
 
       if (i == 0) {
-        _drawHead(canvas, segments, cx, cy, cs, paint, darkerPaint, headDirection);
+        _drawHead(
+          canvas,
+          segments,
+          cx,
+          cy,
+          cs,
+          paint,
+          darkerPaint,
+          headDirection,
+        );
       } else if (i == segments.length - 1) {
         _drawTail(canvas, segments, i, cx, cy, cs, paint);
       } else {
@@ -469,25 +495,41 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     double px1, py1, px2, py2;
     switch (direction) {
       case Direction.right:
-        e1x = cx + cs * 0.12; e1y = cy - cs * 0.14;
-        e2x = cx + cs * 0.12; e2y = cy + cs * 0.14;
-        px1 = e1x + cs * 0.04; py1 = e1y;
-        px2 = e2x + cs * 0.04; py2 = e2y;
+        e1x = cx + cs * 0.12;
+        e1y = cy - cs * 0.14;
+        e2x = cx + cs * 0.12;
+        e2y = cy + cs * 0.14;
+        px1 = e1x + cs * 0.04;
+        py1 = e1y;
+        px2 = e2x + cs * 0.04;
+        py2 = e2y;
       case Direction.left:
-        e1x = cx - cs * 0.12; e1y = cy - cs * 0.14;
-        e2x = cx - cs * 0.12; e2y = cy + cs * 0.14;
-        px1 = e1x - cs * 0.04; py1 = e1y;
-        px2 = e2x - cs * 0.04; py2 = e2y;
+        e1x = cx - cs * 0.12;
+        e1y = cy - cs * 0.14;
+        e2x = cx - cs * 0.12;
+        e2y = cy + cs * 0.14;
+        px1 = e1x - cs * 0.04;
+        py1 = e1y;
+        px2 = e2x - cs * 0.04;
+        py2 = e2y;
       case Direction.up:
-        e1x = cx - cs * 0.14; e1y = cy - cs * 0.12;
-        e2x = cx + cs * 0.14; e2y = cy - cs * 0.12;
-        px1 = e1x; py1 = e1y - cs * 0.04;
-        px2 = e2x; py2 = e2y - cs * 0.04;
+        e1x = cx - cs * 0.14;
+        e1y = cy - cs * 0.12;
+        e2x = cx + cs * 0.14;
+        e2y = cy - cs * 0.12;
+        px1 = e1x;
+        py1 = e1y - cs * 0.04;
+        px2 = e2x;
+        py2 = e2y - cs * 0.04;
       case Direction.down:
-        e1x = cx - cs * 0.14; e1y = cy + cs * 0.12;
-        e2x = cx + cs * 0.14; e2y = cy + cs * 0.12;
-        px1 = e1x; py1 = e1y + cs * 0.04;
-        px2 = e2x; py2 = e2y + cs * 0.04;
+        e1x = cx - cs * 0.14;
+        e1y = cy + cs * 0.12;
+        e2x = cx + cs * 0.14;
+        e2y = cy + cs * 0.12;
+        px1 = e1x;
+        py1 = e1y + cs * 0.04;
+        px2 = e2x;
+        py2 = e2y + cs * 0.04;
     }
 
     canvas.drawCircle(Offset(e1x, e1y), eyeR, eyePaint);
@@ -523,7 +565,11 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
       if (isHorizontal) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(cx, cy), width: cs, height: bodyWidth),
+            Rect.fromCenter(
+              center: Offset(cx, cy),
+              width: cs,
+              height: bodyWidth,
+            ),
             Radius.circular(cs * 0.08),
           ),
           paint,
@@ -531,7 +577,11 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
       } else {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(cx, cy), width: bodyWidth, height: cs),
+            Rect.fromCenter(
+              center: Offset(cx, cy),
+              width: bodyWidth,
+              height: cs,
+            ),
             Radius.circular(cs * 0.08),
           ),
           paint,
@@ -628,7 +678,9 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
 
   void _renderFood(Canvas canvas) {
     final cs = cellSize;
-    final sp = _gridToScreen(_foodPos);
+    final food = _foodPos;
+    if (food == null) return;
+    final sp = _gridToScreen(food);
     final x = sp.x;
     final y = sp.y;
 
@@ -648,8 +700,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     canvas.drawCircle(Offset(cx, cy), radius, paint);
 
     // Highlight
-    final highlightPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.4);
+    final highlightPaint = Paint()..color = Colors.white.withValues(alpha: 0.4);
     canvas.drawCircle(
       Offset(cx - radius * 0.25, cy - radius * 0.25),
       radius * 0.3,

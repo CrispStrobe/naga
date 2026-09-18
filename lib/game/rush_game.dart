@@ -1,5 +1,7 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -20,9 +22,9 @@ class RushGame extends FlameGame with KeyboardEvents {
   late Vector2 boardOffset;
 
   // Snake
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody([]);
   Direction currentDirection = Direction.up;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
@@ -81,11 +83,11 @@ class RushGame extends FlameGame with KeyboardEvents {
     // Snake starts at bottom center, moving up
     final startX = gridWidth ~/ 2;
     final startY = gridHeight - 5;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX, startY + 1),
       Point(startX, startY + 2),
-    ];
+    ]);
 
     // Pre-fill some obstacle rows
     for (int y = 0; y < gridHeight - 8; y += 3) {
@@ -134,22 +136,11 @@ class RushGame extends FlameGame with KeyboardEvents {
   }
 
   void _tickSnake() {
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, currentDirection);
 
     // Wrap horizontally, die at top/bottom
     if (newHead.y < 0 || newHead.y >= gridHeight) {
@@ -165,7 +156,7 @@ class RushGame extends FlameGame with KeyboardEvents {
     }
 
     // Self collision
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+    if (snakeSegments.contains(newHead)) {
       _die();
       return;
     }
@@ -230,16 +221,9 @@ class RushGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-    if (dir == lastDir) return;
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
   }
 

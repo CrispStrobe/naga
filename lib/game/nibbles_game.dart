@@ -1,5 +1,8 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/free_cell.dart';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +15,8 @@ import 'snake_game.dart' show Direction, GameState;
 class NibblesGame extends FlameGame with KeyboardEvents {
   final NibblesMode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   final int gridWidth;
@@ -20,17 +25,10 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   late double cellSize;
   late Vector2 boardOffset;
 
-  // QBasic colors
-  static const Color _black = Color(0xFF000000);
-  static const Color _brightGreen = Color(0xFF00FF00);
-  static const Color _brightYellow = Color(0xFFFFFF00);
-  static const Color _brightBlue = Color(0xFF0000AA);
-  static const Color _white = Color(0xFFFFFFFF);
-
   // Snake
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody();
   Direction currentDirection = Direction.right;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
@@ -44,8 +42,13 @@ class NibblesGame extends FlameGame with KeyboardEvents {
 
   final Random _random = Random();
 
+  late final Paint _statusBarPaint = Paint()..color = mode.statusBarColor;
+  late final Paint _borderPaint = Paint()..color = mode.playfieldBorderColor;
+  late final Paint _snakePaint = Paint()..color = mode.snakeColor;
+
   // Cached text painters for food numbers
-  final Map<String, TextPainter> _numberCache = {};
+  final Map<int, TextPainter> _numberCache = {};
+  double? _cachedFontSize;
 
   // The play area starts after the status bar and border
   // Status bar: 1 cell at top
@@ -62,15 +65,16 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   NibblesGame({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
     this.startSpeed,
-  })  : gridWidth = gridWidth ?? 20,
-        gridHeight = gridHeight ?? 28;
+  }) : gridWidth = gridWidth ?? 20,
+       gridHeight = gridHeight ?? 28;
 
   @override
-  Color backgroundColor() => _black;
+  Color backgroundColor() => mode.backgroundColor;
 
   @override
   Future<void> onLoad() async {
@@ -90,6 +94,8 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   }
 
   void _startNewGame() {
+    hasWon = false;
+    _tickTimer = 0;
     score = 0;
     _level = 1;
     _foodNumber = 1;
@@ -100,11 +106,11 @@ class NibblesGame extends FlameGame with KeyboardEvents {
 
     final startX = gridWidth ~/ 2;
     final startY = gridHeight ~/ 2;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX - 1, startY),
       Point(startX - 2, startY),
-    ];
+    ]);
 
     _spawnFood();
   }
@@ -115,28 +121,34 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   }
 
   void respawn() {
+    hasWon = false;
     _tickTimer = 0;
     currentDirection = Direction.right;
     _directionQueue.clear();
     gameState = GameState.playing;
     final startX = gridWidth ~/ 2;
     final startY = gridHeight ~/ 2;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX - 1, startY),
       Point(startX - 2, startY),
-    ];
+    ]);
     _spawnFood();
   }
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(
-        _playMinX + _random.nextInt(_playMaxX - _playMinX + 1),
-        _playMinY + _random.nextInt(_playMaxY - _playMinY + 1),
-      );
-    } while (snakeSegments.any((s) => s.x == pos.x && s.y == pos.y));
+    final pos = randomFreeCell(
+      width: _playMaxX - _playMinX + 1,
+      height: _playMaxY - _playMinY + 1,
+      left: _playMinX,
+      top: _playMinY,
+      occupied: snakeSegments,
+      random: _random,
+    );
+    if (pos == null) {
+      _win();
+      return;
+    }
     foodPosition = pos;
     _foodNumber = (_foodNumber % 9) + 1;
   }
@@ -154,23 +166,12 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   }
 
   void _tick() {
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
 
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, currentDirection);
 
     // Wall collision (hit the border = die, like original Nibbles)
     if (newHead.x < _playMinX ||
@@ -182,7 +183,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
     }
 
     // Self collision
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+    if (snakeSegments.contains(newHead)) {
       _die();
       return;
     }
@@ -206,22 +207,22 @@ class NibblesGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  void _win() {
+    if (gameState == GameState.gameOver) return;
+    hasWon = true;
+    gameState = GameState.gameOver;
+    (onVictory ?? onGameOver)();
+  }
+
   void _die() {
     gameState = GameState.gameOver;
     onGameOver();
   }
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-    if (dir == lastDir) return;
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
     final interval = mode.tickInterval(score);
     if (_tickTimer > interval * 0.4) {
@@ -280,15 +281,23 @@ class NibblesGame extends FlameGame with KeyboardEvents {
   }
 
   TextPainter _getNumberPainter(int number, double fontSize) {
-    final key = '$number-${fontSize.toStringAsFixed(1)}';
-    if (_numberCache.containsKey(key)) return _numberCache[key]!;
+    if (_cachedFontSize != fontSize) {
+      for (final painter in _numberCache.values) {
+        painter.dispose();
+      }
+      _numberCache.clear();
+      _cachedFontSize = fontSize;
+    }
+    final key = number;
+    final cached = _numberCache[key];
+    if (cached != null) return cached;
     final tp = TextPainter(
       text: TextSpan(
         text: '$number',
         style: TextStyle(
-          color: _brightYellow,
+          color: mode.foodColor,
           fontSize: fontSize,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -298,13 +307,69 @@ class NibblesGame extends FlameGame with KeyboardEvents {
     return tp;
   }
 
+  TextPainter? _statusTp;
+  (int, double)? _statusTpKey;
+  TextPainter? _levelTp;
+  (int, double)? _levelTpKey;
+
+  TextPainter _getStatusTp(double cs) {
+    final key = (score, cs);
+    if (_statusTp != null && _statusTpKey == key) return _statusTp!;
+    _statusTp?.dispose();
+    _statusTpKey = key;
+    return _statusTp = TextPainter(
+      text: TextSpan(
+        text: '  Score: $score',
+        style: TextStyle(
+          color: mode.statusTextColor,
+          fontSize: cs * 0.7,
+          fontFamily: 'NagaMono',
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+  }
+
+  TextPainter _getLevelTp(double cs) {
+    final key = (_level, cs);
+    if (_levelTp != null && _levelTpKey == key) return _levelTp!;
+    _levelTp?.dispose();
+    _levelTpKey = key;
+    return _levelTp = TextPainter(
+      text: TextSpan(
+        text: 'Level: $_level  ',
+        style: TextStyle(
+          color: mode.statusTextColor,
+          fontSize: cs * 0.7,
+          fontFamily: 'NagaMono',
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+  }
+
+  @override
+  void onRemove() {
+    _statusTp?.dispose();
+    _statusTp = null;
+    _levelTp?.dispose();
+    _levelTp = null;
+    for (final painter in _numberCache.values) {
+      painter.dispose();
+    }
+    _numberCache.clear();
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
     final cs = cellSize;
 
     // ─── Blue status bar at top (like DOS status bar) ───────────────
-    final statusBarPaint = Paint()..color = _brightBlue;
+    final statusBarPaint = _statusBarPaint;
     canvas.drawRect(
       Rect.fromLTWH(
         boardOffset.x,
@@ -316,18 +381,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
     );
 
     // Status bar text: score and level
-    final statusTp = TextPainter(
-      text: TextSpan(
-        text: '  Score: $score',
-        style: TextStyle(
-          color: _white,
-          fontSize: cs * 0.7,
-          fontFamily: 'monospace',
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final statusTp = _getStatusTp(cs);
     statusTp.paint(
       canvas,
       Offset(
@@ -336,18 +390,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
       ),
     );
 
-    final levelTp = TextPainter(
-      text: TextSpan(
-        text: 'Level: $_level  ',
-        style: TextStyle(
-          color: _white,
-          fontSize: cs * 0.7,
-          fontFamily: 'monospace',
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final levelTp = _getLevelTp(cs);
     levelTp.paint(
       canvas,
       Offset(
@@ -357,7 +400,7 @@ class NibblesGame extends FlameGame with KeyboardEvents {
     );
 
     // ─── Blue border (1 cell thick, filled solid blocks) ────────────
-    final borderPaint = Paint()..color = _brightBlue;
+    final borderPaint = _borderPaint;
 
     // Top border row (below status bar)
     for (int x = 0; x < gridWidth; x++) {
@@ -381,17 +424,15 @@ class NibblesGame extends FlameGame with KeyboardEvents {
     }
 
     // ─── Snake — solid bright green blocks, zero gap ────────────────
-    final snakePaint = Paint()..color = _brightGreen;
+    final snakePaint = _snakePaint;
     for (final seg in snakeSegments) {
       final sp = _gridToScreen(seg);
       // Fill the entire cell — no gaps, no rounded corners
-      canvas.drawRect(
-        Rect.fromLTWH(sp.x, sp.y, cs, cs),
-        snakePaint,
-      );
+      canvas.drawRect(Rect.fromLTWH(sp.x, sp.y, cs, cs), snakePaint);
     }
 
     // ─── Food — numbered digit in bright yellow ─────────────────────
+    if (hasWon) return;
     final fontSize = cs * 0.85;
     final numberPainter = _getNumberPainter(_foodNumber, fontSize);
     final fsp = _gridToScreen(foodPosition);

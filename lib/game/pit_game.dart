@@ -1,5 +1,7 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -20,9 +22,9 @@ class PitGame extends FlameGame with KeyboardEvents {
   late Vector2 boardOffset;
 
   // Player snake
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody([]);
   Direction currentDirection = Direction.right;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
@@ -87,11 +89,11 @@ class PitGame extends FlameGame with KeyboardEvents {
     // Player starts at center
     final cx = gridWidth ~/ 2;
     final cy = gridHeight ~/ 2;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(cx, cy),
       Point(cx - 1, cy),
       Point(cx - 2, cy),
-    ];
+    ]);
 
     // Spawn AI snakes in corners / edges
     _aiSnakes.clear();
@@ -107,11 +109,11 @@ class PitGame extends FlameGame with KeyboardEvents {
       final dx = dir == Direction.left ? 1 : (dir == Direction.right ? -1 : 0);
       final dy = dir == Direction.up ? 1 : (dir == Direction.down ? -1 : 0);
       _aiSnakes.add(_AISnake(
-        segments: [
+        segments: GridSnakeBody([
           pos,
           Point(pos.x + dx, pos.y + dy),
           Point(pos.x + dx * 2, pos.y + dy * 2),
-        ],
+        ]),
         direction: dir,
         color: PitMode.enemyColors[i],
       ));
@@ -132,9 +134,9 @@ class PitGame extends FlameGame with KeyboardEvents {
   }
 
   bool _isOccupied(Point<int> p) {
-    if (snakeSegments.any((s) => s.x == p.x && s.y == p.y)) return true;
+    if (snakeSegments.contains(p)) return true;
     for (final ai in _aiSnakes) {
-      if (ai.segments.any((s) => s.x == p.x && s.y == p.y)) return true;
+      if (ai.segments.contains(p)) return true;
     }
     if (food.any((f) => f.x == p.x && f.y == p.y)) return true;
     return false;
@@ -219,9 +221,7 @@ class PitGame extends FlameGame with KeyboardEvents {
   void _tickPlayerSnake() {
     if (gameState != GameState.playing) return;
 
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
     final head = snakeSegments.first;
     final newHead = _movePoint(head, currentDirection);
 
@@ -232,14 +232,14 @@ class PitGame extends FlameGame with KeyboardEvents {
     }
 
     // Self collision
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+    if (snakeSegments.contains(newHead)) {
       _die();
       return;
     }
 
     // AI snake body collision
     for (final ai in _aiSnakes) {
-      if (ai.segments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+      if (ai.segments.contains(newHead)) {
         _die();
         return;
       }
@@ -282,13 +282,13 @@ class PitGame extends FlameGame with KeyboardEvents {
       }
 
       // Self collision
-      if (ai.segments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+      if (ai.segments.contains(newHead)) {
         deadAI.add(ai);
         continue;
       }
 
       // Collision with player
-      if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+      if (snakeSegments.contains(newHead)) {
         deadAI.add(ai);
         continue;
       }
@@ -297,7 +297,7 @@ class PitGame extends FlameGame with KeyboardEvents {
       bool hitOther = false;
       for (final other in _aiSnakes) {
         if (other == ai) continue;
-        if (other.segments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+        if (other.segments.contains(newHead)) {
           hitOther = true;
           break;
         }
@@ -388,13 +388,13 @@ class PitGame extends FlameGame with KeyboardEvents {
 
       final next = _movePoint(head, dir);
       if (!_isInSafeZone(next)) continue;
-      if (ai.segments.any((s) => s.x == next.x && s.y == next.y)) continue;
-      if (snakeSegments.any((s) => s.x == next.x && s.y == next.y)) continue;
+      if (ai.segments.contains(next)) continue;
+      if (snakeSegments.contains(next)) continue;
 
       bool hitsOtherAI = false;
       for (final other in _aiSnakes) {
         if (other == ai) continue;
-        if (other.segments.any((s) => s.x == next.x && s.y == next.y)) {
+        if (other.segments.contains(next)) {
           hitsOtherAI = true;
           break;
         }
@@ -415,16 +415,7 @@ class PitGame extends FlameGame with KeyboardEvents {
   }
 
   Point<int> _movePoint(Point<int> p, Direction dir) {
-    switch (dir) {
-      case Direction.up:
-        return Point(p.x, p.y - 1);
-      case Direction.down:
-        return Point(p.x, p.y + 1);
-      case Direction.left:
-        return Point(p.x - 1, p.y);
-      case Direction.right:
-        return Point(p.x + 1, p.y);
-    }
+    return gridStep(p, dir);
   }
 
   void _checkWinCondition() {
@@ -444,16 +435,9 @@ class PitGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-    if (dir == lastDir) return;
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
   }
 

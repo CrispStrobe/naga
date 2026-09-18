@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +23,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
   late Vector2 boardOffset;
 
   // Snake — moves freely in 4 directions within the bottom zone
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody([]);
   Direction currentDirection = Direction.right;
   GameState gameState = GameState.playing;
   int score = 0;
@@ -80,11 +82,11 @@ class FangsGame extends FlameGame with KeyboardEvents {
   void _resetSnake() {
     final startX = gridWidth ~/ 2 - 1;
     const startY = gridHeight - 3; // middle of the 5-row zone
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX - 1, startY),
       Point(startX - 2, startY),
-    ];
+    ]);
   }
 
   void _resetBall() {
@@ -155,16 +157,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
   }
 
   Point<int> _neighbor(Point<int> from, Direction dir) {
-    switch (dir) {
-      case Direction.up:
-        return Point(from.x, from.y - 1);
-      case Direction.down:
-        return Point(from.x, from.y + 1);
-      case Direction.left:
-        return Point(from.x - 1, from.y);
-      case Direction.right:
-        return Point(from.x + 1, from.y);
-    }
+    return gridStep(from, dir);
   }
 
   bool _inZone(Point<int> p) =>
@@ -190,7 +183,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
     // sideways behind the head): turn around — head becomes tail — so the
     // paddle can ALWAYS be steered out of a stop.
     if (_hitsBody(newHead)) {
-      final flipped = snakeSegments.reversed.toList();
+      final flipped = GridSnakeBody(snakeSegments.reversed);
       final flippedHead = _neighbor(flipped.first, dir);
       final blocked = flipped
           .take(flipped.length - 1)
@@ -329,7 +322,7 @@ class FangsGame extends FlameGame with KeyboardEvents {
     if (isOpposite) {
       // Instant turnaround: head becomes tail — essential for catching
       // a ball that just passed overhead
-      snakeSegments = snakeSegments.reversed.toList();
+      snakeSegments = GridSnakeBody(snakeSegments.reversed);
     }
     currentDirection = dir;
   }

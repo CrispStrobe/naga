@@ -1,7 +1,9 @@
 import 'dart:math';
+import '../game/shared/grid_motion.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../game/trail_game.dart';
+import '../game/shared/grid_snake_body.dart';
 
 /// A snake that leaves a permanent light trail behind it.
 /// Used for both the player and AI in Trail mode.
@@ -25,7 +27,7 @@ class TrailSnake extends Component {
     required this.color,
     Color? trailColor,
     required this.direction,
-  })  : segments = List.from(initialSegments),
+  })  : segments = GridSnakeBody(initialSegments),
         _nextDirection = direction,
         trailColor = trailColor ?? color.withAlpha(100) {
     // Mark initial segments as part of the trail
@@ -43,10 +45,7 @@ class TrailSnake extends Component {
 
   void changeDirection(Direction dir) {
     // Prevent 180-degree turns
-    if (dir == Direction.up && direction == Direction.down) return;
-    if (dir == Direction.down && direction == Direction.up) return;
-    if (dir == Direction.left && direction == Direction.right) return;
-    if (dir == Direction.right && direction == Direction.left) return;
+    if (areOpposite(dir, direction)) return;
     _nextDirection = dir;
   }
 
@@ -55,16 +54,7 @@ class TrailSnake extends Component {
   Point<int> peekNextHead() {
     final dir = _nextDirection;
     final head = segments.first;
-    switch (dir) {
-      case Direction.up:
-        return Point(head.x, head.y - 1);
-      case Direction.down:
-        return Point(head.x, head.y + 1);
-      case Direction.left:
-        return Point(head.x - 1, head.y);
-      case Direction.right:
-        return Point(head.x + 1, head.y);
-    }
+    return gridStep(head, dir);
   }
 
   /// Actually move the snake to [newHead]. Call after collision checks pass.

@@ -1,0 +1,11 @@
+{
+  "name": "naga-browser-qa",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "modes": "node web_modes.cjs",
+    "lifecycle": "node web_lifecycle.cjs"
+  },
+  "engines": { "node": ">=22" },
+  "devDependencies": { "playwright": "1.58.2" }
+}

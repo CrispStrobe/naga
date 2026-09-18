@@ -2,42 +2,10 @@ import 'dart:math' show Random;
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../game/snake_game.dart';
-import '../game/maze_hunter_game.dart';
-import '../game/trail_game.dart' as trail;
-import '../game/swarm_game.dart';
-import '../game/rush_game.dart';
-import '../game/fangs_game.dart';
-import '../game/venom_game.dart';
-import '../game/pit_game.dart';
-import '../game/snake2_game.dart';
-import '../game/ascii_game.dart';
-import '../game/cga_game.dart';
-import '../game/nibbles_game.dart';
-import '../game/multiplayer_game.dart';
-import '../game/dungeon_game.dart';
-import '../game/vs_ai_game.dart';
-import '../game/stampede_game.dart';
-import '../game/naga_dive_game.dart';
-import '../components/snake_ai.dart' show AiDifficulty;
-import '../modes/game_mode.dart';
-import '../modes/maze_mode.dart';
-import '../modes/trail_mode.dart';
+import '../game/game_registry.dart';
+import '../game/snake_game.dart' show Direction;
 import '../modes/classic_mode.dart';
-import '../modes/swarm_mode.dart';
-import '../modes/rush_mode.dart';
-import '../modes/fangs_mode.dart';
-import '../modes/venom_mode.dart';
-import '../modes/pit_mode.dart';
-import '../modes/snake2_mode.dart';
-import '../modes/ascii_mode.dart';
-import '../modes/cga_mode.dart';
-import '../modes/nibbles_mode.dart';
-import '../modes/multiplayer_mode.dart';
-import '../modes/dungeon_mode.dart';
-import '../modes/vs_ai_mode.dart';
-import '../modes/stampede_mode.dart';
-import '../modes/naga_dive_mode.dart';
+import '../modes/game_mode.dart';
 import '../generated/l10n.dart';
 import '../services/settings_service.dart';
 import '../services/high_score_service.dart';
@@ -61,8 +29,12 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
-  late FlameGame _game;
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
+  late GameSession _session;
+  int _sessionGeneration = 0;
+  int _backgroundGeneration = 0;
+  final FocusNode _gameFocus = FocusNode();
+  bool get _inputBlocked => _isPaused || _isGameOver;
   final ValueNotifier<int> _scoreNotifier = ValueNotifier<int>(0);
   int _livesRemaining = 0;
   bool _isGameOver = false;
@@ -72,29 +44,14 @@ class _GameScreenState extends State<GameScreen> {
   int _quipIndex = 0;
   int _overlayFocus = 0; // 0 = play again, 1 = back to menu
 
-  bool get _isMazeMode => widget.mode is MazeMode;
-  bool get _isTrailMode => widget.mode is TrailMode;
   bool get _isClassicMode => widget.mode is ClassicMode;
-  bool get _isSwarmMode => widget.mode is SwarmMode;
-  bool get _isRushMode => widget.mode is RushMode;
-  bool get _isFangsMode => widget.mode is FangsMode;
-  bool get _isVenomMode => widget.mode is VenomMode;
-  bool get _isPitMode => widget.mode is PitMode;
-  bool get _isSnake2Mode => widget.mode is Snake2Mode;
-  bool get _isAsciiMode => widget.mode is AsciiMode;
-  bool get _isCgaMode => widget.mode is CgaMode;
-  bool get _isNibblesMode => widget.mode is NibblesMode;
-  bool get _isMultiplayerMode => widget.mode is MultiplayerMode;
-  bool get _isDungeonMode => widget.mode is DungeonMode;
-  bool get _isVsAiMode => widget.mode is VsAiMode;
-  bool get _isStampedeMode => widget.mode is StampedeMode;
-  bool get _isNagaDiveMode => widget.mode is NagaDiveMode;
 
   GameSettings get _settings => widget.settingsService.settings;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _livesRemaining = _isClassicMode ? 0 : _settings.lives;
     _useButtons = _settings.controlType == ControlType.buttons;
     _createGame();
@@ -103,165 +60,49 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _gameFocus.dispose();
     _scoreNotifier.dispose();
     widget.audioService.stopMusic();
     super.dispose();
   }
 
-  void _createGame() {
-    if (_isMazeMode) {
-      _game = MazeHunterGame(
-        mode: widget.mode as MazeMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isTrailMode) {
-      _game = trail.TrailGame(
-        mode: widget.mode as TrailMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isSwarmMode) {
-      _game = SwarmGame(
-        mode: widget.mode as SwarmMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isRushMode) {
-      _game = RushGame(
-        mode: widget.mode as RushMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isFangsMode) {
-      _game = FangsGame(
-        mode: widget.mode as FangsMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isVenomMode) {
-      _game = VenomGame(
-        mode: widget.mode as VenomMode,
-        onGameOver: _handleDeath,
-        onWin: () => _onGameOver(victory: true),
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isPitMode) {
-      _game = PitGame(
-        mode: widget.mode as PitMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isSnake2Mode) {
-      _game = Snake2Game(
-        mode: widget.mode as Snake2Mode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-        gridWidth: _settings.gridSize.width,
-        gridHeight: _settings.gridSize.height,
-        startSpeed: _settings.startSpeed.baseInterval,
-      );
-    } else if (_isAsciiMode) {
-      _game = AsciiGame(
-        mode: widget.mode as AsciiMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-        gridWidth: _settings.gridSize.width,
-        gridHeight: _settings.gridSize.height,
-        startSpeed: _settings.startSpeed.baseInterval,
-      );
-    } else if (_isCgaMode) {
-      _game = CgaGame(
-        mode: widget.mode as CgaMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-        gridWidth: _settings.gridSize.width,
-        gridHeight: _settings.gridSize.height,
-        startSpeed: _settings.startSpeed.baseInterval,
-      );
-    } else if (_isNibblesMode) {
-      _game = NibblesGame(
-        mode: widget.mode as NibblesMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-        gridWidth: _settings.gridSize.width,
-        gridHeight: _settings.gridSize.height,
-        startSpeed: _settings.startSpeed.baseInterval,
-      );
-    } else if (_isMultiplayerMode) {
-      _game = MultiplayerGame(
-        mode: widget.mode as MultiplayerMode,
-        onGameOver: _handleDeath,
-        onP1ScoreChanged: (score) => _scoreNotifier.value = score,
-        onP2ScoreChanged: (_) {},
-      );
-    } else if (_isDungeonMode) {
-      _game = DungeonGame(
-        mode: widget.mode as DungeonMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isStampedeMode) {
-      _game = StampedeGame(
-        mode: widget.mode as StampedeMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isNagaDiveMode) {
-      _game = NagaDiveGame(
-        mode: widget.mode as NagaDiveMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-      );
-    } else if (_isVsAiMode) {
-      _game = VsAiGame(
-        mode: widget.mode as VsAiMode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-        aiDifficulty: AiDifficulty.values.byName(_settings.difficulty.name),
-        splitArena: widget.mode is VsAiSplitMode,
-      );
-    } else {
-      // Classic: always walls kill. Zen: always wrap. Others: use settings.
-      final bool? wallsOverride;
-      if (_isClassicMode) {
-        wallsOverride = null; // use mode default (true)
-      } else if (widget.mode.name == 'Zen') {
-        wallsOverride = false; // Zen never kills on walls
-      } else {
-        wallsOverride = _settings.wallBehavior == WallBehavior.die;
-      }
-
-      _game = SnakeGame(
-        mode: widget.mode,
-        onGameOver: _handleDeath,
-        onScoreChanged: (score) => _scoreNotifier.value = score,
-        gridWidth: _isClassicMode ? null : _settings.gridSize.width,
-        gridHeight: _isClassicMode ? null : _settings.gridSize.height,
-        wallsKillOverride: wallsOverride,
-        speedOverride: _isClassicMode ? null : _settings.startSpeed.baseInterval,
-      );
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning to the app never resumes a covered match automatically.
+    if (state != AppLifecycleState.resumed) {
+      _backgroundGeneration++;
+      if (!_isPaused && !_isGameOver) _togglePause();
     }
+  }
+
+  void _createGame() {
+    final generation = ++_sessionGeneration;
+    bool isCurrent() => mounted && generation == _sessionGeneration;
+    _session = GameRegistry.create(
+      mode: widget.mode,
+      settings: _settings,
+      onGameOver: () {
+        if (isCurrent()) _handleDeath();
+      },
+      onScoreChanged: (score) {
+        if (isCurrent()) _scoreNotifier.value = score;
+      },
+      onVictory: () {
+        if (isCurrent()) _onGameOver(victory: true);
+      },
+    );
+    // The screen owns lifecycle pause; Flame otherwise resumes on return.
+    _session.game.pauseWhenBackgrounded = false;
   }
 
   void _handleDeath() {
     if (!_isClassicMode && _livesRemaining > 0) {
       setState(() => _livesRemaining--);
       // Respawn — keep score and remaining lives
-      if (_isSnake2Mode) {
-        (_game as Snake2Game).respawn();
-      } else if (_isAsciiMode) {
-        (_game as AsciiGame).respawn();
-      } else if (_isCgaMode) {
-        (_game as CgaGame).respawn();
-      } else if (_isNibblesMode) {
-        (_game as NibblesGame).respawn();
-      } else if (!_isMazeMode && !_isTrailMode) {
-        (_game as SnakeGame).respawn();
-      }
-      // Maze and Trail modes: for now just treat as game over
-      // (respawn can be added to those game classes later)
-      else {
+      if (_session.canRespawn) {
+        _session.respawn!();
+      } else {
         _onGameOver();
       }
     } else {
@@ -271,26 +112,21 @@ class _GameScreenState extends State<GameScreen> {
 
   void _togglePause() {
     if (_isGameOver) return;
-    // Only SnakeGame has togglePause — other modes just freeze the FlameGame
-    if (!_isMazeMode && !_isTrailMode && !_isSwarmMode && !_isRushMode &&
-        !_isFangsMode && !_isVenomMode && !_isPitMode && !_isSnake2Mode &&
-        !_isAsciiMode && !_isCgaMode && !_isNibblesMode && !_isMultiplayerMode &&
-        !_isStampedeMode && !_isNagaDiveMode) {
-      (_game as SnakeGame).togglePause();
-    } else {
-      // For other game types, pause/resume the Flame engine
-      if (_isPaused) {
-        _game.resumeEngine();
-      } else {
-        _game.pauseEngine();
-      }
-    }
+    // Freeze the session and keep keyboard input out of the covered game.
+    _session.setPaused(!_isPaused);
     setState(() => _isPaused = !_isPaused);
+    if (!_isPaused) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_inputBlocked) _gameFocus.requestFocus();
+      });
+    }
   }
 
   void _showInstructions() {
-    // Pause the game while showing instructions
-    if (!_isPaused && !_isGameOver) _togglePause();
+    // Only undo the pause introduced by this dialog, not a user/app pause.
+    final resumeOnClose = !_isPaused && !_isGameOver;
+    final backgroundGeneration = _backgroundGeneration;
+    if (resumeOnClose) _togglePause();
 
     final modeName = widget.mode.name;
     final instructions = _getInstructions(modeName);
@@ -303,7 +139,13 @@ class _GameScreenState extends State<GameScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (_isPaused && !_isGameOver) _togglePause();
+              if (mounted &&
+                  resumeOnClose &&
+                  backgroundGeneration == _backgroundGeneration &&
+                  _isPaused &&
+                  !_isGameOver) {
+                _togglePause();
+              }
             },
             child: const Text('OK'),
           ),
@@ -373,7 +215,7 @@ class _GameScreenState extends State<GameScreen> {
             '⭐ Trap = active every 6th turn\n'
             '🚪 Exit = opens when all monsters dead';
       case 'Snake II':
-        return 'Nokia Snake II style.\n\n'
+        return 'Snake II style.\n\n'
             'Classic gameplay with configurable grid, speed, and wall behavior.';
       case 'ASCII':
         return 'Text-mode snake.\n\n'
@@ -386,7 +228,7 @@ class _GameScreenState extends State<GameScreen> {
             'Faithful recreation of the classic QBasic snake game.';
       case 'Duel':
         return 'Local 2-player!\n\n'
-            'Player 1: Arrow keys. Player 2: WASD.\n'
+            'Player 1: WASD. Player 2: Arrow keys.\n'
             'Eat food to grow. Last snake standing wins!';
       case 'VS AI':
         return 'Battle the AI!\n\n'
@@ -408,19 +250,32 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onGameOver({bool victory = false}) async {
+    if (!mounted || _isGameOver) return;
+    final session = _session;
+    // The result and restart controls must not wait for disk/plugin I/O.
+    setState(() {
+      _isGameOver = true;
+      _isNewHighScore = false;
+      _quipIndex = Random().nextInt(8);
+      _overlayFocus = 0;
+    });
     if (victory) {
       widget.audioService.playLevelUp();
     } else {
       widget.audioService.playDie();
     }
-    final isNew = await widget.highScoreService
-        .submitScore(widget.mode.name, _scoreNotifier.value);
-    setState(() {
-      _isGameOver = true;
-      _isNewHighScore = isNew;
-      _quipIndex = Random().nextInt(8);
-      _overlayFocus = 0;
-    });
+    try {
+      final isNew = await widget.highScoreService.submitScore(
+        widget.mode.name,
+        _scoreNotifier.value,
+      );
+      if (!mounted || !identical(session, _session)) return;
+      setState(() => _isNewHighScore = isNew);
+    } catch (error) {
+      // Persistence failure must not break the result screen or escape after
+      // disposal. Do not claim a high score that could not be saved.
+      debugPrint('Could not save high score: $error');
+    }
   }
 
   @override
@@ -435,7 +290,13 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  GameWidget(game: _game),
+                  ExcludeFocus(
+                    excluding: _inputBlocked,
+                    child: GameWidget(
+                      game: _session.game,
+                      focusNode: _gameFocus,
+                    ),
+                  ),
                   if (!_useButtons && !_isPaused) _buildSwipeControls(),
                   if (_isPaused && !_isGameOver) _buildPauseOverlay(),
                   if (_isGameOver) _buildGameOverOverlay(s),
@@ -450,8 +311,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildScoreBar(S s) {
-    final textColor =
-        _isClassicMode ? const Color(0xFF0F380F) : Colors.green.shade300;
+    final textColor = _isClassicMode
+        ? const Color(0xFF0F380F)
+        : Colors.green.shade300;
     final highScore = widget.highScoreService.getHighScore(widget.mode.name);
 
     return Container(
@@ -522,80 +384,47 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _changeDirection(Direction dir) {
-    if (_isMazeMode) {
-      (_game as MazeHunterGame).changeDirection(dir);
-    } else if (_isTrailMode) {
-      (_game as trail.TrailGame).changeDirection(
-        trail.Direction.values.byName(dir.name),
-      );
-    } else if (_isSwarmMode) {
-      (_game as SwarmGame).changeDirection(dir);
-    } else if (_isRushMode) {
-      (_game as RushGame).changeDirection(dir);
-    } else if (_isFangsMode) {
-      (_game as FangsGame).changeDirection(dir);
-    } else if (_isVenomMode) {
-      (_game as VenomGame).changeDirection(dir);
-    } else if (_isPitMode) {
-      (_game as PitGame).changeDirection(dir);
-    } else if (_isSnake2Mode) {
-      (_game as Snake2Game).changeDirection(dir);
-    } else if (_isAsciiMode) {
-      (_game as AsciiGame).changeDirection(dir);
-    } else if (_isCgaMode) {
-      (_game as CgaGame).changeDirection(dir);
-    } else if (_isNibblesMode) {
-      (_game as NibblesGame).changeDirection(dir);
-    } else if (_isMultiplayerMode) {
-      (_game as MultiplayerGame).changeDirectionP1(dir);
-    } else if (_isDungeonMode) {
-      (_game as DungeonGame).changeDirection(dir);
-    } else if (_isStampedeMode) {
-      (_game as StampedeGame).changeDirection(dir);
-    } else if (_isNagaDiveMode) {
-      // Naga Dive uses tap/space to flap, not directions
-      // But map Up to flap for d-pad support
-      if (dir == Direction.up) {
-        // Trigger via keyboard handler in game
-      }
-    } else if (_isVsAiMode) {
-      (_game as VsAiGame).changeDirection(dir);
-    } else {
-      (_game as SnakeGame).changeDirection(dir);
-    }
+    if (!_inputBlocked) _session.changeDirection(dir);
   }
 
   Widget _buildPauseOverlay() {
     return Positioned.fill(
-      child: GestureDetector(
-        onTap: _togglePause,
-        child: Container(
-          color: Colors.black54,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.pause_circle_outline,
-                    size: 64, color: Colors.green.shade400),
-                const SizedBox(height: 16),
-                Text(
-                  'PAUSED',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green.shade300,
-                    letterSpacing: 6,
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: (_, _) => KeyEventResult.handled,
+        child: GestureDetector(
+          onTap: _togglePause,
+          child: Container(
+            color: Colors.black54,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.pause_circle_outline,
+                    size: 64,
+                    color: Colors.green.shade400,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Tap to resume',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.green.shade700,
+                  const SizedBox(height: 16),
+                  Text(
+                    'PAUSED',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green.shade300,
+                      letterSpacing: 6,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    'Tap to resume',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -628,26 +457,23 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _triggerAction() {
-    if (_isVenomMode) {
-      (_game as VenomGame).dropBomb();
-    } else if (_isDungeonMode) {
-      (_game as DungeonGame).fireArrow();
-    }
+    if (!_inputBlocked) _session.triggerAction();
   }
 
-  bool get _hasActionButton => _isVenomMode || _isDungeonMode;
+  bool get _hasActionButton =>
+      _session.action == GameAction.bomb || _session.action == GameAction.shoot;
 
-  String get _actionLabel {
-    if (_isVenomMode) return 'BOMB';
-    if (_isDungeonMode) return 'SHOOT';
-    return '';
-  }
+  String get _actionLabel => switch (_session.action) {
+    GameAction.bomb => 'BOMB',
+    GameAction.shoot => 'SHOOT',
+    _ => '',
+  };
 
-  IconData get _actionIcon {
-    if (_isVenomMode) return Icons.local_fire_department;
-    if (_isDungeonMode) return Icons.gps_fixed;
-    return Icons.circle;
-  }
+  IconData get _actionIcon => switch (_session.action) {
+    GameAction.bomb => Icons.local_fire_department,
+    GameAction.shoot => Icons.gps_fixed,
+    _ => Icons.circle,
+  };
 
   Widget _buildDPad() {
     return Container(
@@ -700,38 +526,21 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  String _getResultText(S s) {
-    if (_isVenomMode && (_game as VenomGame).hasWon) {
-      return 'YOU WIN!';
-    }
-    if (_isVsAiMode) {
-      final won = (_game as VsAiGame).playerWon;
-      return won ? 'YOU WIN!' : s.gameOver;
-    }
-    if (_isMultiplayerMode) {
-      final result = (_game as MultiplayerGame).matchResult;
-      if (result == MatchResult.player1Wins) return s.player1Wins;
-      if (result == MatchResult.player2Wins) return s.player2Wins;
-      if (result == MatchResult.draw) return s.draw;
-    }
-    return s.gameOver;
-  }
+  String _getResultText(S s) => switch (_session.result) {
+    SessionResult.victory => 'YOU WIN!',
+    SessionResult.player1Wins => s.player1Wins,
+    SessionResult.player2Wins => s.player2Wins,
+    SessionResult.draw => s.draw,
+    SessionResult.loss => s.gameOver,
+  };
 
-  Color _getResultColor() {
-    if (_isVenomMode && (_game as VenomGame).hasWon) {
-      return Colors.green.shade400;
-    }
-    if (_isVsAiMode && (_game as VsAiGame).playerWon) {
-      return Colors.green.shade400;
-    }
-    if (_isMultiplayerMode) {
-      final result = (_game as MultiplayerGame).matchResult;
-      if (result == MatchResult.player1Wins) return widget.mode.snakeColor;
-      if (result == MatchResult.player2Wins) return Colors.blue.shade400;
-      if (result == MatchResult.draw) return Colors.amber;
-    }
-    return Colors.red.shade400;
-  }
+  Color _getResultColor() => switch (_session.result) {
+    SessionResult.victory => Colors.green.shade400,
+    SessionResult.player1Wins => widget.mode.snakeColor,
+    SessionResult.player2Wins => Colors.blue.shade400,
+    SessionResult.draw => Colors.amber,
+    SessionResult.loss => Colors.red.shade400,
+  };
 
   String _getQuip(S s) {
     final quips = [
@@ -752,7 +561,7 @@ class _GameScreenState extends State<GameScreen> {
       _isGameOver = false;
       _isNewHighScore = false;
       _scoreNotifier.value = 0;
-      _livesRemaining = _isClassicMode ? 0 : _settings.lives;
+      _livesRemaining = widget.mode is ClassicMode ? 0 : _settings.lives;
       _createGame();
     });
   }
@@ -796,103 +605,102 @@ class _GameScreenState extends State<GameScreen> {
           autofocus: true,
           onKeyEvent: _onOverlayKey,
           child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                resultText,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: resultColor,
-                  letterSpacing: 4,
-                ),
-              ),
-              if (isLoss) ...[
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(
-                    _getQuip(s),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      color: Color(0xFFFFD740),
-                    ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  resultText,
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: resultColor,
+                    letterSpacing: 4,
                   ),
                 ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                '${s.score}: ${_scoreNotifier.value}',
-                style: const TextStyle(
-                  fontSize: 24,
-                  color: Colors.white70,
-                ),
-              ),
-              if (_isNewHighScore) ...[
+                if (isLoss) ...[
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      _getQuip(s),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                        color: Color(0xFFFFD740),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Text(
-                  s.newHighScore,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.amber,
-                    fontWeight: FontWeight.bold,
+                  '${s.score}: ${_scoreNotifier.value}',
+                  style: const TextStyle(fontSize: 24, color: Colors.white70),
+                ),
+                if (_isNewHighScore) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    s.newHighScore,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 32),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _overlayFocus == 0
+                          ? const Color(0xFFFFD740)
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _playAgain,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                    ),
+                    child: Text(
+                      s.playAgain,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        letterSpacing: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _overlayFocus == 1
+                          ? const Color(0xFFFFD740)
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      s.backToMenu,
+                      style: TextStyle(
+                        color: Colors.green.shade400,
+                        letterSpacing: 2,
+                      ),
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: 32),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: _overlayFocus == 0
-                        ? const Color(0xFFFFD740)
-                        : Colors.transparent,
-                    width: 2.5,
-                  ),
-                ),
-                child: ElevatedButton(
-                  onPressed: _playAgain,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade700,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                  ),
-                  child: Text(
-                    s.playAgain,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      letterSpacing: 2,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: _overlayFocus == 1
-                        ? const Color(0xFFFFD740)
-                        : Colors.transparent,
-                    width: 2.5,
-                  ),
-                ),
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    s.backToMenu,
-                    style: TextStyle(
-                      color: Colors.green.shade400,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ),
-              ),
-            ],
             ),
           ),
         ),
@@ -946,7 +754,10 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 2),
+          border: Border.all(
+            color: Colors.red.withValues(alpha: 0.5),
+            width: 2,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

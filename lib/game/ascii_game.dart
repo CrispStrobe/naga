@@ -1,5 +1,8 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/free_cell.dart';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +14,8 @@ import 'snake_game.dart' show Direction, GameState;
 class AsciiGame extends FlameGame with KeyboardEvents {
   final AsciiMode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   final int gridWidth;
@@ -20,9 +25,9 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   late Vector2 boardOffset;
 
   // Snake
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody();
   Direction currentDirection = Direction.right;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
@@ -35,17 +40,19 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   final Random _random = Random();
 
   // Cached text painters for performance
-  final Map<String, TextPainter> _charCache = {};
+  final Map<(String, Color), TextPainter> _charCache = {};
+  double? _cachedFontSize;
 
   AsciiGame({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
     this.startSpeed,
-  })  : gridWidth = gridWidth ?? 20,
-        gridHeight = gridHeight ?? 28;
+  }) : gridWidth = gridWidth ?? 20,
+       gridHeight = gridHeight ?? 28;
 
   @override
   Color backgroundColor() => mode.backgroundColor;
@@ -68,6 +75,8 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   }
 
   void _startNewGame() {
+    hasWon = false;
+    _tickTimer = 0;
     score = 0;
     gameState = GameState.playing;
     currentDirection = Direction.right;
@@ -75,11 +84,11 @@ class AsciiGame extends FlameGame with KeyboardEvents {
 
     final startX = gridWidth ~/ 2;
     final startY = gridHeight ~/ 2;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX - 1, startY),
       Point(startX - 2, startY),
-    ];
+    ]);
 
     _spawnFood();
   }
@@ -90,25 +99,32 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   }
 
   void respawn() {
+    hasWon = false;
     _tickTimer = 0;
     currentDirection = Direction.right;
     _directionQueue.clear();
     gameState = GameState.playing;
     final startX = gridWidth ~/ 2;
     final startY = gridHeight ~/ 2;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX - 1, startY),
       Point(startX - 2, startY),
-    ];
+    ]);
     _spawnFood();
   }
 
   void _spawnFood() {
-    Point<int> pos;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-    } while (snakeSegments.any((s) => s.x == pos.x && s.y == pos.y));
+    final pos = randomFreeCell(
+      width: gridWidth,
+      height: gridHeight,
+      occupied: snakeSegments,
+      random: _random,
+    );
+    if (pos == null) {
+      _win();
+      return;
+    }
     foodPosition = pos;
     _foodIsSpecial = _random.nextBool();
   }
@@ -126,32 +142,18 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   }
 
   void _tick() {
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
 
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, currentDirection);
 
     // Wrap around
-    newHead = Point(
-      (newHead.x + gridWidth) % gridWidth,
-      (newHead.y + gridHeight) % gridHeight,
-    );
+    newHead = wrapGrid(newHead, gridWidth, gridHeight);
 
     // Self collision
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+    if (snakeSegments.contains(newHead)) {
       _die();
       return;
     }
@@ -170,22 +172,22 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  void _win() {
+    if (gameState == GameState.gameOver) return;
+    hasWon = true;
+    gameState = GameState.gameOver;
+    (onVictory ?? onGameOver)();
+  }
+
   void _die() {
     gameState = GameState.gameOver;
     onGameOver();
   }
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-    if (dir == lastDir) return;
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
     final interval = mode.tickInterval(score);
     if (_tickTimer > interval * 0.4) {
@@ -244,15 +246,23 @@ class AsciiGame extends FlameGame with KeyboardEvents {
   }
 
   TextPainter _getCharPainter(String ch, Color color, double fontSize) {
-    final key = '$ch-${color.toARGB32()}-${fontSize.toStringAsFixed(1)}';
-    if (_charCache.containsKey(key)) return _charCache[key]!;
+    if (_cachedFontSize != fontSize) {
+      for (final painter in _charCache.values) {
+        painter.dispose();
+      }
+      _charCache.clear();
+      _cachedFontSize = fontSize;
+    }
+    final key = (ch, color);
+    final cached = _charCache[key];
+    if (cached != null) return cached;
     final tp = TextPainter(
       text: TextSpan(
         text: ch,
         style: TextStyle(
           color: color,
           fontSize: fontSize,
-          fontFamily: 'monospace',
+          fontFamily: 'NagaMono',
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -260,6 +270,39 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     )..layout();
     _charCache[key] = tp;
     return tp;
+  }
+
+  TextPainter? _scorePainter;
+  int? _scorePainterKey;
+
+  TextPainter _getScorePainter() {
+    final key = score;
+    if (_scorePainter != null && _scorePainterKey == key) return _scorePainter!;
+    _scorePainter?.dispose();
+    _scorePainterKey = key;
+    return _scorePainter = TextPainter(
+      text: TextSpan(
+        text: 'SCORE: $score',
+        style: TextStyle(
+          color: mode.scoreColor,
+          fontSize: 12,
+          fontFamily: 'NagaMono',
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+  }
+
+  @override
+  void onRemove() {
+    _scorePainter?.dispose();
+    _scorePainter = null;
+    for (final painter in _charCache.values) {
+      painter.dispose();
+    }
+    _charCache.clear();
+    super.onRemove();
   }
 
   @override
@@ -270,7 +313,7 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     final green = mode.snakeColor;
 
     // ─── ASCII border: +---+ style ───────────────────────────────────
-    final borderColor = green.withValues(alpha: 0.7);
+    final borderColor = mode.borderColor;
     final cornerChar = _getCharPainter('+', borderColor, fontSize);
     final hChar = _getCharPainter('-', borderColor, fontSize);
     final vChar = _getCharPainter('|', borderColor, fontSize);
@@ -280,53 +323,68 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     for (int x = 0; x < gridWidth; x++) {
       _paintCharAt(canvas, hChar, boardOffset.x + x * cs, boardOffset.y - cs);
     }
-    _paintCharAt(canvas, cornerChar, boardOffset.x + gridWidth * cs, boardOffset.y - cs);
+    _paintCharAt(
+      canvas,
+      cornerChar,
+      boardOffset.x + gridWidth * cs,
+      boardOffset.y - cs,
+    );
 
     // Bottom border
-    _paintCharAt(canvas, cornerChar, boardOffset.x - cs, boardOffset.y + gridHeight * cs);
+    _paintCharAt(
+      canvas,
+      cornerChar,
+      boardOffset.x - cs,
+      boardOffset.y + gridHeight * cs,
+    );
     for (int x = 0; x < gridWidth; x++) {
-      _paintCharAt(canvas, hChar, boardOffset.x + x * cs, boardOffset.y + gridHeight * cs);
+      _paintCharAt(
+        canvas,
+        hChar,
+        boardOffset.x + x * cs,
+        boardOffset.y + gridHeight * cs,
+      );
     }
-    _paintCharAt(canvas, cornerChar, boardOffset.x + gridWidth * cs, boardOffset.y + gridHeight * cs);
+    _paintCharAt(
+      canvas,
+      cornerChar,
+      boardOffset.x + gridWidth * cs,
+      boardOffset.y + gridHeight * cs,
+    );
 
     // Side borders
     for (int y = 0; y < gridHeight; y++) {
       _paintCharAt(canvas, vChar, boardOffset.x - cs, boardOffset.y + y * cs);
-      _paintCharAt(canvas, vChar, boardOffset.x + gridWidth * cs, boardOffset.y + y * cs);
+      _paintCharAt(
+        canvas,
+        vChar,
+        boardOffset.x + gridWidth * cs,
+        boardOffset.y + y * cs,
+      );
     }
 
     // ─── Food ────────────────────────────────────────────────────────
-    final foodChar = _foodIsSpecial ? r'$' : '*';
-    final foodPainter = _getCharPainter(foodChar, green, fontSize);
-    final fsp = _gridToScreen(foodPosition);
-    _paintCharCentered(canvas, foodPainter, fsp.x, fsp.y, cs);
+    if (!hasWon) {
+      final foodChar = _foodIsSpecial ? r'$' : '*';
+      final foodPainter = _getCharPainter(foodChar, green, fontSize);
+      final fsp = _gridToScreen(foodPosition);
+      _paintCharCentered(canvas, foodPainter, fsp.x, fsp.y, cs);
+    }
 
+    // Resolve just twice per frame, rather than a key allocation per segment.
+    final headPainter = _getCharPainter('@', green, fontSize);
+    final bodyPainter = _getCharPainter('#', green, fontSize);
     // ─── Snake ───────────────────────────────────────────────────────
     for (int i = 0; i < snakeSegments.length; i++) {
       final seg = snakeSegments[i];
       final sp = _gridToScreen(seg);
-      final ch = i == 0 ? '@' : '#';
-      final painter = _getCharPainter(ch, green, fontSize);
+      final painter = i == 0 ? headPainter : bodyPainter;
       _paintCharCentered(canvas, painter, sp.x, sp.y, cs);
     }
 
     // ─── Score as monospace text ─────────────────────────────────────
-    final scorePainter = TextPainter(
-      text: TextSpan(
-        text: 'SCORE: $score',
-        style: TextStyle(
-          color: green.withValues(alpha: 0.8),
-          fontSize: 12,
-          fontFamily: 'monospace',
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    scorePainter.paint(
-      canvas,
-      Offset(boardOffset.x, boardOffset.y - cs - 16),
-    );
+    final scorePainter = _getScorePainter();
+    scorePainter.paint(canvas, Offset(boardOffset.x, boardOffset.y - cs - 16));
   }
 
   void _paintCharAt(Canvas canvas, TextPainter tp, double x, double y) {
@@ -340,12 +398,6 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     double y,
     double cs,
   ) {
-    tp.paint(
-      canvas,
-      Offset(
-        x + (cs - tp.width) / 2,
-        y + (cs - tp.height) / 2,
-      ),
-    );
+    tp.paint(canvas, Offset(x + (cs - tp.width) / 2, y + (cs - tp.height) / 2));
   }
 }

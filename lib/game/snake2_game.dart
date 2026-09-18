@@ -1,5 +1,8 @@
-import 'dart:collection';
+import 'shared/direction_buffer.dart';
 import 'dart:math';
+import 'shared/free_cell.dart';
+import 'shared/grid_motion.dart';
+import 'shared/grid_snake_body.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +14,8 @@ import 'snake_game.dart' show Direction, GameState;
 class Snake2Game extends FlameGame with KeyboardEvents {
   final Snake2Mode mode;
   final VoidCallback onGameOver;
+  final VoidCallback? onVictory;
+  bool hasWon = false;
   final ValueChanged<int> onScoreChanged;
 
   final int gridWidth;
@@ -20,9 +25,9 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   late Vector2 boardOffset;
 
   // Snake
-  List<Point<int>> snakeSegments = [];
+  List<Point<int>> snakeSegments = GridSnakeBody([]);
   Direction currentDirection = Direction.right;
-  final Queue<Direction> _directionQueue = Queue<Direction>();
+  final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   GameState gameState = GameState.playing;
   int score = 0;
@@ -42,15 +47,30 @@ class Snake2Game extends FlameGame with KeyboardEvents {
 
   final Random _random = Random();
 
+  late final Paint _borderPaint = Paint()
+    ..color = mode.snakeColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
+  late final Paint _wallPaint = Paint()..color = mode.wallColor;
+  late final Paint _foodPaint = Paint()..color = mode.foodColor;
+  late final Paint _bonusPaint = Paint()..color = mode.snakeColor;
+  late final Paint _snakeFillPaint = Paint()..color = mode.snakeColor;
+  late final Paint _snakeBorderPaint = Paint()
+    ..color = mode.snakeColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1;
+  late final Paint _snakeBgPaint = Paint()..color = mode.backgroundColor;
+
   Snake2Game({
     required this.mode,
     required this.onGameOver,
+    this.onVictory,
     required this.onScoreChanged,
     int? gridWidth,
     int? gridHeight,
     this.startSpeed,
-  })  : gridWidth = gridWidth ?? 20,
-        gridHeight = gridHeight ?? 28;
+  }) : gridWidth = gridWidth ?? 20,
+       gridHeight = gridHeight ?? 28;
 
   @override
   Color backgroundColor() => mode.backgroundColor;
@@ -73,6 +93,8 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void _startNewGame() {
+    hasWon = false;
+    _tickTimer = 0;
     score = 0;
     _currentMaze = 0;
     gameState = GameState.playing;
@@ -92,6 +114,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void respawn() {
+    hasWon = false;
     _tickTimer = 0;
     currentDirection = Direction.right;
     _directionQueue.clear();
@@ -193,15 +216,17 @@ class Snake2Game extends FlameGame with KeyboardEvents {
     // Find a clear area for snake
     final startX = gridWidth ~/ 2;
     final startY = gridHeight ~/ 2;
-    snakeSegments = [
+    snakeSegments = GridSnakeBody([
       Point(startX, startY),
       Point(startX - 1, startY),
       Point(startX - 2, startY),
-    ];
+    ]);
     // Clear any walls at snake start position
-    mazeWalls.removeWhere((w) =>
-        (w.x >= startX - 3 && w.x <= startX + 1) &&
-        (w.y >= startY - 1 && w.y <= startY + 1));
+    mazeWalls.removeWhere(
+      (w) =>
+          (w.x >= startX - 3 && w.x <= startX + 1) &&
+          (w.y >= startY - 1 && w.y <= startY + 1),
+    );
   }
 
   void _spawnAllFood() {
@@ -212,36 +237,40 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void _spawnOneFood() {
-    Point<int> pos;
-    int attempts = 0;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-      attempts++;
-      if (attempts > 200) return; // Safety
-    } while (_isOccupied(pos));
-    foodPositions.add(pos);
+    final pos = _freeCell();
+    if (pos != null) foodPositions.add(pos);
   }
 
-  bool _isOccupied(Point<int> pos) {
-    if (snakeSegments.any((s) => s.x == pos.x && s.y == pos.y)) return true;
-    if (foodPositions.any((f) => f.x == pos.x && f.y == pos.y)) return true;
-    if (_isWall(pos)) return true;
-    if (bonusPosition != null &&
-        bonusPosition!.x == pos.x &&
-        bonusPosition!.y == pos.y) {
-      return true;
+  Point<int>? _freeCell() => randomFreeCell(
+    width: gridWidth,
+    height: gridHeight,
+    occupied: [
+      ...snakeSegments,
+      ...mazeWalls,
+      ...foodPositions,
+      ?bonusPosition,
+    ],
+    random: _random,
+  );
+
+  // Food and bonuses reserve cells but do not complete the arena.
+  bool _checkArenaComplete() {
+    if (randomFreeCell(
+          width: gridWidth,
+          height: gridHeight,
+          occupied: [...snakeSegments, ...mazeWalls],
+          random: _random,
+        ) !=
+        null) {
+      return false;
     }
-    return false;
+    _win();
+    return true;
   }
 
   void _spawnBonus() {
-    Point<int> pos;
-    int attempts = 0;
-    do {
-      pos = Point(_random.nextInt(gridWidth), _random.nextInt(gridHeight));
-      attempts++;
-      if (attempts > 200) return;
-    } while (_isOccupied(pos));
+    final pos = _freeCell();
+    if (pos == null) return;
     bonusPosition = pos;
     _bonusTimer = mode.bonusDuration;
   }
@@ -258,6 +287,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       _bonusTimer -= dt;
       if (_bonusTimer <= 0) {
         bonusPosition = null;
+        if (foodPositions.isEmpty) _spawnOneFood();
       }
     }
 
@@ -276,29 +306,15 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void _tick() {
-    if (_directionQueue.isNotEmpty) {
-      currentDirection = _directionQueue.removeFirst();
-    }
+    currentDirection = _directionQueue.consume(currentDirection);
 
     final head = snakeSegments.first;
     late Point<int> newHead;
 
-    switch (currentDirection) {
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-    }
+    newHead = gridStep(head, currentDirection);
 
     // Wrap around
-    newHead = Point(
-      (newHead.x + gridWidth) % gridWidth,
-      (newHead.y + gridHeight) % gridHeight,
-    );
+    newHead = wrapGrid(newHead, gridWidth, gridHeight);
 
     // Wall collision (maze walls kill)
     if (_isWall(newHead)) {
@@ -307,7 +323,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
     }
 
     // Self collision
-    if (snakeSegments.any((s) => s.x == newHead.x && s.y == newHead.y)) {
+    if (snakeSegments.contains(newHead)) {
       _die();
       return;
     }
@@ -319,7 +335,8 @@ class Snake2Game extends FlameGame with KeyboardEvents {
     final ateFood = foodIndex >= 0;
 
     // Check bonus
-    final ateBonus = bonusPosition != null &&
+    final ateBonus =
+        bonusPosition != null &&
         bonusPosition!.x == newHead.x &&
         bonusPosition!.y == newHead.y;
 
@@ -332,6 +349,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       foodPositions.removeAt(foodIndex);
       score += mode.pointsPerFood(score);
       onScoreChanged(score);
+      if (_checkArenaComplete()) return;
       _spawnOneFood();
 
       // Advance maze every 100 points
@@ -340,8 +358,16 @@ class Snake2Game extends FlameGame with KeyboardEvents {
         _currentMaze = newMaze;
         _loadMaze(_currentMaze);
         // Clear walls that overlap snake
-        mazeWalls.removeWhere((w) =>
-            snakeSegments.any((s) => s.x == w.x && s.y == w.y));
+        mazeWalls.removeWhere((w) => snakeSegments.contains(w));
+        // Existing items must not become trapped inside newly loaded walls.
+        foodPositions.removeWhere(_isWall);
+        if (bonusPosition != null && _isWall(bonusPosition!)) {
+          bonusPosition = null;
+        }
+        final missing = mode.foodCount - foodPositions.length;
+        for (var i = 0; i < missing; i++) {
+          _spawnOneFood();
+        }
       }
     }
 
@@ -349,7 +375,17 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       score += mode.pointsPerBonus;
       onScoreChanged(score);
       bonusPosition = null;
+      if (_checkArenaComplete()) return;
+      // Restore food if a bonus had reserved the only remaining cell.
+      if (foodPositions.isEmpty) _spawnOneFood();
     }
+  }
+
+  void _win() {
+    if (gameState == GameState.gameOver) return;
+    hasWon = true;
+    gameState = GameState.gameOver;
+    (onVictory ?? onGameOver)();
   }
 
   void _die() {
@@ -358,19 +394,9 @@ class Snake2Game extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    final lastDir = _directionQueue.isNotEmpty
-        ? _directionQueue.last
-        : currentDirection;
-
-    if (dir == Direction.up && lastDir == Direction.down) return;
-    if (dir == Direction.down && lastDir == Direction.up) return;
-    if (dir == Direction.left && lastDir == Direction.right) return;
-    if (dir == Direction.right && lastDir == Direction.left) return;
-
-    if (dir == lastDir) return;
-
-    if (_directionQueue.length < _maxQueuedInputs) {
-      _directionQueue.add(dir);
+    if (_directionQueue.enqueue(dir, currentDirection) ==
+        DirectionInput.rejected) {
+      return;
     }
 
     // Trigger early tick for responsiveness
@@ -434,38 +460,71 @@ class Snake2Game extends FlameGame with KeyboardEvents {
 
   // ─── Rendering ─────────────────────────────────────────────────────
 
+  TextPainter? _tp;
+  int? _tpKey;
+
+  TextPainter _getTp() {
+    final key = _currentMaze;
+    if (_tp != null && _tpKey == key) return _tp!;
+    _tp?.dispose();
+    _tpKey = key;
+    return _tp = TextPainter(
+      text: TextSpan(
+        text: 'MAZE ${_currentMaze + 1}',
+        style: TextStyle(
+          color: mode.mazeLabelColor,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'NagaMono',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+  }
+
+  @override
+  void onRemove() {
+    _tp?.dispose();
+    _tp = null;
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
     final cs = cellSize;
 
     // Draw border
-    final borderPaint = Paint()
-      ..color = mode.snakeColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+    final borderPaint = _borderPaint;
     canvas.drawRect(
-      Rect.fromLTWH(boardOffset.x, boardOffset.y, cs * gridWidth, cs * gridHeight),
+      Rect.fromLTWH(
+        boardOffset.x,
+        boardOffset.y,
+        cs * gridWidth,
+        cs * gridHeight,
+      ),
       borderPaint,
     );
 
     // Draw maze walls as dark blocks
-    final wallPaint = Paint()..color = mode.wallColor;
+    final wallPaint = _wallPaint;
     for (final wall in mazeWalls) {
       final sp = gridToScreen(wall);
-      canvas.drawRect(
-        Rect.fromLTWH(sp.x, sp.y, cs, cs),
-        wallPaint,
-      );
+      canvas.drawRect(Rect.fromLTWH(sp.x, sp.y, cs, cs), wallPaint);
     }
 
     // Draw food items
-    final foodPaint = Paint()..color = mode.foodColor;
+    final foodPaint = _foodPaint;
     for (final f in foodPositions) {
       final sp = gridToScreen(f);
       final inset = cs * 0.2;
       canvas.drawRect(
-        Rect.fromLTWH(sp.x + inset, sp.y + inset, cs - inset * 2, cs - inset * 2),
+        Rect.fromLTWH(
+          sp.x + inset,
+          sp.y + inset,
+          cs - inset * 2,
+          cs - inset * 2,
+        ),
         foodPaint,
       );
     }
@@ -475,7 +534,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
       final sp = gridToScreen(bonusPosition!);
       final flash = (_bonusTimer * 4).floor() % 2 == 0;
       if (flash) {
-        final bonusPaint = Paint()..color = mode.snakeColor;
+        final bonusPaint = _bonusPaint;
         final inset = cs * 0.1;
         // Star/diamond shape for bonus
         final cx = sp.x + cs / 2;
@@ -496,12 +555,9 @@ class Snake2Game extends FlameGame with KeyboardEvents {
     }
 
     // Draw snake as chain-link segments (small outlined squares with gap)
-    final snakeFillPaint = Paint()..color = mode.snakeColor;
-    final snakeBorderPaint = Paint()
-      ..color = mode.snakeColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final snakeBgPaint = Paint()..color = mode.backgroundColor;
+    final snakeFillPaint = _snakeFillPaint;
+    final snakeBorderPaint = _snakeBorderPaint;
+    final snakeBgPaint = _snakeBgPaint;
 
     for (int i = 0; i < snakeSegments.length; i++) {
       final seg = snakeSegments[i];
@@ -530,17 +586,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
     }
 
     // Maze level indicator
-    final tp = TextPainter(
-      text: TextSpan(
-        text: 'MAZE ${_currentMaze + 1}',
-        style: TextStyle(
-          color: mode.snakeColor.withValues(alpha: 0.6),
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final tp = _getTp();
     tp.paint(
       canvas,
       Offset(boardOffset.x + gridWidth * cs - tp.width - 4, boardOffset.y - 16),

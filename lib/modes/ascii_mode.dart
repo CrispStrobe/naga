@@ -7,6 +7,9 @@ class AsciiMode extends GameMode {
   static const Color _black = Color(0xFF000000);
   static const Color _darkGreen = Color(0xFF003300);
 
+  late final Color borderColor = snakeColor.withValues(alpha: 0.7);
+  late final Color scoreColor = snakeColor.withValues(alpha: 0.8);
+
   @override
   String get name => 'ASCII';
 

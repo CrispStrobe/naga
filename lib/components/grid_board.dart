@@ -8,6 +8,8 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
   final SnakeGame _game;
   ui.Picture? _cachedPicture;
   double _cachedCellSize = 0;
+  double _cachedOffsetX = 0;
+  double _cachedOffsetY = 0;
 
   GridBoard(this._game);
 
@@ -24,9 +26,15 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
     final gh = _game.gridHeight;
     final isClassic = _game.mode.name == 'Classic';
 
-    // Rebuild cache if cell size changed (e.g. resize)
-    if (_cachedPicture == null || _cachedCellSize != cs) {
+    // Pictures contain absolute coordinates. Compare offset values rather
+    // than Vector2 identity: layout can mutate the existing vector in place.
+    if (_cachedPicture == null ||
+        _cachedCellSize != cs ||
+        _cachedOffsetX != offset.x ||
+        _cachedOffsetY != offset.y) {
       _cachedCellSize = cs;
+      _cachedOffsetX = offset.x;
+      _cachedOffsetY = offset.y;
       final recorder = ui.PictureRecorder();
       final recCanvas = Canvas(recorder);
 
@@ -39,7 +47,9 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
       // Border
       if (_game.mode.showBorder) {
         final borderPaint = Paint()
-          ..color = _game.mode.snakeColor.withValues(alpha: isClassic ? 1.0 : 0.4)
+          ..color = _game.mode.snakeColor.withValues(
+            alpha: isClassic ? 1.0 : 0.4,
+          )
           ..style = PaintingStyle.stroke
           ..strokeWidth = isClassic ? 2 : 1.5;
 
@@ -59,7 +69,13 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
     canvas.drawPicture(_cachedPicture!);
   }
 
-  void _renderClassicGrid(Canvas canvas, double cs, Vector2 offset, int gw, int gh) {
+  void _renderClassicGrid(
+    Canvas canvas,
+    double cs,
+    Vector2 offset,
+    int gw,
+    int gh,
+  ) {
     if (!_game.mode.showGrid) return;
 
     final gridPaint = Paint()
@@ -83,7 +99,13 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
     }
   }
 
-  void _renderCheckerboard(Canvas canvas, double cs, Vector2 offset, int gw, int gh) {
+  void _renderCheckerboard(
+    Canvas canvas,
+    double cs,
+    Vector2 offset,
+    int gw,
+    int gh,
+  ) {
     final bg = _game.mode.backgroundColor;
     // On bright backgrounds a white tint is invisible — shade toward black instead
     final isBright = bg.computeLuminance() > 0.45;
@@ -113,7 +135,14 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
   /// Subtle tropical foliage scattered over the board — low-contrast leaf
   /// shapes derived from the mode's background color, so every habitat
   /// gets texture without hurting gameplay readability.
-  void _renderFoliage(Canvas canvas, double cs, Vector2 offset, int gw, int gh, Color bg) {
+  void _renderFoliage(
+    Canvas canvas,
+    double cs,
+    Vector2 offset,
+    int gw,
+    int gh,
+    Color bg,
+  ) {
     final rng = Random(1337); // fixed seed: same pattern every rebuild
     final isBright = bg.computeLuminance() > 0.45;
     final leafLight = Paint()
@@ -147,7 +176,8 @@ class GridBoard extends Component with HasGameReference<SnakeGame> {
 
   @override
   void onRemove() {
-    _cachedPicture?.dispose();
+    // A removed component can be mounted again with unchanged layout inputs.
+    invalidateCache();
     super.onRemove();
   }
 }

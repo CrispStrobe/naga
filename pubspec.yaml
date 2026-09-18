@@ -41,7 +41,6 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
   shared_preferences: ^2.5.5
-  flame_audio: ^2.12.1
   audioplayers: ^6.8.1
 
 dev_dependencies:
@@ -95,6 +94,13 @@ flutter:
   # the material Icons class.
   generate: true
   uses-material-design: true
+
+  fonts:
+    - family: NagaMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+        - asset: assets/fonts/JetBrainsMono-Bold.ttf
+          weight: 700
 
   assets:
     - assets/audio/music/
