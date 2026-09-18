@@ -242,10 +242,13 @@ void main() {
       final bytes = await _raster(render);
       captured[key] = base64Encode(zlib.encode(bytes));
       expect(_baselines, contains(key));
+      // Every renderer that draws glyphs, including the Snake II maze label
+      // that relies on the default family.
       final isMono =
           key.startsWith('ASCII-') ||
           key.startsWith('CGA-') ||
-          key.startsWith('Nibbles-');
+          key.startsWith('Nibbles-') ||
+          key.startsWith('Snake II-');
       if (isMono && update) {
         mono[key] = captured[key]!;
       } else if (isMono) {
@@ -366,7 +369,7 @@ void main() {
       game.onRemove();
     }
     expect(captured.keys.toSet(), _baselines.keys.toSet());
-    expect(mono.length, 15);
+    expect(mono.length, 20);
     if (update) {
       monoFile.parent.createSync(recursive: true);
       monoFile.writeAsStringSync(

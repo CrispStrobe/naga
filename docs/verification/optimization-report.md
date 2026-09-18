@@ -55,6 +55,17 @@ QA_WIDTH=390 NODE_PATH=/tmp/naga-qa/node_modules node scripts/qa/web_modes.cjs 8
 - Pre-existing full-board food spawning can loop indefinitely. No new completion/victory policy was invented; resolving that needs a gameplay decision and follow-up test.
 - Stable `occupiedCells` read access is preserved; mutation is intentionally rejected to protect body/occupancy consistency.
 - Tests do not establish every randomized maze/food variant, all level transitions, browser FPS, native mobile behavior, physical touch behavior, subjective audio playback, or every mode's death/restart end-to-end. Narrow tests use desktop Chrome at mobile width.
-- No production deployment, commit or push was performed.
-- Updating protected `CLAUDE.md` was blocked by an approval timeout. It remains unchanged; its screen-branch instructions are stale. No alternative write was attempted.
+- Work is committed and pushed on the `release/readiness` branch under PR #1. No production deployment was performed by this branch.
+- `CLAUDE.md` item 7 was updated with the cross-platform raster policy; its older screen-branch wording is still pending review.
 - Final read-only review: spec PASS, quality PASS; no concrete new correctness issues found. The reviewer inspected the lifecycle fixes, live occupancy view, direction buffer, render caches and production AI trace coverage. Tests/build/browser results above were independently executed by the parent, not claimed by the reviewer.
+
+## Cross-platform raster determinism (added after CI runs)
+
+The byte-exact raster baselines only held on the machine that recorded them, which is why the raster job had to skip the comparison on Linux. Two findings emerged from the CI runs on PR #1:
+
+- Version skew was not the cause. Both runners use Flutter 3.44.4, the same engine as local.
+- Font substitution was one cause. ASCII, CGA, Nibbles and the Snake II maze label resolved the generic default/monospace family, which each platform maps to a different physical font. JetBrains Mono is now bundled as `NagaMono` (`assets/fonts/`, OFL) and referenced explicitly by all four.
+
+Font choice alone does not make text rasters byte-comparable. Measured on commit f0f7704: the same frame renders alpha 18 at pixel 10361 locally, 17 on the macOS runner and 0 on Linux, and total ink is 773 locally, 820 on the macOS runner and 724 on Linux, a 6 to 7 percent spread. A palette comparison fails for the same reason, because the retro renderers band per-pixel alpha and the banded colors shift per platform.
+
+Text renderers are therefore compared structurally — file size, ink bounding box within 2px, total ink within 15 percent, and each 16x16 tile's share of total ink within 0.04. The share bound was calibrated by sweeping the ink alpha threshold from 100 to 170 across all reference frames: worst drift 0.026, so the bound keeps about double the headroom. Shape-only renderers (Classic, Arcade) remain byte-exact. This weakens glyph-level detection for the four text renderers; a wrong glyph of similar mass would not be caught, while a missing glyph, shifted board or resized cell is.

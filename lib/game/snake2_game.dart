@@ -475,6 +475,7 @@ class Snake2Game extends FlameGame with KeyboardEvents {
           color: mode.mazeLabelColor,
           fontSize: 11,
           fontWeight: FontWeight.bold,
+          fontFamily: 'NagaMono',
         ),
       ),
       textDirection: TextDirection.ltr,
