@@ -43,6 +43,7 @@ class AudioService {
     'Nibbles': 'audio/music/arcade.ogg',
     'Duel': 'audio/music/pit.ogg',
     'Dungeon': 'audio/music/venom.ogg',
+    'Shed': 'audio/music/fangs.ogg',
     'Stampede': 'audio/music/rush.ogg',
     'Naga Dive': 'audio/music/zen.ogg',
     'VS AI': 'audio/music/swarm.ogg',

@@ -9,6 +9,7 @@ import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
+import '../modes/shed_mode.dart';
 import '../modes/fangs_mode.dart';
 import '../modes/venom_mode.dart';
 import '../modes/pit_mode.dart';
@@ -26,6 +27,7 @@ import 'maze_hunter_game.dart';
 import 'trail_game.dart' as trail;
 import 'swarm_game.dart';
 import 'rush_game.dart';
+import 'shed_game.dart';
 import 'fangs_game.dart';
 import 'venom_game.dart';
 import 'pit_game.dart';
@@ -149,6 +151,19 @@ abstract final class GameRegistry {
     }
     if (mode is RushMode) {
       final game = RushGame(
+        mode: mode,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+      );
+      return _session(
+        game: game,
+        changeDirection: game.changeDirection,
+        state: () => game.gameState,
+        setState: (state) => game.gameState = state,
+      );
+    }
+    if (mode is ShedMode) {
+      final game = ShedGame(
         mode: mode,
         onGameOver: onGameOver,
         onScoreChanged: onScoreChanged,

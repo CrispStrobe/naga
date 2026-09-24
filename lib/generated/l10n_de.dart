@@ -21,6 +21,12 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get shed => 'Häutung';
+
+  @override
+  String get shedDesc => 'Tetris trifft Snake';
+
+  @override
   String get daily => 'Tagesschlange';
 
   @override

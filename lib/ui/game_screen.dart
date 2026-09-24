@@ -171,6 +171,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'Classic rules: walls and rocks kill, no power-ups, no extra lives.\n'
             'Play as often as you like; your best run of the day counts. '
             'Play on consecutive days to build a streak.';
+      case 'Shed':
+        return 'Tetris meets Snake!\n\n'
+            'Each meal grows you by two. Every 4th meal you shed your skin: '
+            'everything behind your neck stays behind as solid wall.\n'
+            'Fill a whole row with shed skin to clear it for a big bonus. '
+            'Lay your body along a row before you shed!';
       case 'Arcade':
         return 'Fast-paced snake action.\n\n'
             'Eat food, collect power-ups, and rack up points.\n'

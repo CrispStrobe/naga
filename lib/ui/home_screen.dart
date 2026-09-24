@@ -12,6 +12,7 @@ import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
 import '../modes/fangs_mode.dart';
 import '../modes/venom_mode.dart';
+import '../modes/shed_mode.dart';
 import '../modes/pit_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
@@ -171,6 +172,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.local_fire_department,
         accentColor: const Color(0xFF33691E),
         onTap: () => _startGame(context, VenomMode()),
+      ),
+      _MenuEntry(
+        label: s.shed,
+        description: s.shedDesc,
+        icon: Icons.view_week,
+        accentColor: const Color(0xFF546E7A),
+        onTap: () => _startGame(context, ShedMode()),
       ),
       _MenuEntry(
         section: 'ACTION',

@@ -14,6 +14,7 @@ import 'package:naga/modes/naga_dive_mode.dart';
 import 'package:naga/modes/nibbles_mode.dart';
 import 'package:naga/modes/pit_mode.dart';
 import 'package:naga/modes/rush_mode.dart';
+import 'package:naga/modes/shed_mode.dart';
 import 'package:naga/modes/snake2_mode.dart';
 import 'package:naga/modes/stampede_mode.dart';
 import 'package:naga/modes/swarm_mode.dart';
@@ -46,7 +47,7 @@ void main() {
       FangsMode(), VenomMode(), PitMode(), SwarmMode(), RushMode(),
       Snake2Mode(), AsciiMode(), CgaMode(), NibblesMode(), MultiplayerMode(),
       DungeonMode(), StampedeMode(), NagaDiveMode(), VsAiMode(),
-      VsAiSplitMode(), DailyMode(DateTime(2026)),
+      VsAiSplitMode(), DailyMode(DateTime(2026)), ShedMode(),
     ];
     for (final mode in modes) {
       expect(AudioService.trackForMode(mode.name), isNotNull, reason: mode.name);

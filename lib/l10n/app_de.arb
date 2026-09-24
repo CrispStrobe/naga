@@ -3,6 +3,8 @@
     "tagline": "Das Schlangenspiel",
     "classic": "Klassisch",
     "classicDesc": "Retro-Handy-Modus",
+    "shed": "Häutung",
+    "shedDesc": "Tetris trifft Snake",
     "daily": "Tagesschlange",
     "dailyDesc": "Heute für alle dasselbe Spielfeld",
     "dailyStats": "Heute bestes: {best} · Serie: {streak}",
