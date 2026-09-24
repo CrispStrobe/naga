@@ -32,8 +32,13 @@ class EchoGame extends SnakeGame {
   /// The echo starts this many moves after the run does.
   static const int echoDelay = 8;
 
-  /// Bonus for still being alive when the echo's recording runs out.
-  static const int outliveBonus = 50;
+  /// Bonus for still being alive when the echo's recording runs out: one
+  /// point per move the echo lasted, in tens, at least 10. A flat bonus let
+  /// a deliberate early crash buy a cheap one in the next game.
+  static int outliveBonusFor(int echoMoves) => max(10, echoMoves ~/ 10 * 10);
+
+  /// The bonus the current echo pays, or 0 without one.
+  int get outliveBonus => _echo.isEmpty ? 0 : outliveBonusFor(_echo.length);
 
   // The screen builds a new game for Play again, so the last run must
   // outlive the instance: this is the recording of the most recent run in

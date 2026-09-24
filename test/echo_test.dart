@@ -112,10 +112,16 @@ void main() {
     game.changeDirection(Direction.down);
     step(game, EchoGame.echoDelay + 10 - 5);
     expect(game.outlivedEcho, isTrue);
-    expect(game.score, EchoGame.outliveBonus);
+    expect(game.score, EchoGame.outliveBonusFor(10));
     expect(game.echoBody, isEmpty);
     step(game, 2);
-    expect(game.score, EchoGame.outliveBonus);
+    expect(game.score, EchoGame.outliveBonusFor(10));
+  });
+
+  test('the outlive bonus grows with the echo', () {
+    expect(EchoGame.outliveBonusFor(9), 10);
+    expect(EchoGame.outliveBonusFor(57), 50);
+    expect(EchoGame.outliveBonusFor(230), 230);
   });
 
   test('a run too short to echo keeps the previous echo', () async {

@@ -195,7 +195,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'From your second run on, your previous run replays as a ghost '
             'snake, starting a few moves behind you. Touching it is deadly; '
             'it passes through your body harmlessly.\n'
-            'Stay alive until your echo fades for a +50 bonus. '
+            'Stay alive until your echo fades for a bonus that grows with its length. '
             'Each life leaves an echo for the next one.';
       case 'Territory':
         return 'Claim the jungle.\n\n'
