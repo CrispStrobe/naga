@@ -34,6 +34,7 @@ class AudioService {
     'Portals': 'audio/music/trail.ogg',
     'Ouroboros': 'audio/music/zen.ogg',
     'Echo': 'audio/music/maze.ogg',
+    'Territory': 'audio/music/swarm.ogg',
     'Maze Hunter': 'audio/music/maze.ogg',
     'Trail': 'audio/music/trail.ogg',
     'Fangs': 'audio/music/fangs.ogg',

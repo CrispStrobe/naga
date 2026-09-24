@@ -21,6 +21,12 @@ class SEn extends S {
   String get classicDesc => 'Retro phone legacy';
 
   @override
+  String get territory => 'Territory';
+
+  @override
+  String get territoryDesc => 'Claim the jungle';
+
+  @override
   String get echo => 'Echo';
 
   @override

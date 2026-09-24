@@ -6,6 +6,8 @@
     "tagline": "The Snake Game",
     "classic": "Classic",
     "classicDesc": "Retro phone legacy",
+    "territory": "Territory",
+    "territoryDesc": "Claim the jungle",
     "echo": "Echo",
     "echoDesc": "Outrun your last run",
     "ouroboros": "Ouroboros",

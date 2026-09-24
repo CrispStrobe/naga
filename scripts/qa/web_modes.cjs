@@ -2,14 +2,17 @@
 // Launch smoke test: real accessibility semantics, not canvas/PNG existence.
 const {chromium} = require('playwright');
 const {stableTarget} = require('./stable_target.cjs');
-const {withTimeout, closeQuietly, WatchdogTimeout} = require('./watchdog.cjs');
+const {withTimeout, closeQuietly, WatchdogTimeout, isEngineTrap} = require('./watchdog.cjs');
 const fs = require('fs');
 const port = process.argv[2] || '8765';
 const outdir = process.argv[3] || '/tmp/naga-qa/modes';
 const modes = ['Daily','Classic','Arcade','Zen','Nightfall','Portals','Maze Hunter','Trail','Fangs','Venom',
- 'Shed','Pit','Swarm','Rush','Ouroboros','Echo','Snake II','ASCII','CGA','Nibbles','Stampede','Naga Dive',
+ 'Shed','Pit','Swarm','Rush','Ouroboros','Echo','Territory','Snake II','ASCII','CGA','Nibbles','Stampede','Naga Dive',
  'Dungeon','Duel','VS AI','VS AI Split'];
 const limit = Number(process.argv[4] || modes.length);
+// Flake hunting: QA_ONLY=CGA,Stampede runs just those modes, QA_REPEAT=N times each.
+const only = process.env.QA_ONLY ? process.env.QA_ONLY.split(',') : null;
+const repeat = Number(process.env.QA_REPEAT || 1);
 const width = Number(process.env.QA_WIDTH || 1280);
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-');
 fs.mkdirSync(outdir,{recursive:true});
@@ -75,12 +78,14 @@ async function runMode(page, i, name, entry) {
 }
 
 (async()=>{
+ const runs=[];
+ for(let i=0;i<limit;i++) if(!only||only.includes(modes[i])) for(let r=0;r<repeat;r++) runs.push(i);
  let browser=await chromium.launch(launchOptions);
  const results=[];
  try {
-  for(let i=0;i<limit;i++) {
+  for(const i of runs) {
    const name=modes[i];
-   let entry;
+   let entry, firstFailure;
    for(let attempt=1;attempt<=2;attempt++) {
     entry={mode:name,index:i,attempt,ok:false,errors:[],step:'start'};
     const errors=[];
@@ -104,17 +109,20 @@ async function runMode(page, i, name, entry) {
     }
     entry.errors.push(...errors);
     if(entry.errors.length)entry.ok=false;
+    // A WebAssembly trap is an engine crash (see watchdog.cjs), retried once.
+    const trapped=isEngineTrap(entry.errors);
     await closeQuietly(context);
     if(frozen) {
      // A hung renderer can wedge the whole browser; start a fresh one.
      try { await withTimeout(browser.close(),10000,'browser.close'); } catch(_) {}
      browser=await chromium.launch(launchOptions);
     }
-    // Only a frozen page is retried: real assertion failures fail at once.
-    if(entry.ok||!frozen||attempt===2)break;
-    console.log(`RETRY ${name}: ${entry.errors.join(' | ')}`);
+    // Only a frozen or trapped page is retried: assertion failures fail at once.
+    if(entry.ok||!(frozen||trapped)||attempt===2)break;
+    firstFailure=entry.errors.join(' | ');
+    console.log(`RETRY ${name}: ${firstFailure}`);
    }
-   if(entry.ok&&entry.attempt>1)entry.flaky=true;
+   if(entry.ok&&entry.attempt>1){entry.flaky=true;entry.firstFailure=firstFailure;}
    results.push(entry);
    fs.writeFileSync(`${outdir}/results.json`,JSON.stringify(results,null,2));
    console.log(`${entry.ok?(entry.flaky?'FLAKY':'PASS'):'FAIL'} ${name}: ${entry.errors.join(' | ')}`);
@@ -124,6 +132,7 @@ async function runMode(page, i, name, entry) {
  const passed=saved.filter(x=>x.ok).length;
  const flaky=saved.filter(x=>x.flaky).map(x=>x.mode);
  const unique=new Set(saved.map(x=>x.mode)).size;
- console.log(JSON.stringify({passed,total:saved.length,unique,expected:limit,flaky},null,2));
- process.exitCode=passed===limit&&unique===limit?0:1;
+ const expected=runs.length;
+ console.log(JSON.stringify({passed,total:saved.length,unique,expected,flaky},null,2));
+ process.exitCode=passed===expected&&saved.length===expected?0:1;
 })().catch(e=>{console.error(e);process.exitCode=1;});

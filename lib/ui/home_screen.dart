@@ -20,6 +20,7 @@ import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
 import '../modes/ouroboros_mode.dart';
 import '../modes/echo_mode.dart';
+import '../modes/territory_mode.dart';
 import '../modes/snake2_mode.dart';
 import '../modes/ascii_mode.dart';
 import '../modes/cga_mode.dart';
@@ -233,6 +234,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.history,
         accentColor: const Color(0xFF7E57C2),
         onTap: () => _startGame(context, EchoMode()),
+      ),
+      _MenuEntry(
+        label: s.territory,
+        description: s.territoryDesc,
+        icon: Icons.crop_square,
+        accentColor: const Color(0xFF2E7D32),
+        onTap: () => _startGame(context, TerritoryMode()),
       ),
       _MenuEntry(
         section: 'LEGACY',

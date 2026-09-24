@@ -46,7 +46,6 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     ..strokeCap = StrokeCap.round;
   final Paint _glowPaint = Paint()
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-  final Path _tailPath = Path();
   Color? _bodyColor;
   Color? _lastGlowColor;
   double? _lastGlowOpacity;
@@ -423,8 +422,10 @@ class Snake extends Component with HasGameReference<SnakeGame> {
     final dx = prev.x - curr.x;
     final dy = prev.y - curr.y;
 
-    // Tapered triangle pointing away from the previous segment
-    final path = _tailPath..reset();
+    // Tapered triangle pointing away from the previous segment. A fresh
+    // Path every frame: on the skwasm web renderer, mutating a Path after
+    // it has been drawn frees its native object twice (flutter#192982).
+    final path = Path();
     final tipX = cx - dx * cs * 0.4;
     final tipY = cy - dy * cs * 0.4;
 

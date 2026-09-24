@@ -201,6 +201,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'it passes through your body harmlessly.\n'
             'Stay alive until your echo fades for a +50 bonus. '
             'Each life leaves an echo for the next one.';
+      case 'Territory':
+        return 'Claim the jungle.\n\n'
+            'Leave your land to draw a trail, then come back: the trail and '
+            'everything it seals off become yours.\n'
+            'While you are outside, your trail is your weak spot: if a rival '
+            'crosses it, you are out. Cross a rival\'s trail to cut them down.\n'
+            'Own half the board to win.';
       case 'Arcade':
         return 'Fast-paced snake action.\n\n'
             'Eat food, collect power-ups, and rack up points.\n'

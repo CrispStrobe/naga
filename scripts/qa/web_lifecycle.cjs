@@ -2,7 +2,7 @@
 // Usage: node web_lifecycle.cjs PORT OUTPUT_DIR
 const {chromium} = require('playwright');
 const {stableTarget} = require('./stable_target.cjs');
-const {withTimeout, closeQuietly, WatchdogTimeout} = require('./watchdog.cjs');
+const {withTimeout, closeQuietly, WatchdogTimeout, isEngineTrap} = require('./watchdog.cjs');
 // A healthy scenario takes well under a minute.
 const scenarioTimeoutMs = Number(process.env.QA_SCENARIO_TIMEOUT_MS || 150000);
 const assert = require('node:assert/strict');
@@ -127,7 +127,7 @@ test('settings-reload-lives-and-restart', async page => {
 // Production mapping and instructions: P1=WASD, P2=arrows.
 for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wins!']]) {
   test(`duel-${key.toLowerCase()}`, async page => {
-    await mode(page, 23);
+    await mode(page, 24);
     await page.keyboard.press(key);
     const score = await over(page, winner);
     await menu(page);
@@ -158,7 +158,8 @@ test('classic-touch-taps-pause-resume-menu', async page => {
   try {
     for (const {name, run} of scenarios) {
       if (wanted && !wanted.includes(name)) continue;
-      // Only a frozen page (watchdog) is retried, once, in a fresh browser.
+      // Only a frozen page or an engine trap is retried, once, in a fresh browser.
+      let firstFailure;
       for (let attempt = 1; attempt <= 2; attempt++) {
       const context = await browser.newContext({viewport: {width, height: 800}, hasTouch: true, locale: 'en-US'});
       await context.tracing.start({screenshots: true, snapshots: true, sources: true});
@@ -196,14 +197,16 @@ test('classic-touch-taps-pause-resume-menu', async page => {
           browser = await chromium.launch(launch);
         }
       }
-      if (entry.ok || !frozen || attempt === 2) {
-        if (entry.ok && attempt > 1) entry.flaky = true;
+      const retryable = frozen || isEngineTrap(errors);
+      if (entry.ok || !retryable || attempt === 2) {
+        if (entry.ok && attempt > 1) { entry.flaky = true; entry.firstFailure = firstFailure; }
         results.push(entry);
         fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify(results, null, 2));
         console.log(`${entry.ok ? (entry.flaky ? 'FLAKY' : 'PASS') : 'FAIL'} ${name}: ${errors.join(' | ')}`);
         break;
       }
-      console.log(`RETRY ${name}: ${errors.join(' | ')}`);
+      firstFailure = errors.join(' | ');
+      console.log(`RETRY ${name}: ${firstFailure}`);
       }
     }
   } finally { try { await withTimeout(browser.close(), 10000, 'browser.close'); } catch (_) {} }
