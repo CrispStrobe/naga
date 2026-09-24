@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import '../game/shared/grid_motion.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
@@ -64,11 +65,104 @@ class TrailSnake extends Component {
     // The snake body stays constant length (3).
     segments.insert(0, newHead);
     if (segments.length > 3) {
-      segments.removeLast();
+      _settled.add(segments.removeLast());
     }
 
     // Mark position in permanent trail
     trail.add(_key(newHead));
+  }
+
+  // Trail cells that have left the body, in the order they left. Recorded
+  // into fixed-size pictures so a frame replays a handful of pictures
+  // instead of issuing two draws per cell; the trail only ever grows.
+  final List<Point<int>> _settled = [];
+  final List<ui.Picture> _chunks = [];
+  ui.Picture? _openChunk;
+  int _openChunkCells = 0;
+  (double, double, double)? _layout;
+  static const int _chunkSize = 64;
+
+  @visibleForTesting
+  int get debugRecordedChunks => _chunks.length + (_openChunk == null ? 0 : 1);
+
+  @override
+  void onRemove() {
+    _disposeChunks();
+    super.onRemove();
+  }
+
+  void _disposeChunks() {
+    for (final chunk in _chunks) {
+      chunk.dispose();
+    }
+    _chunks.clear();
+    _openChunk?.dispose();
+    _openChunk = null;
+    _openChunkCells = 0;
+  }
+
+  Rect _cellRect(Point<int> cell, double cs, double inset) {
+    final screenPos = game.gridToScreen(cell);
+    return Rect.fromLTWH(
+      screenPos.x + inset,
+      screenPos.y + inset,
+      cs - inset * 2,
+      cs - inset * 2,
+    );
+  }
+
+  late final Paint _trailPaint = Paint()..color = trailColor;
+  late final Paint _trailGlowPaint = Paint()
+    ..color = color.withAlpha(30)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 4);
+  late final Paint _bodyPaint = Paint()..color = color;
+  late final Paint _bodyGlowPaint = Paint()
+    ..color = color.withAlpha(60)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6);
+  late final Paint _headGlowPaint = Paint()
+    ..color = color.withAlpha(80)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 10);
+
+  void _drawTrailCell(Canvas canvas, Point<int> cell, double cs, double inset) {
+    final rect = _cellRect(cell, cs, inset);
+    canvas.drawRect(rect, _trailPaint);
+    canvas.drawRect(rect, _trailGlowPaint);
+  }
+
+  ui.Picture _record(int from, int to, double cs, double inset) {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    for (var i = from; i < to; i++) {
+      _drawTrailCell(canvas, _settled[i], cs, inset);
+    }
+    return recorder.endRecording();
+  }
+
+  void _drawSettledTrail(Canvas canvas, double cs, double inset) {
+    final origin = game.gridToScreen(const Point(0, 0));
+    final layout = (cs, origin.x, origin.y);
+    if (layout != _layout) {
+      _disposeChunks();
+      _layout = layout;
+    }
+    final settledChunks = _settled.length ~/ _chunkSize;
+    while (_chunks.length < settledChunks) {
+      final from = _chunks.length * _chunkSize;
+      _chunks.add(_record(from, from + _chunkSize, cs, inset));
+    }
+    final openCells = _settled.length - settledChunks * _chunkSize;
+    if (openCells != _openChunkCells) {
+      _openChunk?.dispose();
+      _openChunk = openCells == 0
+          ? null
+          : _record(settledChunks * _chunkSize, _settled.length, cs, inset);
+      _openChunkCells = openCells;
+    }
+    for (final chunk in _chunks) {
+      canvas.drawPicture(chunk);
+    }
+    final open = _openChunk;
+    if (open != null) canvas.drawPicture(open);
   }
 
   @override
@@ -76,65 +170,30 @@ class TrailSnake extends Component {
     final cs = game.cellSize;
     final inset = cs * 0.05;
 
-    // Draw permanent trail with glow
-    final trailPaint = Paint()..color = trailColor;
-    final glowPaint = Paint()
-      ..color = color.withAlpha(30)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 4);
+    _drawSettledTrail(canvas, cs, inset);
 
-    for (final key in trail) {
-      final x = key % 10000;
-      final y = key ~/ 10000;
-      final screenPos = game.gridToScreen(Point(x, y));
-
-      // Skip cells that are currently part of the snake body
-      // (they'll be drawn brighter below)
-      final isBody = segments.any((s) => s.x == x && s.y == y);
-      if (isBody) continue;
-
-      final rect = Rect.fromLTWH(
-        screenPos.x + inset,
-        screenPos.y + inset,
-        cs - inset * 2,
-        cs - inset * 2,
-      );
-      canvas.drawRect(rect, trailPaint);
-      canvas.drawRect(rect, glowPaint);
+    // A dead snake's last body cells are still solid trail.
+    if (!alive) {
+      for (final seg in segments) {
+        _drawTrailCell(canvas, seg, cs, inset);
+      }
+      return;
     }
 
-    if (!alive) return;
-
     // Draw snake body (brighter than trail)
-    final bodyPaint = Paint()..color = color;
-    final bodyGlowPaint = Paint()
-      ..color = color.withAlpha(60)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6);
-
-    for (int i = 0; i < segments.length; i++) {
-      final screenPos = game.gridToScreen(segments[i]);
-      final rect = Rect.fromLTWH(
-        screenPos.x + inset,
-        screenPos.y + inset,
-        cs - inset * 2,
-        cs - inset * 2,
-      );
-      canvas.drawRect(rect, bodyPaint);
-      canvas.drawRect(rect, bodyGlowPaint);
+    for (final seg in segments) {
+      final rect = _cellRect(seg, cs, inset);
+      canvas.drawRect(rect, _bodyPaint);
+      canvas.drawRect(rect, _bodyGlowPaint);
     }
 
     // Draw a bright head
     if (segments.isNotEmpty) {
       final headPos = game.gridToScreen(segments.first);
-      final headRect = Rect.fromLTWH(
-        headPos.x,
-        headPos.y,
-        cs,
-        cs,
+      canvas.drawRect(
+        Rect.fromLTWH(headPos.x, headPos.y, cs, cs),
+        _headGlowPaint,
       );
-      final headGlow = Paint()
-        ..color = color.withAlpha(80)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 10);
-      canvas.drawRect(headRect, headGlow);
     }
   }
 }

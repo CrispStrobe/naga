@@ -42,7 +42,8 @@ class RushGame extends FlameGame with KeyboardEvents {
 
   // Cached habitat decoration layer (board fill + savanna doodles).
   ui.Picture? _decorPicture;
-  double _decorCellSize = -1;
+  // The picture bakes in absolute board coordinates.
+  (double, double, double)? _decorLayout;
 
   RushGame({
     required this.mode,
@@ -59,6 +60,14 @@ class RushGame extends FlameGame with KeyboardEvents {
     await super.onLoad();
     _calculateGrid();
     _startNewGame();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
   }
 
   void _calculateGrid() {
@@ -363,8 +372,9 @@ class RushGame extends FlameGame with KeyboardEvents {
     final cs = cellSize;
 
     // Habitat layer — bright board on darker surround (cached)
-    if (_decorPicture == null || _decorCellSize != cs) {
-      _decorCellSize = cs;
+    final layout = (cs, boardOffset.x, boardOffset.y);
+    if (_decorPicture == null || _decorLayout != layout) {
+      _decorLayout = layout;
       _decorPicture?.dispose();
       _decorPicture = _buildDecorPicture();
     }
