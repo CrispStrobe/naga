@@ -182,6 +182,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'Only the area around your head is lit. Food glimmers like a '
             'firefly in the dark, and the board edge glows faintly.\n'
             'Your lantern dims as your score climbs.';
+      case 'Portals':
+        return 'Step in here, come out there.\n\n'
+            'Enter the cyan or the orange portal and your head comes out of '
+            'the other one, still heading the same way.\n'
+            'Both portals jump to new places after every meal. '
+            'Mind your tail: it may still be passing through.';
       case 'Arcade':
         return 'Fast-paced snake action.\n\n'
             'Eat food, collect power-ups, and rack up points.\n'

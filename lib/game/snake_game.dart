@@ -144,6 +144,15 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     add(snake);
   }
 
+  /// Where the head actually lands when it steps onto [next] (after walls
+  /// are applied). Portals override this; the default is no change.
+  @protected
+  Point<int> routeHead(Point<int> next) => next;
+
+  /// Called after the snake eats, before the next food spawns.
+  @protected
+  void onFoodEaten() {}
+
   /// Picks the next food cell, or null when the board is full.
   @protected
   Point<int>? nextFoodCell() => randomFreeCell(
@@ -353,6 +362,8 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       newHead = wrapGrid(newHead, gridWidth, gridHeight);
     }
 
+    newHead = routeHead(newHead);
+
     // Self and rock collision
     if (snake.occupies(newHead) || rocks.contains(newHead)) {
       if (_tryShieldAbsorb()) return;
@@ -370,6 +381,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       score += mode.pointsPerFood(score);
       onScoreChanged(score);
       remove(food);
+      onFoodEaten();
       _spawnFood();
       HapticFeedback.selectionClick();
       if (gameState != GameState.playing) return;

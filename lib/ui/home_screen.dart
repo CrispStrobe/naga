@@ -9,6 +9,7 @@ import '../services/daily_service.dart';
 import '../modes/arcade_mode.dart';
 import '../modes/zen_mode.dart';
 import '../modes/nightfall_mode.dart';
+import '../modes/portals_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
 import '../modes/fangs_mode.dart';
@@ -151,6 +152,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.dark_mode,
         accentColor: const Color(0xFF37474F),
         onTap: () => _startGame(context, NightfallMode()),
+      ),
+      _MenuEntry(
+        label: s.portals,
+        description: s.portalsDesc,
+        icon: Icons.all_inclusive,
+        accentColor: const Color(0xFF5E35B1),
+        onTap: () => _startGame(context, PortalsMode()),
       ),
       _MenuEntry(
         section: 'CROSSOVER',
