@@ -42,7 +42,14 @@ class AudioService {
     'Nibbles': 'audio/music/arcade.ogg',
     'Duel': 'audio/music/pit.ogg',
     'Dungeon': 'audio/music/venom.ogg',
+    'Stampede': 'audio/music/rush.ogg',
+    'Naga Dive': 'audio/music/zen.ogg',
+    'VS AI': 'audio/music/swarm.ogg',
+    'VS AI Split': 'audio/music/swarm.ogg',
   };
+
+  /// The music asset for a mode name, or null if the mode is silent.
+  static String? trackForMode(String modeName) => _modeMusic[modeName];
 
   // SFX names
   static const String sfxEat = 'audio/sfx/eat.ogg';
