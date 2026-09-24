@@ -40,6 +40,17 @@ void plantEcho(EchoGame game, List<Point<int>> path) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(EchoGame.resetSession);
+
+  test('a new game (Play again) echoes the previous game', () async {
+    final first = await start();
+    step(first, 12);
+    final path = [for (final (p, _) in first.lastRecording) p];
+    // The screen builds a fresh game rather than restarting this one.
+    final second = await start();
+    step(second, EchoGame.echoDelay);
+    expect(second.echoBody, [path.first]);
+  });
 
   test('the first run has no echo and records every move', () async {
     final game = await start();
@@ -64,21 +75,34 @@ void main() {
     expect(game.echoBody, [column[3], column[2], column[1]]);
   });
 
-  test('running into the echo kills', () async {
+  test('steering into the echo as drawn kills', () async {
     var deaths = 0;
     final game = await start(onGameOver: () => deaths++);
     final head = game.snake.segments.first;
-    // The player heads right; after 9 moves it reaches head.x + 9, exactly
-    // where the echo's second recorded step is.
+    // The echo appears after move 8 on the cell the player (heading right)
+    // enters on move 9, so the player steers into a visible echo.
     final meet = Point(head.x + 9, head.y);
-    plantEcho(game, [
-      const Point(0, 0),
-      meet,
-      for (var y = 1; y <= 8; y++) Point(meet.x, head.y - y),
-    ]);
+    plantEcho(game, [meet, for (var y = 1; y <= 9; y++) Point(meet.x, head.y - y)]);
     step(game, EchoGame.echoDelay + 1);
     expect(deaths, 1);
     expect(game.gameState, GameState.gameOver);
+  });
+
+  test('the echo running into you is harmless', () async {
+    var deaths = 0;
+    final game = await start(onGameOver: () => deaths++);
+    final head = game.snake.segments.first;
+    // The echo's head arrives on the player's cell on the same move: the
+    // player could not have seen it coming, so the echo passes through.
+    final meet = Point(head.x + 9, head.y);
+    plantEcho(game, [
+      Point(meet.x, head.y - 1),
+      meet,
+      for (var y = 1; y <= 8; y++) Point(meet.x, head.y + y),
+    ]);
+    step(game, EchoGame.echoDelay + 1);
+    expect(deaths, 0);
+    expect(game.echoBody.first, meet);
   });
 
   test('outliving the echo pays a bonus once', () async {

@@ -9,12 +9,13 @@ import 'snake_game.dart';
 /// One recorded move: where the head was and how long the body was.
 typedef EchoStep = (Point<int> head, int length);
 
-/// Classic rules plus an echo: the previous run of this session replays as
-/// a ghost snake, [echoDelay] moves behind, and touching it kills.
+/// Classic rules plus an echo: the previous run of this session (a lost
+/// life or the last game) replays as a ghost snake, [echoDelay] moves
+/// behind, and steering into it kills.
 ///
 /// The ghost is drawn from the recording alone: at replay step t its body
 /// is the last `length(t)` recorded head positions. It passes through the
-/// player's body harmlessly; only the player's head can hit it.
+/// player harmlessly; only steering the head into it is fatal.
 class EchoGame extends SnakeGame {
   EchoGame({
     required EchoMode super.mode,
@@ -34,6 +35,15 @@ class EchoGame extends SnakeGame {
   /// Bonus for still being alive when the echo's recording runs out.
   static const int outliveBonus = 50;
 
+  // The screen builds a new game for Play again, so the last run must
+  // outlive the instance: this is the recording of the most recent run in
+  // this app session, echoed by the next game.
+  static List<EchoStep> _sessionRecording = const [];
+
+  /// Forgets the session's last run (tests start from a clean session).
+  @visibleForTesting
+  static void resetSession() => _sessionRecording = const [];
+
   List<EchoStep> _recording = [];
   List<EchoStep> _echo = const [];
   int _moves = 0;
@@ -51,7 +61,7 @@ class EchoGame extends SnakeGame {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    _startRecording(const []);
+    _startRecording(_sessionRecording);
   }
 
   @override
@@ -72,6 +82,7 @@ class EchoGame extends SnakeGame {
     // A run that barely started is not worth echoing; keep the older echo.
     if (previous.length > echoDelay) _echo = previous;
     _recording = [(snake.segments.first, snake.segments.length)];
+    _sessionRecording = _recording;
     _moves = 0;
     _outlived = false;
     echoBody = const [];
@@ -82,9 +93,14 @@ class EchoGame extends SnakeGame {
   void afterMove() {
     _moves++;
     _recording.add((snake.segments.first, snake.segments.length));
+    // Only steering into the echo as it was drawn is fatal. Checking after
+    // the echo moves would also kill when the echo's head runs into you,
+    // which you cannot see coming; like its body, its head passes through.
+    if (echoBody.contains(snake.segments.first)) {
+      die();
+      return;
+    }
     _advanceEcho();
-    final head = snake.segments.first;
-    if (echoBody.contains(head)) die();
   }
 
   void _advanceEcho() {
