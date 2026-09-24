@@ -2,6 +2,9 @@
 // Usage: node web_lifecycle.cjs PORT OUTPUT_DIR
 const {chromium} = require('playwright');
 const {stableTarget} = require('./stable_target.cjs');
+const {withTimeout, closeQuietly, WatchdogTimeout} = require('./watchdog.cjs');
+// A healthy scenario takes well under a minute.
+const scenarioTimeoutMs = Number(process.env.QA_SCENARIO_TIMEOUT_MS || 150000);
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -71,7 +74,7 @@ async function settings(page, choices) {
 }
 
 test('classic-death-restart-menu', async page => {
-  await mode(page, 0);
+  await mode(page, 1);
   const score = await over(page);
   await button(page, 'PLAY AGAIN').click();
   await button(page, 'PLAY AGAIN').waitFor({state: 'hidden'});
@@ -82,7 +85,7 @@ test('classic-death-restart-menu', async page => {
 });
 
 test('classic-resize-preserves-pause', async page => {
-  await mode(page, 0);
+  await mode(page, 1);
   await stableTarget(page.getByRole('button').nth(2));
   await page.getByRole('button').nth(2).click();
   await button(page, 'PAUSED Tap to resume').waitFor();
@@ -106,7 +109,7 @@ test('settings-reload-lives-and-restart', async page => {
   assert.equal(Object.keys(persisted).length, 4);
   await boot(page); // New Flutter runtime: not the singleton's in-memory cache.
   assert.deepEqual(await page.evaluate(keys => Object.fromEntries(keys.map(k => [k, localStorage.getItem(k)])), Object.keys(persisted)), persisted);
-  await mode(page, 1); // Arcade applies lives, speed and wall settings.
+  await mode(page, 2); // Arcade applies lives, speed and wall settings.
   await page.locator('flt-semantics', {hasText: /^LIVES: 1/}).first().waitFor();
   // Straight movement reaches the wall, respawns, then reaches it again.
   await page.locator('flt-semantics', {hasText: /^LIVES: 0/}).first().waitFor({timeout: 20000});
@@ -124,7 +127,7 @@ test('settings-reload-lives-and-restart', async page => {
 // Production mapping and instructions: P1=WASD, P2=arrows.
 for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wins!']]) {
   test(`duel-${key.toLowerCase()}`, async page => {
-    await mode(page, 17);
+    await mode(page, 19);
     await page.keyboard.press(key);
     const score = await over(page, winner);
     await menu(page);
@@ -133,7 +136,7 @@ for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wi
 }
 
 test('classic-touch-taps-pause-resume-menu', async page => {
-  await mode(page, 0);
+  await mode(page, 1);
   const pauseButton = page.getByRole('button').nth(2);
   await stableTarget(pauseButton);
   await pauseButton.tap();
@@ -150,11 +153,13 @@ test('classic-touch-taps-pause-resume-menu', async page => {
 (async () => {
   fs.mkdirSync(out, {recursive: true});
   const wanted = process.env.QA_ONLY ? process.env.QA_ONLY.split(',') : null;
-  const browser = await chromium.launch(launch);
+  let browser = await chromium.launch(launch);
   const results = [];
   try {
     for (const {name, run} of scenarios) {
       if (wanted && !wanted.includes(name)) continue;
+      // Only a frozen page (watchdog) is retried, once, in a fresh browser.
+      for (let attempt = 1; attempt <= 2; attempt++) {
       const context = await browser.newContext({viewport: {width, height: 800}, hasTouch: true, locale: 'en-US'});
       await context.tracing.start({screenshots: true, snapshots: true, sources: true});
       const page = await context.newPage();
@@ -164,29 +169,47 @@ test('classic-touch-taps-pause-resume-menu', async page => {
       page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
       page.on('requestfailed', r => errors.push(`request: ${r.url()} ${r.failure()?.errorText}`));
       page.on('response', r => { if (r.status() >= 400) errors.push(`HTTP ${r.status()}: ${r.url()}`); });
-      const entry = {name, ok: false, errors};
+      const entry = {name, attempt, ok: false, errors};
+      let frozen = false;
       try {
-        await boot(page);
-        entry.evidence = await run(page, context);
+        await withTimeout((async () => {
+          await boot(page);
+          entry.evidence = await run(page, context);
+        })(), scenarioTimeoutMs, name);
         entry.ok = true;
-      } catch (e) { errors.push(String(e.stack || e)); }
+      } catch (e) {
+        frozen = e instanceof WatchdogTimeout;
+        errors.push(String(e.stack || e));
+      }
       finally {
-        try {
-          fs.writeFileSync(path.join(out, `${name}.txt`), await page.locator('body').ariaSnapshot());
-          await page.screenshot({path: path.join(out, `${name}.png`)});
-          await context.tracing.stop({path: path.join(out, `${name}-trace.zip`)});
-        } catch (e) { errors.push(`artifact: ${e}`); }
+        if (!frozen) {
+          try {
+            fs.writeFileSync(path.join(out, `${name}.txt`), await withTimeout(page.locator('body').ariaSnapshot(), 10000, 'ariaSnapshot'));
+            await withTimeout(page.screenshot({path: path.join(out, `${name}.png`)}), 10000, 'screenshot');
+            await withTimeout(context.tracing.stop({path: path.join(out, `${name}-trace.zip`)}), 20000, 'tracing.stop');
+          } catch (e) { errors.push(`artifact: ${e}`); }
+        }
         if (errors.length) entry.ok = false;
+        await closeQuietly(context);
+        if (frozen) {
+          try { await withTimeout(browser.close(), 10000, 'browser.close'); } catch (_) {}
+          browser = await chromium.launch(launch);
+        }
+      }
+      if (entry.ok || !frozen || attempt === 2) {
+        if (entry.ok && attempt > 1) entry.flaky = true;
         results.push(entry);
         fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify(results, null, 2));
-        console.log(`${entry.ok ? 'PASS' : 'FAIL'} ${name}: ${errors.join(' | ')}`);
-        await context.close();
+        console.log(`${entry.ok ? (entry.flaky ? 'FLAKY' : 'PASS') : 'FAIL'} ${name}: ${errors.join(' | ')}`);
+        break;
+      }
+      console.log(`RETRY ${name}: ${errors.join(' | ')}`);
       }
     }
-  } finally { await browser.close(); }
+  } finally { try { await withTimeout(browser.close(), 10000, 'browser.close'); } catch (_) {} }
   const saved = JSON.parse(fs.readFileSync(path.join(out, 'results.json')));
   const expected = wanted ? wanted.length : scenarios.length;
-  const summary = {passed: saved.filter(r => r.ok).length, total: saved.length, expected};
+  const summary = {passed: saved.filter(r => r.ok).length, total: saved.length, expected, flaky: saved.filter(r => r.flaky).map(r => r.name)};
   console.log(JSON.stringify(summary));
   assert.equal(new Set(saved.map(r => r.name)).size, saved.length);
   assert.equal(summary.passed, expected);

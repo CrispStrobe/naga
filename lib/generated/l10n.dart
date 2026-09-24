@@ -121,6 +121,36 @@ abstract class S {
   /// **'Retro phone legacy'**
   String get classicDesc;
 
+  /// No description provided for @shed.
+  ///
+  /// In en, this message translates to:
+  /// **'Shed'**
+  String get shed;
+
+  /// No description provided for @shedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Tetris meets Snake'**
+  String get shedDesc;
+
+  /// No description provided for @daily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Serpent'**
+  String get daily;
+
+  /// No description provided for @dailyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Same board for everyone today'**
+  String get dailyDesc;
+
+  /// No description provided for @dailyStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s best: {best} · Streak: {streak}'**
+  String dailyStats(int best, int streak);
+
   /// No description provided for @arcade.
   ///
   /// In en, this message translates to:

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'shared/direction_buffer.dart';
 import 'shared/grid_motion.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -21,6 +22,8 @@ class TrailGame extends FlameGame with KeyboardEvents {
   TrailGameState gameState = TrailGameState.playing;
   int score = 0;
   double _tickTimer = 0;
+  // Queued so two quick turns inside one tick both apply.
+  final _playerInputs = DirectionBuffer(capacity: 3);
   double _survivalTime = 0;
   final Random _random = Random();
 
@@ -56,6 +59,14 @@ class TrailGame extends FlameGame with KeyboardEvents {
     _startNewGame();
   }
 
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
+  }
+
   void _calculateGrid() {
     final availableWidth = size.x;
     final availableHeight = size.y;
@@ -71,6 +82,7 @@ class TrailGame extends FlameGame with KeyboardEvents {
   void _startNewGame() {
     score = 0;
     _tickTimer = 0;
+    _playerInputs.clear();
     _survivalTime = 0;
     _shrinkMargin = 0;
     _shrinkTimer = 0;
@@ -226,6 +238,8 @@ class TrailGame extends FlameGame with KeyboardEvents {
       }
     }
 
+    player.changeDirection(_playerInputs.consume(player.direction));
+
     // Peek where everyone wants to go (before any moves)
     final playerNewHead = player.peekNextHead();
 
@@ -296,7 +310,7 @@ class TrailGame extends FlameGame with KeyboardEvents {
   }
 
   void changeDirection(Direction dir) {
-    player.changeDirection(dir);
+    _playerInputs.enqueue(dir, player.direction);
   }
 
   void togglePause() {

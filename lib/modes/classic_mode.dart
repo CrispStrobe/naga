@@ -30,6 +30,12 @@ class ClassicMode extends GameMode {
   bool get wallsKill => true;
 
   @override
+  bool get fixedRules => true;
+
+  @override
+  bool get hasPowerUps => false;
+
+  @override
   bool get showGrid => false; // Original Retro phone had no visible grid
 
   @override

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'dart:ui' as ui;
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -48,7 +49,8 @@ class PitGame extends FlameGame with KeyboardEvents {
 
   // Cached habitat decoration layer (board fill + clay-pit doodles).
   ui.Picture? _decorPicture;
-  double _decorCellSize = -1;
+  // The picture bakes in absolute board coordinates.
+  (double, double, double)? _decorLayout;
 
   PitGame({
     required this.mode,
@@ -65,6 +67,14 @@ class PitGame extends FlameGame with KeyboardEvents {
     await super.onLoad();
     _calculateGrid();
     _startNewGame();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
   }
 
   void _calculateGrid() {
@@ -570,10 +580,13 @@ class PitGame extends FlameGame with KeyboardEvents {
     return recorder.endRecording();
   }
 
+  final _aliveText = CachedText();
+
   @override
   void onRemove() {
     _decorPicture?.dispose();
     _decorPicture = null;
+    _aliveText.dispose();
     super.onRemove();
   }
 
@@ -583,8 +596,9 @@ class PitGame extends FlameGame with KeyboardEvents {
     final cs = cellSize;
 
     // Habitat layer — bright board on darker surround (cached)
-    if (_decorPicture == null || _decorCellSize != cs) {
-      _decorCellSize = cs;
+    final layout = (cs, boardOffset.x, boardOffset.y);
+    if (_decorPicture == null || _decorLayout != layout) {
+      _decorLayout = layout;
       _decorPicture?.dispose();
       _decorPicture = _buildDecorPicture();
     }
@@ -736,18 +750,15 @@ class PitGame extends FlameGame with KeyboardEvents {
 
     // HUD — alive count
     final aliveCount = _aiSnakes.length + 1;
-    final tp = TextPainter(
-      text: TextSpan(
-        text: 'ALIVE: $aliveCount',
-        style: TextStyle(
-          // Sits on the darker surround outside the board — keep it light.
-          color: Colors.white.withValues(alpha: 0.85),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final tp = _aliveText.painter(
+      'ALIVE: $aliveCount',
+      TextStyle(
+        // Sits on the darker surround outside the board — keep it light.
+        color: Colors.white.withValues(alpha: 0.85),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     tp.paint(
       canvas,
       Offset(boardOffset.x + gridWidth * cs - tp.width - 4,

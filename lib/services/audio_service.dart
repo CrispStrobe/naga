@@ -27,6 +27,7 @@ class AudioService {
   // Per-mode music mapping
   static const Map<String, String> _modeMusic = {
     'Classic': 'audio/music/classic.ogg',
+    'Daily': 'audio/music/maze.ogg',
     'Arcade': 'audio/music/arcade.ogg',
     'Zen': 'audio/music/zen.ogg',
     'Maze Hunter': 'audio/music/maze.ogg',
@@ -42,7 +43,15 @@ class AudioService {
     'Nibbles': 'audio/music/arcade.ogg',
     'Duel': 'audio/music/pit.ogg',
     'Dungeon': 'audio/music/venom.ogg',
+    'Shed': 'audio/music/fangs.ogg',
+    'Stampede': 'audio/music/rush.ogg',
+    'Naga Dive': 'audio/music/zen.ogg',
+    'VS AI': 'audio/music/swarm.ogg',
+    'VS AI Split': 'audio/music/swarm.ogg',
   };
+
+  /// The music asset for a mode name, or null if the mode is silent.
+  static String? trackForMode(String modeName) => _modeMusic[modeName];
 
   // SFX names
   static const String sfxEat = 'audio/sfx/eat.ogg';

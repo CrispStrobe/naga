@@ -3,6 +3,7 @@ import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'dart:ui' as ui;
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +42,8 @@ class RushGame extends FlameGame with KeyboardEvents {
 
   // Cached habitat decoration layer (board fill + savanna doodles).
   ui.Picture? _decorPicture;
-  double _decorCellSize = -1;
+  // The picture bakes in absolute board coordinates.
+  (double, double, double)? _decorLayout;
 
   RushGame({
     required this.mode,
@@ -58,6 +60,14 @@ class RushGame extends FlameGame with KeyboardEvents {
     await super.onLoad();
     _calculateGrid();
     _startNewGame();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
   }
 
   void _calculateGrid() {
@@ -346,10 +356,13 @@ class RushGame extends FlameGame with KeyboardEvents {
     return recorder.endRecording();
   }
 
+  final _distanceText = CachedText();
+
   @override
   void onRemove() {
     _decorPicture?.dispose();
     _decorPicture = null;
+    _distanceText.dispose();
     super.onRemove();
   }
 
@@ -359,8 +372,9 @@ class RushGame extends FlameGame with KeyboardEvents {
     final cs = cellSize;
 
     // Habitat layer — bright board on darker surround (cached)
-    if (_decorPicture == null || _decorCellSize != cs) {
-      _decorCellSize = cs;
+    final layout = (cs, boardOffset.x, boardOffset.y);
+    if (_decorPicture == null || _decorLayout != layout) {
+      _decorLayout = layout;
       _decorPicture?.dispose();
       _decorPicture = _buildDecorPicture();
     }
@@ -411,14 +425,11 @@ class RushGame extends FlameGame with KeyboardEvents {
     }
 
     // Distance counter
-    final tp = TextPainter(
-      text: TextSpan(
-        text: 'DIST: $_distanceTraveled',
-        // Sits on the darker surround outside the board — keep it light.
-        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.bold),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final tp = _distanceText.painter(
+      'DIST: $_distanceTraveled',
+      // Sits on the darker surround outside the board — keep it light.
+      TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.bold),
+    );
     tp.paint(canvas, Offset(boardOffset.x + gridWidth * cs - tp.width - 4, boardOffset.y - 16));
   }
 }

@@ -4,11 +4,12 @@ import '../modes/ai_difficulty.dart' show AiDifficulty;
 import '../modes/game_mode.dart';
 import '../services/settings_service.dart';
 import 'snake_game.dart';
-import '../modes/classic_mode.dart';
+import '../modes/daily_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
+import '../modes/shed_mode.dart';
 import '../modes/fangs_mode.dart';
 import '../modes/venom_mode.dart';
 import '../modes/pit_mode.dart';
@@ -21,10 +22,12 @@ import '../modes/dungeon_mode.dart';
 import '../modes/stampede_mode.dart';
 import '../modes/naga_dive_mode.dart';
 import '../modes/vs_ai_mode.dart';
+import 'daily_game.dart';
 import 'maze_hunter_game.dart';
 import 'trail_game.dart' as trail;
 import 'swarm_game.dart';
 import 'rush_game.dart';
+import 'shed_game.dart';
 import 'fangs_game.dart';
 import 'venom_game.dart';
 import 'pit_game.dart';
@@ -148,6 +151,19 @@ abstract final class GameRegistry {
     }
     if (mode is RushMode) {
       final game = RushGame(
+        mode: mode,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+      );
+      return _session(
+        game: game,
+        changeDirection: game.changeDirection,
+        state: () => game.gameState,
+        setState: (state) => game.gameState = state,
+      );
+    }
+    if (mode is ShedMode) {
+      final game = ShedGame(
         mode: mode,
         onGameOver: onGameOver,
         onScoreChanged: onScoreChanged,
@@ -371,7 +387,22 @@ abstract final class GameRegistry {
         setState: (state) => game.gameState = state,
       );
     }
-    final classic = mode is ClassicMode;
+    if (mode is DailyMode) {
+      final game = DailyGame(
+        mode: mode,
+        onVictory: onVictory,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+      );
+      return _session(
+        game: game,
+        changeDirection: game.changeDirection,
+        state: () => game.gameState,
+        setState: (state) => game.gameState = state,
+        result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
+      );
+    }
+    final classic = mode.fixedRules;
     final game = SnakeGame(
       mode: mode,
       onVictory: onVictory,

@@ -6,6 +6,17 @@
     "tagline": "The Snake Game",
     "classic": "Classic",
     "classicDesc": "Retro phone legacy",
+    "shed": "Shed",
+    "shedDesc": "Tetris meets Snake",
+    "daily": "Daily Serpent",
+    "dailyDesc": "Same board for everyone today",
+    "dailyStats": "Today's best: {best} · Streak: {streak}",
+    "@dailyStats": {
+        "placeholders": {
+            "best": { "type": "int" },
+            "streak": { "type": "int" }
+        }
+    },
     "arcade": "Arcade",
     "arcadeDesc": "Neon speed run",
     "zen": "Zen",

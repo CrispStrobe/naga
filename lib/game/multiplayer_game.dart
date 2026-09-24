@@ -1,3 +1,4 @@
+import 'shared/direction_buffer.dart';
 import 'dart:math';
 import 'shared/free_cell.dart';
 import 'shared/grid_motion.dart';
@@ -40,13 +41,16 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   // Player 1
   List<Point<int>> _p1Segments = GridSnakeBody([]);
   Direction _p1Direction = Direction.right;
-  Direction _p1NextDirection = Direction.right;
+  // Each player gets their own FIFO so two quick turns inside one tick
+  // both apply, instead of the second overwriting the first.
+  final _p1Inputs = DirectionBuffer(capacity: _maxQueuedInputs);
   bool p1Alive = true;
 
   // Player 2
   List<Point<int>> _p2Segments = GridSnakeBody([]);
   Direction _p2Direction = Direction.left;
-  Direction _p2NextDirection = Direction.left;
+  final _p2Inputs = DirectionBuffer(capacity: _maxQueuedInputs);
+  static const int _maxQueuedInputs = 3;
   bool p2Alive = true;
 
   // Food
@@ -75,6 +79,14 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     await super.onLoad();
     _calculateGrid();
     _startNewGame();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
   }
 
   void _calculateGrid() {
@@ -108,7 +120,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
       Point(p1X - 2, p1Y),
     ]);
     _p1Direction = Direction.right;
-    _p1NextDirection = Direction.right;
+    _p1Inputs.clear();
 
     // Player 2 starts right side going left
     final p2X = (gridWidth * 3) ~/ 4;
@@ -119,7 +131,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
       Point(p2X + 2, p2Y),
     ]);
     _p2Direction = Direction.left;
-    _p2NextDirection = Direction.left;
+    _p2Inputs.clear();
 
     _spawnFood();
   }
@@ -165,6 +177,9 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   Point<int>? get debugFoodPosition => _foodPos;
 
+  @visibleForTesting
+  Point<int> get debugP1Head => _p1Segments.first;
+
   bool _occupies(Point<int> pos, List<Point<int>> segs) {
     return segs.contains(pos);
   }
@@ -173,23 +188,14 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   // Direction changes (public API for external controls)
   // ------------------------------------------------------------------
 
-  void changeDirectionP1(Direction dir) {
-    if (_isOpposite(dir, _p1Direction)) return;
-    _p1NextDirection = dir;
-    _maybeEarlyTick();
-  }
+  void changeDirectionP1(Direction dir) => _queueTurn(_p1Inputs, dir, _p1Direction);
 
-  void changeDirectionP2(Direction dir) {
-    if (_isOpposite(dir, _p2Direction)) return;
-    _p2NextDirection = dir;
-    _maybeEarlyTick();
-  }
+  void changeDirectionP2(Direction dir) => _queueTurn(_p2Inputs, dir, _p2Direction);
 
-  bool _isOpposite(Direction a, Direction b) {
-    return (a == Direction.up && b == Direction.down) ||
-        (a == Direction.down && b == Direction.up) ||
-        (a == Direction.left && b == Direction.right) ||
-        (a == Direction.right && b == Direction.left);
+  void _queueTurn(DirectionBuffer inputs, Direction dir, Direction current) {
+    if (inputs.enqueue(dir, current) != DirectionInput.queued) return;
+    // Only the first pending turn pulls the tick forward.
+    if (inputs.length == 1) _maybeEarlyTick();
   }
 
   void _maybeEarlyTick() {
@@ -280,8 +286,8 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   }
 
   void _tick() {
-    _p1Direction = _p1NextDirection;
-    _p2Direction = _p2NextDirection;
+    _p1Direction = _p1Inputs.consume(_p1Direction);
+    _p2Direction = _p2Inputs.consume(_p2Direction);
 
     final p1NewHead = _advance(_p1Segments.first, _p1Direction);
     final p2NewHead = _advance(_p2Segments.first, _p2Direction);

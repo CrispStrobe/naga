@@ -4,12 +4,15 @@ import '../main.dart';
 import 'naga_logo.dart';
 import 'snake_animation.dart';
 import '../modes/classic_mode.dart';
+import '../modes/daily_mode.dart';
+import '../services/daily_service.dart';
 import '../modes/arcade_mode.dart';
 import '../modes/zen_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
 import '../modes/fangs_mode.dart';
 import '../modes/venom_mode.dart';
+import '../modes/shed_mode.dart';
 import '../modes/pit_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
@@ -79,14 +82,46 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_MenuEntry> _entries = [];
   List<GlobalKey> _itemKeys = [];
 
+  DailyService? _daily;
+
+  @override
+  void initState() {
+    super.initState();
+    DailyService.instance()
+        .then((daily) {
+          if (mounted) setState(() => _daily = daily);
+        })
+        .catchError((Object _) {
+          // Without storage the entry just shows its plain description.
+        });
+  }
+
   @override
   void dispose() {
     _focusNode.dispose();
     super.dispose();
   }
 
+  String _dailyDescription(S s) {
+    final daily = _daily;
+    final today = DateTime.now();
+    if (daily == null) return s.dailyDesc;
+    final best = daily.bestFor(today);
+    final streak = daily.streakOn(today);
+    if (best == 0 && streak == 0) return s.dailyDesc;
+    return s.dailyStats(best, streak);
+  }
+
   List<_MenuEntry> _buildEntries(S s) {
     return [
+      _MenuEntry(
+        section: 'DAILY',
+        label: s.daily,
+        description: _dailyDescription(s),
+        icon: Icons.today,
+        accentColor: const Color(0xFF8D6E63),
+        onTap: () => _startGame(context, DailyMode(DateTime.now())),
+      ),
       _MenuEntry(
         section: 'CLASSIC',
         label: s.classic,
@@ -137,6 +172,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.local_fire_department,
         accentColor: const Color(0xFF33691E),
         onTap: () => _startGame(context, VenomMode()),
+      ),
+      _MenuEntry(
+        label: s.shed,
+        description: s.shedDesc,
+        icon: Icons.view_week,
+        accentColor: const Color(0xFF546E7A),
+        onTap: () => _startGame(context, ShedMode()),
       ),
       _MenuEntry(
         section: 'ACTION',
@@ -445,7 +487,10 @@ class _HomeScreenState extends State<HomeScreen> {
           audioService: widget.audioService,
         ),
       ),
-    );
+    ).then((_) {
+      // Refresh the Daily entry's best score and streak.
+      if (mounted) setState(() {});
+    });
   }
 }
 

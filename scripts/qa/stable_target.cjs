@@ -1,7 +1,9 @@
+const {withTimeout} = require('./watchdog.cjs');
 // Wait for route animation/layout to settle before coordinate input.
 async function stableTarget(locator, timeout = 5000) {
   await locator.waitFor({state: 'visible', timeout});
-  return locator.evaluate((element, timeout) => new Promise((resolve, reject) => {
+  // The in-page timer below cannot fire on a frozen page; bound it here too.
+  return withTimeout(locator.evaluate((element, timeout) => new Promise((resolve, reject) => {
     let previous;
     let stable = 0;
     let frame;
@@ -22,6 +24,6 @@ async function stableTarget(locator, timeout = 5000) {
       } else frame = requestAnimationFrame(check);
     };
     frame = requestAnimationFrame(check);
-  }), timeout);
+  }), timeout), timeout + 10000, 'stableTarget');
 }
 module.exports = {stableTarget};

@@ -64,6 +64,14 @@ class AsciiGame extends FlameGame with KeyboardEvents {
     _startNewGame();
   }
 
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
+  }
+
   void _calculateGrid() {
     final w = size.x;
     final h = size.y;

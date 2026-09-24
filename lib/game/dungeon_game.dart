@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -69,6 +70,14 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     await super.onLoad();
     _calculateGrid();
     _startNewGame();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
   }
 
   void _calculateGrid() {
@@ -715,6 +724,20 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  final _roomText = CachedText();
+  final _hpText = CachedText();
+  final _inventoryText = CachedText();
+  final _legendTexts = CachedTextList();
+
+  @override
+  void onRemove() {
+    _roomText.dispose();
+    _hpText.dispose();
+    _inventoryText.dispose();
+    _legendTexts.dispose();
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -1089,31 +1112,25 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final hudY = boardOffset.y + 4;
 
     // Room number
-    final roomTp = TextPainter(
-      text: TextSpan(
-        text: 'ROOM $_roomNumber',
-        style: TextStyle(
-          color: mode.exitColor.withValues(alpha: 0.8),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final roomTp = _roomText.painter(
+      'ROOM $_roomNumber',
+      TextStyle(
+        color: mode.exitColor.withValues(alpha: 0.8),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     roomTp.paint(canvas, Offset(boardOffset.x + 4, hudY));
 
     // HP (segment count)
-    final hpTp = TextPainter(
-      text: TextSpan(
-        text: 'HP ${snakeSegments.length}',
-        style: TextStyle(
-          color: mode.potionColor.withValues(alpha: 0.9),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final hpTp = _hpText.painter(
+      'HP ${snakeSegments.length}',
+      TextStyle(
+        color: mode.potionColor.withValues(alpha: 0.9),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     final centerX = boardOffset.x + (gridWidth * cs) / 2 - hpTp.width / 2;
     hpTp.paint(canvas, Offset(centerX, hudY));
 
@@ -1136,10 +1153,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     addPart('HAM', hammerCharges, mode.hammerColor);
     addPart('SHD', shieldBlocks, mode.shieldColor);
     if (parts.isNotEmpty) {
-      final invTp = TextPainter(
-        text: TextSpan(children: parts),
-        textDirection: TextDirection.ltr,
-      )..layout();
+      final invTp = _inventoryText.painterFor(TextSpan(children: parts));
       // Second line, so a full inventory never collides with the HP text
       invTp.paint(canvas, Offset(boardOffset.x + 4, hudY + 16));
     }
@@ -1172,6 +1186,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     ];
 
     var y = boardOffset.y + 2;
+    var slot = 0;
     for (final (color, label, shape) in items) {
       final center = Offset(legendX + iconSize / 2, y + iconSize / 2);
       final paint = Paint()..color = color;
@@ -1215,10 +1230,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
           canvas.drawPath(path, paint);
       }
 
-      final tp = TextPainter(
-        text: TextSpan(text: label, style: textStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
+      final tp = _legendTexts[slot++].painter(label, textStyle);
       tp.paint(canvas, Offset(legendX + iconSize + 4, y + (iconSize - tp.height) / 2));
       y += iconSize + 4;
     }

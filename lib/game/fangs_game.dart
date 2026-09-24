@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -56,6 +57,14 @@ class FangsGame extends FlameGame with KeyboardEvents {
     await super.onLoad();
     _calculateGrid();
     _startNewGame();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
   }
 
   void _calculateGrid() {
@@ -377,6 +386,16 @@ class FangsGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  final _levelText = CachedText();
+  final _livesText = CachedText();
+
+  @override
+  void onRemove() {
+    _levelText.dispose();
+    _livesText.dispose();
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -484,34 +503,28 @@ class FangsGame extends FlameGame with KeyboardEvents {
     }
 
     // HUD — level and lives
-    final levelTp = TextPainter(
-      text: TextSpan(
-        text: 'LVL $_level',
-        style: TextStyle(
-          color: mode.snakeColor.withValues(alpha: 0.5),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final levelTp = _levelText.painter(
+      'LVL $_level',
+      TextStyle(
+        color: mode.snakeColor.withValues(alpha: 0.5),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     levelTp.paint(
       canvas,
       Offset(boardOffset.x + gridWidth * cs - levelTp.width - 4,
           boardOffset.y - 16),
     );
 
-    final livesTp = TextPainter(
-      text: TextSpan(
-        text: '\u2665 ' * _lives, // heart symbols for lives
-        style: TextStyle(
-          color: const Color(0xFFFF1744).withValues(alpha: 0.8),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final livesTp = _livesText.painter(
+      '\u2665 ' * _lives, // heart symbols for lives
+      TextStyle(
+        color: const Color(0xFFFF1744).withValues(alpha: 0.8),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     livesTp.paint(
       canvas,
       Offset(boardOffset.x + 4, boardOffset.y - 16),

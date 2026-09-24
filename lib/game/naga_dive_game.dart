@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -246,6 +247,16 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
       }
     }
     return KeyEventResult.ignored;
+  }
+
+  final _scoreText = CachedText();
+  final _promptText = CachedText();
+
+  @override
+  void onRemove() {
+    _scoreText.dispose();
+    _promptText.dispose();
+    super.onRemove();
   }
 
   @override
@@ -664,17 +675,14 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   void _renderHUD(Canvas canvas) {
     // Score — large, centered at top
-    final scoreTp = TextPainter(
-      text: TextSpan(
-        text: '$score',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.8),
-          fontSize: 48,
-          fontWeight: FontWeight.bold,
-        ),
+    final scoreTp = _scoreText.painter(
+      '$score',
+      TextStyle(
+        color: Colors.white.withValues(alpha: 0.8),
+        fontSize: 48,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     scoreTp.paint(
       canvas,
       Offset((size.x - scoreTp.width) / 2, 20),
@@ -682,17 +690,14 @@ class NagaDiveGame extends FlameGame with KeyboardEvents, TapCallbacks {
   }
 
   void _renderStartPrompt(Canvas canvas) {
-    final promptTp = TextPainter(
-      text: TextSpan(
-        text: 'TAP or SPACE to swim',
-        style: TextStyle(
-          color: mode.snakeColor.withValues(alpha: 0.7),
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+    final promptTp = _promptText.painter(
+      'TAP or SPACE to swim',
+      TextStyle(
+        color: mode.snakeColor.withValues(alpha: 0.7),
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     promptTp.paint(
       canvas,
       Offset((size.x - promptTp.width) / 2, size.y * 0.55),

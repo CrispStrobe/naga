@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -120,6 +121,14 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     await super.onLoad();
     _calculateGrid();
     _startNewGame();
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Rotation and window resizes must re-fit the board, not just the first
+    // layout; this only depends on constructor dimensions.
+    _calculateGrid();
   }
 
   void _calculateGrid() {
@@ -633,6 +642,14 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  final _aiScoreTexts = CachedTextList();
+
+  @override
+  void onRemove() {
+    _aiScoreTexts.dispose();
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -652,6 +669,8 @@ class VsAiGame extends FlameGame with KeyboardEvents {
   /// Draws each AI snake's score as a compact pill near the top of the
   /// board (dead AIs stay visible, dimmed), colored per snake so the
   /// player can compare against their own score in the app's score bar.
+  final Paint _pillPaint = Paint();
+
   void _renderAiScores(Canvas canvas) {
     final entries = <(Color, int, bool)>[
       for (final ai in _aiOpponents) (ai.color, ai.score, true),
@@ -663,20 +682,17 @@ class VsAiGame extends FlameGame with KeyboardEvents {
     double x = boardOffset.x + cellSize * 0.4;
     final y = boardOffset.y + cellSize * 0.3;
 
+    var slot = 0;
     for (final (color, aiScore, alive) in entries) {
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: 'AI: $aiScore',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-            color: alive ? color : color.withValues(alpha: 0.5),
-          ),
+      final textPainter = _aiScoreTexts[slot++].painter(
+        'AI: $aiScore',
+        TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+          color: alive ? color : color.withValues(alpha: 0.5),
         ),
-        textDirection: TextDirection.ltr,
       );
-      textPainter.layout();
 
       // Dark pill behind the text so every AI color reads on the bright
       // river-blue board.
@@ -684,10 +700,8 @@ class VsAiGame extends FlameGame with KeyboardEvents {
         Rect.fromLTWH(x, y, textPainter.width + 14, textPainter.height + 6),
         const Radius.circular(10),
       );
-      canvas.drawRRect(
-        pill,
-        Paint()..color = Colors.black.withValues(alpha: alive ? 0.45 : 0.25),
-      );
+      _pillPaint.color = Colors.black.withValues(alpha: alive ? 0.45 : 0.25);
+      canvas.drawRRect(pill, _pillPaint);
       textPainter.paint(canvas, Offset(x + 7, y + 3));
       x += pill.width + 8;
     }

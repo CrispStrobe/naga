@@ -21,6 +21,23 @@ class SEn extends S {
   String get classicDesc => 'Retro phone legacy';
 
   @override
+  String get shed => 'Shed';
+
+  @override
+  String get shedDesc => 'Tetris meets Snake';
+
+  @override
+  String get daily => 'Daily Serpent';
+
+  @override
+  String get dailyDesc => 'Same board for everyone today';
+
+  @override
+  String dailyStats(int best, int streak) {
+    return 'Today\'s best: $best · Streak: $streak';
+  }
+
+  @override
   String get arcade => 'Arcade';
 
   @override
