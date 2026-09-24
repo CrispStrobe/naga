@@ -22,7 +22,15 @@ flutter build web --wasm \
   --dart-define=GIT_COMMIT=$(git rev-parse HEAD) \
   --dart-define=BUILD_MODE=wasm
 cp vercel.json build/web/vercel.json          # Copy COOP/COEP headers config
-vercel deploy --yes --prod --force build/web  # Deploy to Vercel
+# Link the build folder to naga-game. Without this, `vercel deploy build/web`
+# ignores the repo's .vercel/ link and picks the project named after the
+# folder: `web`, which is another app's production project.
+mkdir -p build/web/.vercel && cp .vercel/project.json build/web/.vercel/
+# No interactive login on this server: use the token from ~/.env.
+vercel deploy --yes --prod --force build/web --scope crispstrobes-projects \
+  --token "$(grep '^VERCEL_TOKEN=' ~/.env | cut -d= -f2-)"
+# The output must say "Deploying crispstrobes-projects/naga-game"; if it names
+# another project, stop and roll that project back (vercel promote <previous>).
 # Verify: npx playwright screenshot --browser chromium --wait-for-timeout 30000 URL /tmp/check.png
 ```
 
