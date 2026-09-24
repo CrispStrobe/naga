@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -612,6 +613,18 @@ class VenomGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  final _levelText = CachedText();
+  final _bombText = CachedText();
+  final _enemyText = CachedText();
+
+  @override
+  void onRemove() {
+    _levelText.dispose();
+    _bombText.dispose();
+    _enemyText.dispose();
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -790,46 +803,37 @@ class VenomGame extends FlameGame with KeyboardEvents {
     // HUD: painted inside the border wall row so it never overlaps the
     // score bar above the canvas
     final hudY = boardOffset.y + 2;
-    final levelTp = TextPainter(
-      text: TextSpan(
-        text: 'LEVEL $_level/$maxLevel',
-        style: TextStyle(
-          color: mode.snakeColor.withValues(alpha: 0.8),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final levelTp = _levelText.painter(
+      'LEVEL $_level/$maxLevel',
+      TextStyle(
+        color: mode.snakeColor.withValues(alpha: 0.8),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     levelTp.paint(canvas, Offset(boardOffset.x + 4, hudY));
 
-    final bombTp = TextPainter(
-      text: TextSpan(
-        text: 'BOMBS: $_bombsAvailable/$maxBombs',
-        style: TextStyle(
-          color: mode.bombColor.withValues(alpha: 0.8),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final bombTp = _bombText.painter(
+      'BOMBS: $_bombsAvailable/$maxBombs',
+      TextStyle(
+        color: mode.bombColor.withValues(alpha: 0.8),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     bombTp.paint(
       canvas,
       Offset(boardOffset.x + (gridWidth * cs - bombTp.width) / 2, hudY),
     );
 
-    final enemyTp = TextPainter(
-      text: TextSpan(
-        text: '${_enemies.length} ENEMIES',
-        style: TextStyle(
-          color: mode.snakeColor.withValues(alpha: 0.5),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final enemyTp = _enemyText.painter(
+      '${_enemies.length} ENEMIES',
+      TextStyle(
+        color: mode.snakeColor.withValues(alpha: 0.5),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     enemyTp.paint(
       canvas,
       Offset(boardOffset.x + gridWidth * cs - enemyTp.width - 4, hudY),

@@ -2,6 +2,7 @@ import 'shared/direction_buffer.dart';
 import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -336,6 +337,16 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  final _powerText = CachedText();
+  final _levelText = CachedText();
+
+  @override
+  void onRemove() {
+    _powerText.dispose();
+    _levelText.dispose();
+    super.onRemove();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -406,33 +417,27 @@ class MazeHunterGame extends FlameGame with KeyboardEvents {
   }
 
   void _drawPowerIndicator(Canvas canvas) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'POWER: ${_powerTimer.ceil()}s',
-        style: const TextStyle(
-          color: Colors.yellow,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-        ),
+    final textPainter = _powerText.painter(
+      'POWER: ${_powerTimer.ceil()}s',
+      const TextStyle(
+        color: Colors.yellow,
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
 
     textPainter.paint(canvas, Offset(boardOffset.x + 4, boardOffset.y - 18));
   }
 
   void _drawLevelIndicator(Canvas canvas) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'LVL $_level',
-        style: TextStyle(
-          color: Colors.blue.shade200,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final textPainter = _levelText.painter(
+      'LVL $_level',
+      TextStyle(
+        color: Colors.blue.shade200,
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
 
     textPainter.paint(
       canvas,

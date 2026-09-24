@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -90,10 +91,15 @@ class StampedeGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  final _distanceText = CachedText();
+  final _speedText = CachedText();
+
   @override
   void onRemove() {
     _sidesPicture?.dispose();
     _sidesPicture = null;
+    _distanceText.dispose();
+    _speedText.dispose();
     super.onRemove();
   }
 
@@ -790,31 +796,25 @@ class StampedeGame extends FlameGame with KeyboardEvents {
   }
 
   void _renderHUD(Canvas canvas) {
-    final tp = TextPainter(
-      text: TextSpan(
-        text: 'DIST: ${(_distanceTraveled ~/ 50)}',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.6),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final tp = _distanceText.painter(
+      'DIST: ${(_distanceTraveled ~/ 50)}',
+      TextStyle(
+        color: Colors.white.withValues(alpha: 0.6),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     tp.paint(canvas, Offset(trackRight + 8, 8));
 
     // Speed indicator
-    final speedTp = TextPainter(
-      text: TextSpan(
-        text: '${_scrollSpeed.toInt()} km/h',
-        style: TextStyle(
-          color: mode.foodColor.withValues(alpha: 0.7),
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
+    final speedTp = _speedText.painter(
+      '${_scrollSpeed.toInt()} km/h',
+      TextStyle(
+        color: mode.foodColor.withValues(alpha: 0.7),
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     speedTp.paint(canvas, Offset(trackRight + 8, 24));
   }
 }

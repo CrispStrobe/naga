@@ -3,6 +3,7 @@ import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'dart:ui' as ui;
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -570,10 +571,13 @@ class PitGame extends FlameGame with KeyboardEvents {
     return recorder.endRecording();
   }
 
+  final _aliveText = CachedText();
+
   @override
   void onRemove() {
     _decorPicture?.dispose();
     _decorPicture = null;
+    _aliveText.dispose();
     super.onRemove();
   }
 
@@ -736,18 +740,15 @@ class PitGame extends FlameGame with KeyboardEvents {
 
     // HUD — alive count
     final aliveCount = _aiSnakes.length + 1;
-    final tp = TextPainter(
-      text: TextSpan(
-        text: 'ALIVE: $aliveCount',
-        style: TextStyle(
-          // Sits on the darker surround outside the board — keep it light.
-          color: Colors.white.withValues(alpha: 0.85),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+    final tp = _aliveText.painter(
+      'ALIVE: $aliveCount',
+      TextStyle(
+        // Sits on the darker surround outside the board — keep it light.
+        color: Colors.white.withValues(alpha: 0.85),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    );
     tp.paint(
       canvas,
       Offset(boardOffset.x + gridWidth * cs - tp.width - 4,

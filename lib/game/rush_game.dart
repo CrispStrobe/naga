@@ -3,6 +3,7 @@ import 'dart:math';
 import 'shared/grid_motion.dart';
 import 'shared/grid_snake_body.dart';
 import 'dart:ui' as ui;
+import 'shared/cached_text.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -346,10 +347,13 @@ class RushGame extends FlameGame with KeyboardEvents {
     return recorder.endRecording();
   }
 
+  final _distanceText = CachedText();
+
   @override
   void onRemove() {
     _decorPicture?.dispose();
     _decorPicture = null;
+    _distanceText.dispose();
     super.onRemove();
   }
 
@@ -411,14 +415,11 @@ class RushGame extends FlameGame with KeyboardEvents {
     }
 
     // Distance counter
-    final tp = TextPainter(
-      text: TextSpan(
-        text: 'DIST: $_distanceTraveled',
-        // Sits on the darker surround outside the board — keep it light.
-        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.bold),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final tp = _distanceText.painter(
+      'DIST: $_distanceTraveled',
+      // Sits on the darker surround outside the board — keep it light.
+      TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.bold),
+    );
     tp.paint(canvas, Offset(boardOffset.x + gridWidth * cs - tp.width - 4, boardOffset.y - 16));
   }
 }
