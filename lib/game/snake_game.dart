@@ -11,6 +11,7 @@ import '../components/snake.dart';
 import '../components/food.dart';
 import '../components/power_up.dart';
 import '../components/grid_board.dart';
+import '../components/rocks.dart';
 
 export 'shared/grid_motion.dart' show Direction;
 
@@ -33,7 +34,10 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   final _directionQueue = DirectionBuffer(capacity: _maxQueuedInputs);
   static const int _maxQueuedInputs = 4;
   Direction currentDirection = Direction.right;
-  final Random _random = Random();
+  final Random _random;
+
+  /// Impassable cells (Daily Serpent's rocks). Empty for the regular modes.
+  final Set<Point<int>> rocks;
 
   // Buff/power-up state
   final Map<PowerUpType, double> activeBuffs = {};
@@ -48,7 +52,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   final Map<String, TextPainter> _buffTextCache = {};
   String _lastBuffCacheKey = '';
 
-  bool get _powerUpsEnabled => mode.name != 'Classic';
+  bool get _powerUpsEnabled => mode.hasPowerUps;
 
   // Grid dimensions — configurable via settings
   late final int gridWidth;
@@ -67,8 +71,11 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     int? gridHeight,
     this.wallsKillOverride,
     this.speedOverride,
+    Random? random,
+    this.rocks = const {},
   }) : gridWidth = gridWidth ?? 20,
-       gridHeight = gridHeight ?? 28;
+       gridHeight = gridHeight ?? 28,
+       _random = random ?? Random();
 
   bool get _wallsKill => wallsKillOverride ?? mode.wallsKill;
 
@@ -81,6 +88,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     _calculateGrid();
     board = GridBoard(this);
     add(board);
+    if (rocks.isNotEmpty) add(Rocks(this));
     _startNewGame();
   }
 
@@ -136,13 +144,17 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     add(snake);
   }
 
+  /// Picks the next food cell, or null when the board is full.
+  @protected
+  Point<int>? nextFoodCell() => randomFreeCell(
+    width: gridWidth,
+    height: gridHeight,
+    occupied: rocks.isEmpty ? snake.segments : [...snake.segments, ...rocks],
+    random: _random,
+  );
+
   void _spawnFood() {
-    final pos = randomFreeCell(
-      width: gridWidth,
-      height: gridHeight,
-      occupied: snake.segments,
-      random: _random,
-    );
+    final pos = nextFoodCell();
     if (pos == null) {
       if (gameState != GameState.gameOver) {
         hasWon = true;
@@ -248,7 +260,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     final pos = randomFreeCell(
       width: gridWidth,
       height: gridHeight,
-      occupied: [...snake.segments, food.gridPosition],
+      occupied: [...snake.segments, food.gridPosition, ...rocks],
       random: _random,
     );
     if (pos == null) return;
@@ -312,7 +324,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     newY = newY.clamp(0, gridHeight - 1);
 
     final newPos = Point(newX, newY);
-    if (!snake.occupies(newPos)) {
+    if (!snake.occupies(newPos) && !rocks.contains(newPos)) {
       food.gridPosition = newPos;
     }
   }
@@ -341,8 +353,8 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
       newHead = wrapGrid(newHead, gridWidth, gridHeight);
     }
 
-    // Self collision
-    if (snake.occupies(newHead)) {
+    // Self and rock collision
+    if (snake.occupies(newHead) || rocks.contains(newHead)) {
       if (_tryShieldAbsorb()) return;
       _die();
       return;

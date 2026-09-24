@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:naga/modes/arcade_mode.dart';
 import 'package:naga/modes/ascii_mode.dart';
 import 'package:naga/modes/cga_mode.dart';
+import 'package:naga/modes/daily_mode.dart';
 import 'package:naga/modes/classic_mode.dart';
 import 'package:naga/modes/dungeon_mode.dart';
 import 'package:naga/modes/fangs_mode.dart';
@@ -45,7 +46,7 @@ void main() {
       FangsMode(), VenomMode(), PitMode(), SwarmMode(), RushMode(),
       Snake2Mode(), AsciiMode(), CgaMode(), NibblesMode(), MultiplayerMode(),
       DungeonMode(), StampedeMode(), NagaDiveMode(), VsAiMode(),
-      VsAiSplitMode(),
+      VsAiSplitMode(), DailyMode(DateTime(2026)),
     ];
     for (final mode in modes) {
       expect(AudioService.trackForMode(mode.name), isNotNull, reason: mode.name);

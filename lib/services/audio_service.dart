@@ -27,6 +27,7 @@ class AudioService {
   // Per-mode music mapping
   static const Map<String, String> _modeMusic = {
     'Classic': 'audio/music/classic.ogg',
+    'Daily': 'audio/music/maze.ogg',
     'Arcade': 'audio/music/arcade.ogg',
     'Zen': 'audio/music/zen.ogg',
     'Maze Hunter': 'audio/music/maze.ogg',

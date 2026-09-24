@@ -4,6 +4,8 @@ import '../main.dart';
 import 'naga_logo.dart';
 import 'snake_animation.dart';
 import '../modes/classic_mode.dart';
+import '../modes/daily_mode.dart';
+import '../services/daily_service.dart';
 import '../modes/arcade_mode.dart';
 import '../modes/zen_mode.dart';
 import '../modes/maze_mode.dart';
@@ -79,14 +81,46 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_MenuEntry> _entries = [];
   List<GlobalKey> _itemKeys = [];
 
+  DailyService? _daily;
+
+  @override
+  void initState() {
+    super.initState();
+    DailyService.instance()
+        .then((daily) {
+          if (mounted) setState(() => _daily = daily);
+        })
+        .catchError((Object _) {
+          // Without storage the entry just shows its plain description.
+        });
+  }
+
   @override
   void dispose() {
     _focusNode.dispose();
     super.dispose();
   }
 
+  String _dailyDescription(S s) {
+    final daily = _daily;
+    final today = DateTime.now();
+    if (daily == null) return s.dailyDesc;
+    final best = daily.bestFor(today);
+    final streak = daily.streakOn(today);
+    if (best == 0 && streak == 0) return s.dailyDesc;
+    return s.dailyStats(best, streak);
+  }
+
   List<_MenuEntry> _buildEntries(S s) {
     return [
+      _MenuEntry(
+        section: 'DAILY',
+        label: s.daily,
+        description: _dailyDescription(s),
+        icon: Icons.today,
+        accentColor: const Color(0xFF8D6E63),
+        onTap: () => _startGame(context, DailyMode(DateTime.now())),
+      ),
       _MenuEntry(
         section: 'CLASSIC',
         label: s.classic,
@@ -445,7 +479,10 @@ class _HomeScreenState extends State<HomeScreen> {
           audioService: widget.audioService,
         ),
       ),
-    );
+    ).then((_) {
+      // Refresh the Daily entry's best score and streak.
+      if (mounted) setState(() {});
+    });
   }
 }
 

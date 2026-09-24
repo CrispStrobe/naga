@@ -4,7 +4,7 @@ import '../modes/ai_difficulty.dart' show AiDifficulty;
 import '../modes/game_mode.dart';
 import '../services/settings_service.dart';
 import 'snake_game.dart';
-import '../modes/classic_mode.dart';
+import '../modes/daily_mode.dart';
 import '../modes/maze_mode.dart';
 import '../modes/trail_mode.dart';
 import '../modes/swarm_mode.dart';
@@ -21,6 +21,7 @@ import '../modes/dungeon_mode.dart';
 import '../modes/stampede_mode.dart';
 import '../modes/naga_dive_mode.dart';
 import '../modes/vs_ai_mode.dart';
+import 'daily_game.dart';
 import 'maze_hunter_game.dart';
 import 'trail_game.dart' as trail;
 import 'swarm_game.dart';
@@ -371,7 +372,22 @@ abstract final class GameRegistry {
         setState: (state) => game.gameState = state,
       );
     }
-    final classic = mode is ClassicMode;
+    if (mode is DailyMode) {
+      final game = DailyGame(
+        mode: mode,
+        onVictory: onVictory,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+      );
+      return _session(
+        game: game,
+        changeDirection: game.changeDirection,
+        state: () => game.gameState,
+        setState: (state) => game.gameState = state,
+        result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
+      );
+    }
+    final classic = mode.fixedRules;
     final game = SnakeGame(
       mode: mode,
       onVictory: onVictory,

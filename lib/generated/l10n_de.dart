@@ -21,6 +21,17 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get daily => 'Tagesschlange';
+
+  @override
+  String get dailyDesc => 'Heute für alle dasselbe Spielfeld';
+
+  @override
+  String dailyStats(int best, int streak) {
+    return 'Heute bestes: $best · Serie: $streak';
+  }
+
+  @override
   String get arcade => 'Arcade';
 
   @override

@@ -6,6 +6,15 @@
     "tagline": "The Snake Game",
     "classic": "Classic",
     "classicDesc": "Retro phone legacy",
+    "daily": "Daily Serpent",
+    "dailyDesc": "Same board for everyone today",
+    "dailyStats": "Today's best: {best} · Streak: {streak}",
+    "@dailyStats": {
+        "placeholders": {
+            "best": { "type": "int" },
+            "streak": { "type": "int" }
+        }
+    },
     "arcade": "Arcade",
     "arcadeDesc": "Neon speed run",
     "zen": "Zen",

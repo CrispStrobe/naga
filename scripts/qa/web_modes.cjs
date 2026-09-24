@@ -5,7 +5,7 @@ const {stableTarget} = require('./stable_target.cjs');
 const fs = require('fs');
 const port = process.argv[2] || '8765';
 const outdir = process.argv[3] || '/tmp/naga-qa/modes';
-const modes = ['Classic','Arcade','Zen','Maze Hunter','Trail','Fangs','Venom',
+const modes = ['Daily','Classic','Arcade','Zen','Maze Hunter','Trail','Fangs','Venom',
  'Pit','Swarm','Rush','Snake II','ASCII','CGA','Nibbles','Stampede','Naga Dive',
  'Dungeon','Duel','VS AI','VS AI Split'];
 const limit = Number(process.argv[4] || modes.length);

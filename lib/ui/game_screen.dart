@@ -2,6 +2,8 @@ import 'dart:math' show Random;
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/daily_service.dart';
+import '../modes/daily_mode.dart';
 import '../game/game_registry.dart';
 import '../game/snake_game.dart' show Direction;
 import '../modes/classic_mode.dart';
@@ -46,13 +48,16 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   bool get _isClassicMode => widget.mode is ClassicMode;
 
+  /// Fixed-rule modes (Classic, Daily) never grant extra lives.
+  bool get _fixedRules => widget.mode.fixedRules;
+
   GameSettings get _settings => widget.settingsService.settings;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _livesRemaining = _isClassicMode ? 0 : _settings.lives;
+    _livesRemaining = _fixedRules ? 0 : _settings.lives;
     _useButtons = _settings.controlType == ControlType.buttons;
     _createGame();
     widget.audioService.playMusicForMode(widget.mode.name);
@@ -97,7 +102,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   void _handleDeath() {
-    if (!_isClassicMode && _livesRemaining > 0) {
+    if (!_fixedRules && _livesRemaining > 0) {
       setState(() => _livesRemaining--);
       // Respawn — keep score and remaining lives
       if (_session.canRespawn) {
@@ -160,6 +165,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         return 'The original snake game.\n\n'
             'Eat food to grow longer. Don\'t hit the walls or yourself.\n'
             'No extra lives. How long can you survive?';
+      case 'Daily':
+        return 'One board per day, the same for everyone.\n\n'
+            'The rocks and the order food appears in come from today\'s date. '
+            'Classic rules: walls and rocks kill, no power-ups, no extra lives.\n'
+            'Play as often as you like; your best run of the day counts. '
+            'Play on consecutive days to build a streak.';
       case 'Arcade':
         return 'Fast-paced snake action.\n\n'
             'Eat food, collect power-ups, and rack up points.\n'
@@ -264,6 +275,16 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     } else {
       widget.audioService.playDie();
     }
+    final mode = widget.mode;
+    if (mode is DailyMode) {
+      final score = _scoreNotifier.value;
+      DailyService.instance()
+          .then((daily) => daily.recordRun(mode.day, score))
+          .catchError((Object error) {
+            debugPrint('Could not save daily result: $error');
+            return false;
+          });
+    }
     try {
       final isNew = await widget.highScoreService.submitScore(
         widget.mode.name,
@@ -325,7 +346,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          if (!_isClassicMode && _settings.lives > 0) ...[
+          if (!_fixedRules && _settings.lives > 0) ...[
             const SizedBox(width: 4),
             Text(
               s.livesRemaining(_livesRemaining),
@@ -561,7 +582,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       _isGameOver = false;
       _isNewHighScore = false;
       _scoreNotifier.value = 0;
-      _livesRemaining = widget.mode is ClassicMode ? 0 : _settings.lives;
+      _livesRemaining = _fixedRules ? 0 : _settings.lives;
       _createGame();
     });
   }
