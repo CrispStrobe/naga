@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naga/game/snake_game.dart';
@@ -181,6 +182,31 @@ void main() {
     expect(find.text(s.playAgain), findsNothing);
     expect(find.text(s.newHighScore), findsNothing);
     expect(tester.takeException(), isNull);
+    await _unmount(tester);
+  });
+
+  testWidgets('Play again hands keyboard control to the new game', (
+    tester,
+  ) async {
+    // Tapping Play again used to leave focus on the overlay's button, so
+    // arrow keys never reached the fresh game until the board was clicked.
+    final scores = _PendingScores();
+    final first = await _mountScreen(tester, ClassicMode(), scores) as SnakeGame;
+    final s = S.of(tester.element(find.byType(GameScreen)))!;
+    first.onGameOver();
+    await tester.pump();
+    await tester.tap(find.text(s.playAgain));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    final game = tester
+        .widget<GameWidget<FlameGame>>(find.byType(GameWidget<FlameGame>))
+        .game! as SnakeGame;
+    expect(identical(game, first), isFalse);
+    await tester.runAsync(() => game.loaded);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    game.update(1);
+    expect(game.currentDirection, Direction.up);
     await _unmount(tester);
   });
 

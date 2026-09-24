@@ -120,11 +120,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     // Freeze the session and keep keyboard input out of the covered game.
     _session.setPaused(!_isPaused);
     setState(() => _isPaused = !_isPaused);
-    if (!_isPaused) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_inputBlocked) _gameFocus.requestFocus();
-      });
-    }
+    if (!_isPaused) _focusGameAfterFrame();
   }
 
   void _showInstructions() {
@@ -621,6 +617,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       _scoreNotifier.value = 0;
       _livesRemaining = _fixedRules ? 0 : _settings.lives;
       _createGame();
+    });
+    // The overlay held focus (a tapped button or its key handler); without
+    // this the new game ignores the keyboard until the board is clicked.
+    _focusGameAfterFrame();
+  }
+
+  void _focusGameAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_inputBlocked) _gameFocus.requestFocus();
     });
   }
 
