@@ -203,6 +203,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'everything it seals off become yours.\n'
             'While you are outside, your trail is your weak spot: if a rival '
             'crosses it, you are out. Cross a rival\'s trail to cut them down.\n'
+            'Your score is the share of the board you own, in percent. '
             'Own half the board to win.';
       case 'Arcade':
         return 'Fast-paced snake action.\n\n'
