@@ -153,6 +153,14 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   @protected
   void onFoodEaten() {}
 
+  /// Whether this move should grow the snake even though it did not eat.
+  @protected
+  bool takeExtraGrowth() => false;
+
+  /// Called at the end of every move that leaves the game still playing.
+  @protected
+  void afterMove() {}
+
   /// Picks the next food cell, or null when the board is full.
   @protected
   Point<int>? nextFoodCell() => randomFreeCell(
@@ -375,7 +383,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
     final ate =
         newHead.x == food.gridPosition.x && newHead.y == food.gridPosition.y;
 
-    snake.move(newHead, grow: ate);
+    snake.move(newHead, grow: ate || takeExtraGrowth());
 
     if (ate) {
       score += mode.pointsPerFood(score);
@@ -393,6 +401,7 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
         newHead.y == _currentPowerUp!.gridPosition.y) {
       _collectPowerUp(_currentPowerUp!);
     }
+    if (gameState == GameState.playing) afterMove();
   }
 
   bool _tryShieldAbsorb() {

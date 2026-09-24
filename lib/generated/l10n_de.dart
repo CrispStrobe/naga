@@ -21,6 +21,12 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get ouroboros => 'Ouroboros';
+
+  @override
+  String get ouroborosDesc => 'Fange Glühwürmchen in einer Schlinge';
+
+  @override
   String get portals => 'Portale';
 
   @override

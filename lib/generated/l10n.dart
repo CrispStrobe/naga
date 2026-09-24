@@ -121,6 +121,18 @@ abstract class S {
   /// **'Retro phone legacy'**
   String get classicDesc;
 
+  /// No description provided for @ouroboros.
+  ///
+  /// In en, this message translates to:
+  /// **'Ouroboros'**
+  String get ouroboros;
+
+  /// No description provided for @ouroborosDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Catch fireflies in a loop'**
+  String get ouroborosDesc;
+
   /// No description provided for @portals.
   ///
   /// In en, this message translates to:
