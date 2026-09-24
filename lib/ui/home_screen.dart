@@ -18,6 +18,8 @@ import '../modes/shed_mode.dart';
 import '../modes/pit_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
+import '../modes/ouroboros_mode.dart';
+import '../modes/echo_mode.dart';
 import '../modes/snake2_mode.dart';
 import '../modes/ascii_mode.dart';
 import '../modes/cga_mode.dart';
@@ -217,6 +219,20 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.speed,
         accentColor: const Color(0xFFE65100),
         onTap: () => _startGame(context, RushMode()),
+      ),
+      _MenuEntry(
+        label: s.ouroboros,
+        description: s.ouroborosDesc,
+        icon: Icons.loop,
+        accentColor: const Color(0xFF00796B),
+        onTap: () => _startGame(context, OuroborosMode()),
+      ),
+      _MenuEntry(
+        label: s.echo,
+        description: s.echoDesc,
+        icon: Icons.history,
+        accentColor: const Color(0xFF7E57C2),
+        onTap: () => _startGame(context, EchoMode()),
       ),
       _MenuEntry(
         section: 'LEGACY',

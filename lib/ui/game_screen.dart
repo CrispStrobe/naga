@@ -188,6 +188,19 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'the other one, still heading the same way.\n'
             'Both portals jump to new places after every meal. '
             'Mind your tail: it may still be passing through.';
+      case 'Ouroboros':
+        return 'Catch fireflies in a loop.\n\n'
+            'The glowing fireflies can\'t be eaten: circle them with your own '
+            'body until the loop is closed and everything inside is caught.\n'
+            'More fireflies in one loop score far more (1: 10, 2: 40, 3: 90). '
+            'Walls don\'t count as part of a loop. Eat fruit to grow longer.';
+      case 'Echo':
+        return 'Outrun your last run.\n\n'
+            'From your second run on, your previous run replays as a ghost '
+            'snake, starting a few moves behind you. Touching it is deadly; '
+            'it passes through your body harmlessly.\n'
+            'Stay alive until your echo fades for a +50 bonus. '
+            'Each life leaves an echo for the next one.';
       case 'Arcade':
         return 'Fast-paced snake action.\n\n'
             'Eat food, collect power-ups, and rack up points.\n'

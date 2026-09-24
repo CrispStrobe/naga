@@ -7,7 +7,7 @@ const fs = require('fs');
 const port = process.argv[2] || '8765';
 const outdir = process.argv[3] || '/tmp/naga-qa/modes';
 const modes = ['Daily','Classic','Arcade','Zen','Nightfall','Portals','Maze Hunter','Trail','Fangs','Venom',
- 'Shed','Pit','Swarm','Rush','Snake II','ASCII','CGA','Nibbles','Stampede','Naga Dive',
+ 'Shed','Pit','Swarm','Rush','Ouroboros','Echo','Snake II','ASCII','CGA','Nibbles','Stampede','Naga Dive',
  'Dungeon','Duel','VS AI','VS AI Split'];
 const limit = Number(process.argv[4] || modes.length);
 const width = Number(process.env.QA_WIDTH || 1280);
