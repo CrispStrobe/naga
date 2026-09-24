@@ -6,6 +6,8 @@
     "tagline": "The Snake Game",
     "classic": "Classic",
     "classicDesc": "Retro phone legacy",
+    "echo": "Echo",
+    "echoDesc": "Outrun your last run",
     "ouroboros": "Ouroboros",
     "ouroborosDesc": "Catch fireflies in a loop",
     "portals": "Portals",

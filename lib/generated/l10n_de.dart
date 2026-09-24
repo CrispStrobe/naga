@@ -21,6 +21,12 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get echo => 'Echo';
+
+  @override
+  String get echoDesc => 'Entkomme deinem letzten Lauf';
+
+  @override
   String get ouroboros => 'Ouroboros';
 
   @override

@@ -161,6 +161,13 @@ class SnakeGame extends FlameGame with KeyboardEvents, HasCollisionDetection {
   @protected
   void afterMove() {}
 
+  /// Ends the run from a subclass rule (a shield still absorbs the hit).
+  @protected
+  void die() {
+    if (gameState != GameState.playing || _tryShieldAbsorb()) return;
+    _die();
+  }
+
   /// Picks the next food cell, or null when the board is full.
   @protected
   Point<int>? nextFoodCell() => randomFreeCell(

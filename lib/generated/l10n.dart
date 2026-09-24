@@ -121,6 +121,18 @@ abstract class S {
   /// **'Retro phone legacy'**
   String get classicDesc;
 
+  /// No description provided for @echo.
+  ///
+  /// In en, this message translates to:
+  /// **'Echo'**
+  String get echo;
+
+  /// No description provided for @echoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Outrun your last run'**
+  String get echoDesc;
+
   /// No description provided for @ouroboros.
   ///
   /// In en, this message translates to:

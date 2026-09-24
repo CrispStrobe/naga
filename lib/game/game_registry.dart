@@ -13,6 +13,7 @@ import '../modes/shed_mode.dart';
 import '../modes/nightfall_mode.dart';
 import '../modes/portals_mode.dart';
 import '../modes/ouroboros_mode.dart';
+import '../modes/echo_mode.dart';
 import '../modes/fangs_mode.dart';
 import '../modes/venom_mode.dart';
 import '../modes/pit_mode.dart';
@@ -34,6 +35,7 @@ import 'shed_game.dart';
 import 'nightfall_game.dart';
 import 'portals_game.dart';
 import 'ouroboros_game.dart';
+import 'echo_game.dart';
 import 'fangs_game.dart';
 import 'venom_game.dart';
 import 'pit_game.dart';
@@ -440,6 +442,16 @@ abstract final class GameRegistry {
         speedOverride: speedOverride,
       ),
       OuroborosMode() => OuroborosGame(
+        mode: mode,
+        onVictory: onVictory,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+        gridWidth: gridWidth,
+        gridHeight: gridHeight,
+        wallsKillOverride: wallsKillOverride,
+        speedOverride: speedOverride,
+      ),
+      EchoMode() => EchoGame(
         mode: mode,
         onVictory: onVictory,
         onGameOver: onGameOver,
