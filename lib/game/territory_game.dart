@@ -152,10 +152,13 @@ class TerritoryGame extends FlameGame with KeyboardEvents {
     _ownerVersion++;
   }
 
+  /// The score is the player's share of the board in whole percent, the
+  /// same number the LAND HUD shows (a raw cell count read as nonsense next
+  /// to it).
   void _updateScore() {
-    final owned = ownedBy(playerId);
-    if (owned != score) {
-      score = owned;
+    final percent = (playerShare * 100).floor();
+    if (percent != score) {
+      score = percent;
       onScoreChanged(score);
     }
   }

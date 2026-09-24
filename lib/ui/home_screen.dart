@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import 'naga_logo.dart';
 import 'snake_animation.dart';
@@ -52,6 +53,11 @@ class _MenuEntry {
   final VoidCallback onTap;
   final bool isBottomBar;
 
+  /// A collapsible section header rather than a mode.
+  final bool isHeader;
+  final int modeCount;
+  final bool collapsed;
+
   _MenuEntry({
     this.section,
     required this.label,
@@ -60,6 +66,9 @@ class _MenuEntry {
     required this.accentColor,
     required this.onTap,
     this.isBottomBar = false,
+    this.isHeader = false,
+    this.modeCount = 0,
+    this.collapsed = false,
   });
 }
 
@@ -85,13 +94,47 @@ class _HomeScreenState extends State<HomeScreen> {
   int _focusIndex = -1; // -1: nothing focused until first key press
   final FocusNode _focusNode = FocusNode();
   List<_MenuEntry> _entries = [];
+  List<_MenuEntry> _rawEntries = [];
   List<GlobalKey> _itemKeys = [];
 
   DailyService? _daily;
 
+  /// Collapsed menu sections, remembered across launches. A first launch
+  /// opens only Daily and Classic so the long list doesn't overwhelm.
+  static const _keyCollapsed = 'menu_collapsed_sections';
+  static const _openByDefault = {'DAILY', 'CLASSIC'};
+  Set<String>? _collapsed;
+
+  bool _isCollapsed(String section) =>
+      _collapsed?.contains(section) ?? !_openByDefault.contains(section);
+
+  void _toggleSection(String section, Iterable<String> allSections) {
+    setState(() {
+      final collapsed = _collapsed ??= {
+        for (final s in allSections)
+          if (!_openByDefault.contains(s)) s,
+      };
+      if (!collapsed.remove(section)) collapsed.add(section);
+      // Update the entries now, not at the next build: keys that arrive
+      // before the frame (a fast Down, Down, Enter on a slow device) must
+      // not act on the old list and open the wrong screen.
+      _entries = _withSections(_rawEntries);
+    });
+    final saved = _collapsed!.toList();
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setStringList(_keyCollapsed, saved))
+        .catchError((Object _) => false);
+  }
+
   @override
   void initState() {
     super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      final saved = prefs.getStringList(_keyCollapsed);
+      if (mounted && saved != null) setState(() => _collapsed = saved.toSet());
+    }).catchError((Object _) {
+      // Without storage the menu uses the defaults.
+    });
     DailyService.instance()
         .then((daily) {
           if (mounted) setState(() => _daily = daily);
@@ -115,6 +158,37 @@ class _HomeScreenState extends State<HomeScreen> {
     final streak = daily.streakOn(today);
     if (best == 0 && streak == 0) return s.dailyDesc;
     return s.dailyStats(best, streak);
+  }
+
+  /// Inserts a header entry at each section start and hides the modes of
+  /// collapsed sections.
+  List<_MenuEntry> _withSections(List<_MenuEntry> raw) {
+    final modes = raw.where((e) => !e.isBottomBar).toList();
+    final sections = [for (final e in modes) if (e.section != null) e.section!];
+    final counts = <String, int>{};
+    String? current;
+    for (final e in modes) {
+      current = e.section ?? current;
+      counts[current!] = (counts[current] ?? 0) + 1;
+    }
+    final out = <_MenuEntry>[];
+    for (final e in modes) {
+      if (e.section != null) {
+        current = e.section;
+        final section = e.section!;
+        out.add(_MenuEntry(
+          label: section,
+          icon: Icons.expand_more,
+          accentColor: const Color(0xFFE65100),
+          isHeader: true,
+          modeCount: counts[section]!,
+          collapsed: _isCollapsed(section),
+          onTap: () => _toggleSection(section, sections),
+        ));
+      }
+      if (!_isCollapsed(current!)) out.add(e);
+    }
+    return [...out, ...raw.where((e) => e.isBottomBar)];
   }
 
   List<_MenuEntry> _buildEntries(S s) {
@@ -426,7 +500,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
-    _entries = _buildEntries(s);
+    _rawEntries = _buildEntries(s);
+    _entries = _withSections(_rawEntries);
     if (_itemKeys.length != _entries.length) {
       _itemKeys = List.generate(_entries.length, (_) => GlobalKey());
     }
@@ -474,22 +549,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         for (int i = 0; i < modeEntries.length; i++) ...[
-                          if (modeEntries[i].section != null)
-                            _SectionHeader(label: modeEntries[i].section!)
-                          else
+                          if (modeEntries[i].isHeader) ...[
+                            if (i > 0) const SizedBox(height: 14),
+                            _SectionHeader(
+                              key: _itemKeys[i],
+                              label: modeEntries[i].label,
+                              modeCount: modeEntries[i].modeCount,
+                              collapsed: modeEntries[i].collapsed,
+                              focused: _focusIndex == i,
+                              onTap: modeEntries[i].onTap,
+                            ),
+                          ] else ...[
                             const SizedBox(height: 10),
-                          _ModeButton(
-                            key: _itemKeys[i],
-                            label: modeEntries[i].label,
-                            description: modeEntries[i].description,
-                            icon: modeEntries[i].icon,
-                            accentColor: modeEntries[i].accentColor,
-                            focused: _focusIndex == i,
-                            onTap: modeEntries[i].onTap,
-                          ),
-                          if (i < modeEntries.length - 1 &&
-                              modeEntries[i + 1].section != null)
-                            const SizedBox(height: 20),
+                            _ModeButton(
+                              key: _itemKeys[i],
+                              label: modeEntries[i].label,
+                              description: modeEntries[i].description,
+                              icon: modeEntries[i].icon,
+                              accentColor: modeEntries[i].accentColor,
+                              focused: _focusIndex == i,
+                              onTap: modeEntries[i].onTap,
+                            ),
+                          ],
                         ],
                         const SizedBox(height: 24),
                       ],
@@ -596,19 +677,69 @@ class _BottomBarButton extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String label;
-  const _SectionHeader({required this.label});
+  final int modeCount;
+  final bool collapsed;
+  final bool focused;
+  final VoidCallback onTap;
+  const _SectionHeader({
+    super.key,
+    required this.label,
+    required this.modeCount,
+    required this.collapsed,
+    required this.focused,
+    required this.onTap,
+  });
+
+  static const _orange = Color(0xFFE65100); // warm orange
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10, top: 4),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 4,
-          color: const Color(0xFFE65100), // warm orange
+    return Semantics(
+      button: true,
+      expanded: !collapsed,
+      label: 'Section $label, $modeCount ${modeCount == 1 ? 'mode' : 'modes'}, '
+          '${collapsed ? 'collapsed' : 'expanded'}',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: focused ? _orange : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  color: _orange,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '·  $modeCount',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: _orange.withValues(alpha: 0.6),
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                collapsed ? Icons.chevron_right : Icons.expand_more,
+                size: 18,
+                color: _orange,
+              ),
+            ],
+          ),
         ),
       ),
     );

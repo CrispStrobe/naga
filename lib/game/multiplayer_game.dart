@@ -1,3 +1,4 @@
+import 'shared/cached_text.dart';
 import 'shared/direction_buffer.dart';
 import 'dart:math';
 import 'shared/free_cell.dart';
@@ -36,6 +37,14 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
   int p1Score = 0;
   int p2Score = 0;
   double _tickTimer = 0;
+
+  /// Seconds before the snakes start moving: two players need a moment to
+  /// find their keys. Turns pressed meanwhile are queued for the first move.
+  static const double countdownSeconds = 2;
+  double _countdown = countdownSeconds;
+
+  @visibleForTesting
+  void debugSkipCountdown() => _countdown = 0;
   final Random _random = Random();
 
   // Player 1
@@ -105,6 +114,7 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     p1Score = 0;
     p2Score = 0;
     _tickTimer = 0;
+    _countdown = countdownSeconds;
     _isGameOver = false;
     _isPaused = false;
     matchResult = null;
@@ -277,6 +287,10 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     if (_isGameOver || _isPaused) return;
 
     _foodPulse += dt;
+    if (_countdown > 0) {
+      _countdown -= dt;
+      return;
+    }
     _tickTimer += dt;
     final interval = mode.tickInterval(max(p1Score, p2Score));
     if (_tickTimer >= interval) {
@@ -383,6 +397,42 @@ class MultiplayerGame extends FlameGame with KeyboardEvents {
     _renderSnake(canvas, _p1Segments, mode.snakeColor, _p1Direction);
     _renderSnake(canvas, _p2Segments, mode.player2Color, _p2Direction);
     _renderFood(canvas);
+    if (_countdown > 0) _renderCountdown(canvas);
+  }
+
+  final _countdownText = CachedText();
+  final _controlsText = CachedText();
+
+  @override
+  void onRemove() {
+    _countdownText.dispose();
+    _controlsText.dispose();
+    super.onRemove();
+  }
+
+  void _renderCountdown(Canvas canvas) {
+    final center = Offset(
+      boardOffset.x + gridWidth * cellSize / 2,
+      boardOffset.y + gridHeight * cellSize / 2,
+    );
+    final number = _countdownText.painter(
+      '${_countdown.ceil()}',
+      TextStyle(
+        color: Colors.white.withValues(alpha: 0.9),
+        fontSize: cellSize * 4,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    number.paint(canvas, center - Offset(number.width / 2, number.height / 2));
+    final hint = _controlsText.painter(
+      'P1: WASD  ·  P2: ARROW KEYS',
+      TextStyle(
+        color: Colors.white.withValues(alpha: 0.75),
+        fontSize: max(11, cellSize * 0.7),
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    hint.paint(canvas, center + Offset(-hint.width / 2, number.height / 2 + 8));
   }
 
   void _renderBoard(Canvas canvas) {

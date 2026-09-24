@@ -22,7 +22,15 @@ flutter build web --wasm \
   --dart-define=GIT_COMMIT=$(git rev-parse HEAD) \
   --dart-define=BUILD_MODE=wasm
 cp vercel.json build/web/vercel.json          # Copy COOP/COEP headers config
-vercel deploy --yes --prod --force build/web  # Deploy to Vercel
+# Link the build folder to naga-game. Without this, `vercel deploy build/web`
+# ignores the repo's .vercel/ link and picks the project named after the
+# folder: `web`, which is another app's production project.
+mkdir -p build/web/.vercel && cp .vercel/project.json build/web/.vercel/
+# No interactive login on this server: use the token from ~/.env.
+vercel deploy --yes --prod --force build/web --scope crispstrobes-projects \
+  --token "$(grep '^VERCEL_TOKEN=' ~/.env | cut -d= -f2-)"
+# The output must say "Deploying crispstrobes-projects/naga-game"; if it names
+# another project, stop and roll that project back (vercel promote <previous>).
 # Verify: npx playwright screenshot --browser chromium --wait-for-timeout 30000 URL /tmp/check.png
 ```
 
@@ -55,7 +63,7 @@ assets/audio/      Music (OGG per mode) and SFX
    - Must have: `changeDirection(Direction dir)`, `onGameOver` callback, `onScoreChanged` callback
 3. Add i18n strings to both ARB files, run `flutter gen-l10n`
 4. Register construction and typed controls in `lib/game/game_registry.dart` (`GameSession`: direction, pause, respawn, action and result). Preserve mode-specific lifecycle rules; do not add concrete-game casts to the screen.
-5. Add a `_MenuEntry` in `lib/ui/home_screen.dart` and mode instructions in `GameScreen._getInstructions`.
+5. Add a `_MenuEntry` in `lib/ui/home_screen.dart` (under a `section`, which players can collapse) and mode instructions in `GameScreen._getInstructions`. Add it to `MENU` in `scripts/qa/menu.cjs`, in menu order: the browser harnesses open modes by name from that model, since Flutter web only exposes on-screen menu entries to the accessibility tree.
 6. Add registry, gameplay and mounted-screen regression tests. Reuse `lib/game/shared/` primitives only where rules match. `Snake.occupiedCells` is a live read-only view; edit the body rather than that view.
 7. Run `flutter test`, `flutter analyze`, and WASM browser checks. Raster fixtures were recorded with Flutter 3.44.4; pin that SDK for reproducible tests. Shape-only renderers stay byte-exact. Text renderers (ASCII, CGA, Nibbles, Snake II) are compared structurally instead — dimensions, ink bounding box and normalized 16x16 tile coverage — because glyph antialiasing and alpha banding are resolved by the host rasterizer and differ across macOS and Linux. `.github/workflows/checks.yml` runs the raster test on both.
 

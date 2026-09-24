@@ -3,12 +3,12 @@
 const {chromium} = require('playwright');
 const {stableTarget} = require('./stable_target.cjs');
 const {withTimeout, closeQuietly, WatchdogTimeout, isEngineTrap} = require('./watchdog.cjs');
+const {openMode, MODES} = require('./menu.cjs');
 const fs = require('fs');
 const port = process.argv[2] || '8765';
 const outdir = process.argv[3] || '/tmp/naga-qa/modes';
-const modes = ['Daily','Classic','Arcade','Zen','Nightfall','Portals','Maze Hunter','Trail','Fangs','Venom',
- 'Shed','Pit','Swarm','Rush','Ouroboros','Echo','Territory','Snake II','ASCII','CGA','Nibbles','Stampede','Naga Dive',
- 'Dungeon','Duel','VS AI','VS AI Split'];
+// Every mode, in menu order (scripts/qa/menu.cjs).
+const modes = MODES;
 const limit = Number(process.argv[4] || modes.length);
 // Flake hunting: QA_ONLY=CGA,Stampede runs just those modes, QA_REPEAT=N times each.
 const only = process.env.QA_ONLY ? process.env.QA_ONLY.split(',') : null;
@@ -26,10 +26,8 @@ async function runMode(page, i, name, entry) {
     await page.locator('flt-semantics-placeholder').waitFor({state:'attached',timeout:30000});
     await page.locator('flt-semantics-placeholder').evaluate(e=>e.click());
     await page.getByRole('button',{name:'CLASSIC Retro phone legacy',exact:true}).waitFor();
-    // Refocus the app, leaving accessibility enabled for assertions.
-    await page.mouse.click(width/2,170);
-    for(let k=0;k<=i;k++){await page.keyboard.press('ArrowDown');await page.waitForTimeout(65);}
-    await page.waitForTimeout(180);
+    entry.step='find mode in menu';
+    await openMode(page,name,width);
     const focused=await page.locator('body').ariaSnapshot();
     fs.writeFileSync(`${outdir}/${slug(name)}-menu.txt`,focused);
     entry.step='open mode';

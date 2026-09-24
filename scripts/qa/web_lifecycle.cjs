@@ -3,6 +3,7 @@
 const {chromium} = require('playwright');
 const {stableTarget} = require('./stable_target.cjs');
 const {withTimeout, closeQuietly, WatchdogTimeout, isEngineTrap} = require('./watchdog.cjs');
+const {openMode} = require('./menu.cjs');
 // A healthy scenario takes well under a minute.
 const scenarioTimeoutMs = Number(process.env.QA_SCENARIO_TIMEOUT_MS || 150000);
 const assert = require('node:assert/strict');
@@ -28,12 +29,8 @@ async function boot(page) {
   await page.locator('flt-semantics-placeholder').evaluate(e => e.click());
   await button(page, 'Settings').waitFor();
 }
-async function mode(page, index) {
-  await page.mouse.click(width / 2, 170);
-  for (let n = 0; n <= index; n++) {
-    await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(65);
-  }
+async function mode(page, name) {
+  await openMode(page, name, width);
   await page.keyboard.press('Enter');
   await page.locator('flt-semantics', {hasText: /^SCORE: \d+/}).first().waitFor();
 }
@@ -74,7 +71,7 @@ async function settings(page, choices) {
 }
 
 test('classic-death-restart-menu', async page => {
-  await mode(page, 1);
+  await mode(page, 'Classic');
   const score = await over(page);
   await button(page, 'PLAY AGAIN').click();
   await button(page, 'PLAY AGAIN').waitFor({state: 'hidden'});
@@ -85,7 +82,7 @@ test('classic-death-restart-menu', async page => {
 });
 
 test('classic-resize-preserves-pause', async page => {
-  await mode(page, 1);
+  await mode(page, 'Classic');
   await stableTarget(page.getByRole('button').nth(2));
   await page.getByRole('button').nth(2).click();
   await button(page, 'PAUSED Tap to resume').waitFor();
@@ -109,7 +106,7 @@ test('settings-reload-lives-and-restart', async page => {
   assert.equal(Object.keys(persisted).length, 4);
   await boot(page); // New Flutter runtime: not the singleton's in-memory cache.
   assert.deepEqual(await page.evaluate(keys => Object.fromEntries(keys.map(k => [k, localStorage.getItem(k)])), Object.keys(persisted)), persisted);
-  await mode(page, 2); // Arcade applies lives, speed and wall settings.
+  await mode(page, 'Arcade'); // applies lives, speed and wall settings.
   await page.locator('flt-semantics', {hasText: /^LIVES: 1/}).first().waitFor();
   // Straight movement reaches the wall, respawns, then reaches it again.
   await page.locator('flt-semantics', {hasText: /^LIVES: 0/}).first().waitFor({timeout: 20000});
@@ -127,7 +124,7 @@ test('settings-reload-lives-and-restart', async page => {
 // Production mapping and instructions: P1=WASD, P2=arrows.
 for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wins!']]) {
   test(`duel-${key.toLowerCase()}`, async page => {
-    await mode(page, 24);
+    await mode(page, 'Duel');
     await page.keyboard.press(key);
     const score = await over(page, winner);
     await menu(page);
@@ -136,7 +133,7 @@ for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wi
 }
 
 test('classic-touch-taps-pause-resume-menu', async page => {
-  await mode(page, 1);
+  await mode(page, 'Classic');
   const pauseButton = page.getByRole('button').nth(2);
   await stableTarget(pauseButton);
   await pauseButton.tap();
