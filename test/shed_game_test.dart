@@ -31,15 +31,16 @@ void eatAhead(ShedGame game) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('each meal grows the snake by two', () async {
+  test('each meal grows the snake by three', () async {
     final game = await start();
     eatAhead(game);
     expect(game.snakeSegments.length, 3);
+    for (var i = 0; i < 3; i++) {
+      game.update(1);
+    }
+    expect(game.snakeSegments.length, 3 + ShedGame.growthPerFood);
     game.update(1);
-    game.update(1);
-    expect(game.snakeSegments.length, 5);
-    game.update(1);
-    expect(game.snakeSegments.length, 5);
+    expect(game.snakeSegments.length, 3 + ShedGame.growthPerFood);
   });
 
   test('every fourth meal sheds the body behind the neck into skin', () async {
@@ -61,23 +62,23 @@ void main() {
 
   test('a row filled with skin clears for a bonus', () async {
     final game = await start();
-    // The body lies along row 5 from x=13 back to x=6 and the head has
-    // turned up out of the row; x=0..5 is skin already, so shedding the
+    // The body lies along row 5 from x=11 back to x=4 and the head has
+    // turned up out of the row; x=0..3 is skin already, so shedding the
     // body completes the row. (The kept head and neck never count.)
     game.snakeSegments
       ..clear()
       ..addAll([
-        const Point(13, 2), const Point(13, 3), const Point(13, 4),
-        for (var x = 13; x >= 6; x--) Point(x, 5),
+        const Point(11, 2), const Point(11, 3), const Point(11, 4),
+        for (var x = 11; x >= 4; x--) Point(x, 5),
       ]);
-    for (var x = 0; x < 6; x++) {
+    for (var x = 0; x < 4; x++) {
       game.skin.add(Point(x, 5));
     }
     game.skin.add(const Point(0, 6)); // Other rows are untouched.
     final score = game.score;
-    // Keeps the head and neck; sheds x=13..6 of row 5 (8 cells).
+    // Keeps the head and neck; sheds x=11..4 of row 5 (8 cells).
     game.shedSkin();
-    expect(game.snakeSegments, [const Point(13, 2), const Point(13, 3), const Point(13, 4)]);
+    expect(game.snakeSegments, [const Point(11, 2), const Point(11, 3), const Point(11, 4)]);
     expect(game.rowsCleared, 1);
     expect(game.skin, {const Point(0, 6)});
     expect(game.score, score + 8 * 2 + ShedGame.rowBonus.first);

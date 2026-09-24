@@ -21,10 +21,12 @@ class ShedGame extends FlameGame with KeyboardEvents {
   final VoidCallback onGameOver;
   final ValueChanged<int> onScoreChanged;
 
-  static const int gridWidth = 14;
-  static const int gridHeight = 22;
+  // Tuned so one shed (about 9 cells) covers most of a row: at 14 wide with
+  // growth 2, simulated play almost never came close to a full row.
+  static const int gridWidth = 12;
+  static const int gridHeight = 20;
   static const int shedEvery = 4;
-  static const int growthPerFood = 2;
+  static const int growthPerFood = 3;
 
   /// Head and neck stay alive when the rest is shed.
   static const int keptSegments = 3;

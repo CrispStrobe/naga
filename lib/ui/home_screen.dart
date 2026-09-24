@@ -383,14 +383,17 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_focusIndex < 0) _focusIndex += _entries.length;
       }
     });
-    final ctx = _itemKeys[_focusIndex].currentContext;
-    if (ctx != null) {
+    // After the frame, so the highlight and layout match the new focus.
+    final index = _focusIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _itemKeys[index].currentContext;
+      if (!mounted || index != _focusIndex || ctx == null) return;
       Scrollable.ensureVisible(
         ctx,
         alignment: 0.5,
         duration: const Duration(milliseconds: 120),
       );
-    }
+    });
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
@@ -461,10 +464,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Scrollable mode list
+                  // Scrollable mode list. Every entry is built (there are only a
+                  // few dozen) so keyboard focus can always scroll to it: a lazy
+                  // ListView left fast-moving focus on unbuilt, offscreen rows.
                   Expanded(
-                    child: ListView(
+                    child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         for (int i = 0; i < modeEntries.length; i++) ...[
                           if (modeEntries[i].section != null)
@@ -486,6 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                         const SizedBox(height: 24),
                       ],
+                    ),
                     ),
                   ),
                   // Bottom bar: Settings, High Scores, Achievements, About

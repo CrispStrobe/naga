@@ -120,11 +120,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     // Freeze the session and keep keyboard input out of the covered game.
     _session.setPaused(!_isPaused);
     setState(() => _isPaused = !_isPaused);
-    if (!_isPaused) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_inputBlocked) _gameFocus.requestFocus();
-      });
-    }
+    if (!_isPaused) _focusGameAfterFrame();
   }
 
   void _showInstructions() {
@@ -173,7 +169,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'Play on consecutive days to build a streak.';
       case 'Shed':
         return 'Tetris meets Snake!\n\n'
-            'Each meal grows you by two. Every 4th meal you shed your skin: '
+            'Each meal grows you by three. Every 4th meal you shed your skin: '
             'everything behind your neck stays behind as solid wall.\n'
             'Fill a whole row with shed skin to clear it for a big bonus. '
             'Lay your body along a row before you shed!';
@@ -199,7 +195,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'From your second run on, your previous run replays as a ghost '
             'snake, starting a few moves behind you. Touching it is deadly; '
             'it passes through your body harmlessly.\n'
-            'Stay alive until your echo fades for a +50 bonus. '
+            'Stay alive until your echo fades for a bonus that grows with its length. '
             'Each life leaves an echo for the next one.';
       case 'Territory':
         return 'Claim the jungle.\n\n'
@@ -621,6 +617,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       _scoreNotifier.value = 0;
       _livesRemaining = _fixedRules ? 0 : _settings.lives;
       _createGame();
+    });
+    // The overlay held focus (a tapped button or its key handler); without
+    // this the new game ignores the keyboard until the board is clicked.
+    _focusGameAfterFrame();
+  }
+
+  void _focusGameAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_inputBlocked) _gameFocus.requestFocus();
     });
   }
 

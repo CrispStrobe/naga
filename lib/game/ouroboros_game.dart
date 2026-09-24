@@ -175,10 +175,7 @@ class OuroborosGame extends SnakeGame {
     final head = snake.segments.first;
     return [
       for (final n in [Point(p.x + 1, p.y), Point(p.x - 1, p.y), Point(p.x, p.y + 1), Point(p.x, p.y - 1)])
-        if (n.x >= 0 &&
-            n.y >= 0 &&
-            n.x < gridWidth &&
-            n.y < gridHeight &&
+        if (_inner(n) &&
             !snake.occupies(n) &&
             n != food.gridPosition &&
             !motes.contains(n) &&
@@ -187,10 +184,16 @@ class OuroborosGame extends SnakeGame {
     ];
   }
 
+  /// Fireflies keep off the outermost ring: a loop has to pass on every
+  /// side of a firefly and the walls never count, so one on the edge could
+  /// never be caught.
+  bool _inner(Point<int> p) =>
+      p.x >= 1 && p.y >= 1 && p.x < gridWidth - 1 && p.y < gridHeight - 1;
+
   Point<int>? _spawnCell() {
     final head = snake.segments.first;
     for (var attempt = 0; attempt < 100; attempt++) {
-      final p = Point(_moteRandom.nextInt(gridWidth), _moteRandom.nextInt(gridHeight));
+      final p = Point(1 + _moteRandom.nextInt(gridWidth - 2), 1 + _moteRandom.nextInt(gridHeight - 2));
       if ((p.x - head.x).abs() + (p.y - head.y).abs() < 4) continue;
       if (snake.occupies(p) || p == food.gridPosition || motes.contains(p)) continue;
       return p;

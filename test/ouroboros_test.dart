@@ -5,6 +5,7 @@ import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naga/game/game_registry.dart';
 import 'package:naga/game/ouroboros_game.dart';
+import 'package:naga/game/snake_game.dart' show Direction;
 import 'package:naga/modes/ouroboros_mode.dart';
 import 'package:naga/services/settings_service.dart';
 
@@ -85,6 +86,25 @@ void main() {
     expect(game.snake.segments.first, ahead);
     expect(game.motes.contains(ahead), isFalse);
     expect(game.motes.length, OuroborosGame.moteCount);
+  });
+
+  test('fireflies never sit on the border, where no loop can reach them',
+      () async {
+    final game = await start();
+    final head = game.snake.segments.first;
+    game.food.gridPosition = const Point(0, 0);
+    // Circle a 4x4 square for a long while so the fireflies wander.
+    const loop = [Direction.up, Direction.left, Direction.down, Direction.right];
+    game.snake.segments
+      ..clear()
+      ..addAll([head, Point(head.x - 1, head.y), Point(head.x - 2, head.y)]);
+    for (var t = 0; t < 400; t++) {
+      if (t % 3 == 0) game.changeDirection(loop[(t ~/ 3) % 4]);
+      game.update(1);
+      for (final m in game.motes) {
+        expect(m.x > 0 && m.y > 0 && m.x < game.gridWidth - 1 && m.y < game.gridHeight - 1, isTrue, reason: '$m at move $t');
+      }
+    }
   });
 
   test('registry session renders', () async {
