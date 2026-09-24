@@ -723,6 +723,7 @@ class _SectionHeader extends StatelessWidget {
                   color: _orange,
                 ),
               ),
+              const SizedBox(width: 4),
               Text(
                 '·  $modeCount',
                 style: TextStyle(
