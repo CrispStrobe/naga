@@ -78,11 +78,11 @@ async function runMode(page, i, name, entry) {
 }
 
 (async()=>{
+ const runs=[];
+ for(let i=0;i<limit;i++) if(!only||only.includes(modes[i])) for(let r=0;r<repeat;r++) runs.push(i);
  let browser=await chromium.launch(launchOptions);
  const results=[];
  try {
-  const runs=[];
-  for(let i=0;i<limit;i++) if(!only||only.includes(modes[i])) for(let r=0;r<repeat;r++) runs.push(i);
   for(const i of runs) {
    const name=modes[i];
    let entry, firstFailure;
