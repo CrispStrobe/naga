@@ -10,6 +10,8 @@ import '../modes/trail_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
 import '../modes/shed_mode.dart';
+import '../modes/nightfall_mode.dart';
+import '../modes/portals_mode.dart';
 import '../modes/fangs_mode.dart';
 import '../modes/venom_mode.dart';
 import '../modes/pit_mode.dart';
@@ -28,6 +30,8 @@ import 'trail_game.dart' as trail;
 import 'swarm_game.dart';
 import 'rush_game.dart';
 import 'shed_game.dart';
+import 'nightfall_game.dart';
+import 'portals_game.dart';
 import 'fangs_game.dart';
 import 'venom_game.dart';
 import 'pit_game.dart';
@@ -403,20 +407,47 @@ abstract final class GameRegistry {
       );
     }
     final classic = mode.fixedRules;
-    final game = SnakeGame(
-      mode: mode,
-      onVictory: onVictory,
-      onGameOver: onGameOver,
-      onScoreChanged: onScoreChanged,
-      gridWidth: classic ? null : settings.gridSize.width,
-      gridHeight: classic ? null : settings.gridSize.height,
-      wallsKillOverride: classic
-          ? null
-          : mode.name == 'Zen'
-          ? false
-          : settings.wallBehavior == WallBehavior.die,
-      speedOverride: classic ? null : settings.startSpeed.baseInterval,
-    );
+    final gridWidth = classic ? null : settings.gridSize.width;
+    final gridHeight = classic ? null : settings.gridSize.height;
+    final wallsKillOverride = classic
+        ? null
+        : mode.name == 'Zen'
+        ? false
+        : settings.wallBehavior == WallBehavior.die;
+    final speedOverride = classic ? null : settings.startSpeed.baseInterval;
+    // Classic variants share SnakeGame's rules and the player's settings.
+    final SnakeGame game = switch (mode) {
+      NightfallMode() => NightfallGame(
+        mode: mode,
+        onVictory: onVictory,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+        gridWidth: gridWidth,
+        gridHeight: gridHeight,
+        wallsKillOverride: wallsKillOverride,
+        speedOverride: speedOverride,
+      ),
+      PortalsMode() => PortalsGame(
+        mode: mode,
+        onVictory: onVictory,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+        gridWidth: gridWidth,
+        gridHeight: gridHeight,
+        wallsKillOverride: wallsKillOverride,
+        speedOverride: speedOverride,
+      ),
+      _ => SnakeGame(
+        mode: mode,
+        onVictory: onVictory,
+        onGameOver: onGameOver,
+        onScoreChanged: onScoreChanged,
+        gridWidth: gridWidth,
+        gridHeight: gridHeight,
+        wallsKillOverride: wallsKillOverride,
+        speedOverride: speedOverride,
+      ),
+    };
     return _session(
       game: game,
       changeDirection: game.changeDirection,

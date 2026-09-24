@@ -30,6 +30,8 @@ class AudioService {
     'Daily': 'audio/music/maze.ogg',
     'Arcade': 'audio/music/arcade.ogg',
     'Zen': 'audio/music/zen.ogg',
+    'Nightfall': 'audio/music/maze.ogg',
+    'Portals': 'audio/music/trail.ogg',
     'Maze Hunter': 'audio/music/maze.ogg',
     'Trail': 'audio/music/trail.ogg',
     'Fangs': 'audio/music/fangs.ogg',

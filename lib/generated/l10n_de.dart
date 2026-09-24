@@ -21,6 +21,18 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get portals => 'Portale';
+
+  @override
+  String get portalsDesc => 'Hier rein, dort raus';
+
+  @override
+  String get nightfall => 'Einbruch der Nacht';
+
+  @override
+  String get nightfallDesc => 'Snake im Laternenschein';
+
+  @override
   String get shed => 'Häutung';
 
   @override
