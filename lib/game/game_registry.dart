@@ -10,6 +10,7 @@ import '../modes/trail_mode.dart';
 import '../modes/swarm_mode.dart';
 import '../modes/rush_mode.dart';
 import '../modes/shed_mode.dart';
+import '../modes/territory_mode.dart';
 import '../modes/nightfall_mode.dart';
 import '../modes/portals_mode.dart';
 import '../modes/ouroboros_mode.dart';
@@ -32,6 +33,7 @@ import 'trail_game.dart' as trail;
 import 'swarm_game.dart';
 import 'rush_game.dart';
 import 'shed_game.dart';
+import 'territory_game.dart';
 import 'nightfall_game.dart';
 import 'portals_game.dart';
 import 'ouroboros_game.dart';
@@ -181,6 +183,21 @@ abstract final class GameRegistry {
         changeDirection: game.changeDirection,
         state: () => game.gameState,
         setState: (state) => game.gameState = state,
+      );
+    }
+    if (mode is TerritoryMode) {
+      final game = TerritoryGame(
+        mode: mode,
+        onGameOver: onGameOver,
+        onVictory: onVictory,
+        onScoreChanged: onScoreChanged,
+      );
+      return _session(
+        game: game,
+        changeDirection: game.changeDirection,
+        state: () => game.gameState,
+        setState: (state) => game.gameState = state,
+        result: () => game.hasWon ? SessionResult.victory : SessionResult.loss,
       );
     }
     if (mode is FangsMode) {

@@ -21,6 +21,12 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get territory => 'Revier';
+
+  @override
+  String get territoryDesc => 'Erobere den Dschungel';
+
+  @override
   String get echo => 'Echo';
 
   @override

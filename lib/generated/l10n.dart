@@ -121,6 +121,18 @@ abstract class S {
   /// **'Retro phone legacy'**
   String get classicDesc;
 
+  /// No description provided for @territory.
+  ///
+  /// In en, this message translates to:
+  /// **'Territory'**
+  String get territory;
+
+  /// No description provided for @territoryDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim the jungle'**
+  String get territoryDesc;
+
   /// No description provided for @echo.
   ///
   /// In en, this message translates to:
