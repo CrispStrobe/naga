@@ -20,4 +20,14 @@ async function closeQuietly(context) {
   try { await withTimeout(context.close(), 10000, 'context.close'); } catch (_) {}
 }
 
-module.exports = {withTimeout, closeQuietly, WatchdogTimeout};
+// A WebAssembly trap ("RuntimeError: memory access out of bounds",
+// "function signature mismatch", ...) comes from the engine's native code,
+// not from app logic. Two have been seen in roughly 350 mode runs, neither
+// reproducible in 40+ isolated reruns; skwasm has a known class of such
+// crashes (flutter/flutter#192982). They are retried once and reported as
+// FLAKY with the original error, never silently passed.
+function isEngineTrap(errors) {
+  return errors.some((e) => /^page: RuntimeError: /.test(e));
+}
+
+module.exports = {withTimeout, closeQuietly, WatchdogTimeout, isEngineTrap};
