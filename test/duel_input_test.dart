@@ -25,8 +25,32 @@ void main() {
     return game;
   }
 
-  test('two quick turns inside one tick both apply, in order', () async {
+  Future<MultiplayerGame> startPlaying() async =>
+      (await start())..debugSkipCountdown();
+
+  test('nothing moves during the countdown; turns pressed in it apply first',
+      () async {
     final game = await start();
+    final head = game.debugP1Head;
+    game.changeDirectionP1(Direction.up);
+    game.update(MultiplayerGame.countdownSeconds / 2);
+    game.update(MultiplayerGame.countdownSeconds / 2 - 0.01);
+    expect(game.debugP1Head, head, reason: 'still counting down');
+    game.update(0.02); // Countdown over.
+    game.update(1);
+    expect(game.debugP1Head, Point(head.x, head.y - 1));
+  });
+
+  test('play again restarts the countdown', () async {
+    final game = await startPlaying();
+    game.restart();
+    final head = game.debugP1Head;
+    game.update(1);
+    expect(game.debugP1Head, head);
+  });
+
+  test('two quick turns inside one tick both apply, in order', () async {
+    final game = await startPlaying();
     final head = game.debugP1Head;
     // P1 starts heading right. Up then right before the next tick used to
     // keep only the last press, so the snake never left its row.
@@ -39,7 +63,7 @@ void main() {
   });
 
   test('a reversal against the last queued turn is ignored', () async {
-    final game = await start();
+    final game = await startPlaying();
     final head = game.debugP1Head;
     game.changeDirectionP1(Direction.up);
     game.changeDirectionP1(Direction.down);
