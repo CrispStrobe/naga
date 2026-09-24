@@ -121,6 +121,18 @@ abstract class S {
   /// **'Retro phone legacy'**
   String get classicDesc;
 
+  /// No description provided for @nightfall.
+  ///
+  /// In en, this message translates to:
+  /// **'Nightfall'**
+  String get nightfall;
+
+  /// No description provided for @nightfallDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Snake by lantern light'**
+  String get nightfallDesc;
+
   /// No description provided for @shed.
   ///
   /// In en, this message translates to:

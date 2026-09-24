@@ -127,7 +127,7 @@ test('settings-reload-lives-and-restart', async page => {
 // Production mapping and instructions: P1=WASD, P2=arrows.
 for (const [key, winner] of [['w', 'Player 2 Wins!'], ['ArrowDown', 'Player 1 Wins!']]) {
   test(`duel-${key.toLowerCase()}`, async page => {
-    await mode(page, 19);
+    await mode(page, 20);
     await page.keyboard.press(key);
     const score = await over(page, winner);
     await menu(page);

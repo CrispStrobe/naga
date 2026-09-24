@@ -177,6 +177,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'everything behind your neck stays behind as solid wall.\n'
             'Fill a whole row with shed skin to clear it for a big bonus. '
             'Lay your body along a row before you shed!';
+      case 'Nightfall':
+        return 'Snake by lantern light.\n\n'
+            'Only the area around your head is lit. Food glimmers like a '
+            'firefly in the dark, and the board edge glows faintly.\n'
+            'Your lantern dims as your score climbs.';
       case 'Arcade':
         return 'Fast-paced snake action.\n\n'
             'Eat food, collect power-ups, and rack up points.\n'
