@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/naga_palette.dart';
 import 'game_mode.dart';
 
-/// Tetris meets Snake: every few meals the snake sheds its skin, which stays
+/// Tetris meets Snake: every 4th meal the snake sheds its skin, which stays
 /// on the board as solid wall. Fill a row with shed skin to clear it.
 class ShedMode extends GameMode {
   @override

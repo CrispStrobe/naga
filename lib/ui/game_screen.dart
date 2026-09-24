@@ -169,7 +169,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'Play on consecutive days to build a streak.';
       case 'Shed':
         return 'Tetris meets Snake!\n\n'
-            'Each meal grows you by two. Every 4th meal you shed your skin: '
+            'Each meal grows you by three. Every 4th meal you shed your skin: '
             'everything behind your neck stays behind as solid wall.\n'
             'Fill a whole row with shed skin to clear it for a big bonus. '
             'Lay your body along a row before you shed!';
