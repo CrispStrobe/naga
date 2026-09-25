@@ -129,7 +129,9 @@ void main() {
             await tester.tap(header);
             await hold(tester, const Duration(milliseconds: 400));
           }
-          final entry = find.text(label.toUpperCase());
+          // A mode can share its name with its section header (CLASSIC); the
+          // mode's button is the one below the header.
+          final entry = find.text(label.toUpperCase()).last;
           await tester.ensureVisible(entry);
           await hold(tester, const Duration(milliseconds: 300));
           await tester.tap(entry);
