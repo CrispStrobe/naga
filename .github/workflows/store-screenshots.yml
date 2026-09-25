@@ -7,6 +7,12 @@ name: Store screenshots
 
 on:
   workflow_dispatch:
+  # Iterate on a store/** branch without merging each attempt.
+  push:
+    branches: ['store/**']
+    paths:
+      - integration_test/**
+      - .github/workflows/store-screenshots.yml
 
 jobs:
   screenshots:
