@@ -1,0 +1,32 @@
+name: App Store Connect
+
+# Runs App Store Connect API tasks from tool/asc with the repo's API-key
+# secrets (the key itself never leaves GitHub). Dispatch with --ref to run a
+# branch's version of the scripts.
+#
+#   inspect     read-only snapshot of builds, TestFlight groups and versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Task to run'
+        type: choice
+        options: [inspect]
+        default: inspect
+
+jobs:
+  asc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ${{ inputs.task }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        working-directory: tool/asc
+        run: |
+          pip install --quiet cryptography
+          python3 ${{ inputs.task }}.py
