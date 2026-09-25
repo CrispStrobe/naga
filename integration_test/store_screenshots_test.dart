@@ -18,7 +18,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:naga/game/snake_game.dart' show Direction;
+import 'package:naga/game/snake_game.dart' show Direction, GameState;
 import 'package:naga/game/territory_game.dart';
 import 'package:naga/generated/l10n.dart';
 import 'package:naga/main.dart';
@@ -159,15 +159,21 @@ void main() {
         final territory = tester.widget<GameWidget>(find.byWidgetPredicate((w) => w is GameWidget)).game!
             as TerritoryGame;
         territory.pauseEngine();
+        // The game ran in real time while the screen opened; start over.
         const loops = [
           (Direction.up, 5), (Direction.right, 4), (Direction.down, 5), (Direction.left, 3),
           (Direction.left, 5), (Direction.up, 7), (Direction.right, 5), (Direction.down, 2),
         ];
-        for (final (direction, steps) in loops) {
-          for (var i = 0; i < steps; i++) {
-            territory.changeDirection(direction);
-            territory.tick();
+        // A rival occasionally cuts the trail (about 1 run in 50); replay.
+        for (var attempt = 0; attempt < 5; attempt++) {
+          territory.restart();
+          for (final (direction, steps) in loops) {
+            for (var i = 0; i < steps; i++) {
+              territory.changeDirection(direction);
+              territory.tick();
+            }
           }
+          if (territory.gameState == GameState.playing) break;
         }
         territory.resumeEngine();
         await tester.pump(const Duration(milliseconds: 50));
