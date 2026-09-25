@@ -1,0 +1,13 @@
+Naga 1.1: sieben neue Spielmodi und viel Feinschliff. Bitte ausprobieren:
+
+• Tagesschlange: ein Spielfeld pro Tag, für alle gleich. Beliebig oft spielen und eine Serie aufbauen.
+• Häutung: jede 4. Mahlzeit bleibt deine Haut als Wand zurück. Fülle eine Reihe mit Haut, um sie zu räumen.
+• Ouroboros: Glühwürmchen kann man nicht fressen, nur mit einer geschlossenen Schlinge des eigenen Körpers fangen.
+• Echo: dein letzter Lauf kehrt als Geist zurück. Steuere nicht hinein.
+• Revier: verlasse dein Land, ziehe eine Spur und hole dir, was sie umschließt. Schlage zwei KI-Rivalen bis zur Hälfte des Feldes.
+• Einbruch der Nacht: nur eine Laterne erhellt das Spielfeld.
+• Portale: hier hinein, dort hinaus.
+
+Außerdem neu: einklappbare Menübereiche, ein Countdown vor dem Duell und flüssigere Grafik.
+
+Sag uns, welche Modi zu leicht oder zu schwer sind und was auf deinem Gerät falsch aussieht.
