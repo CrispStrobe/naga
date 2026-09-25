@@ -8,7 +8,7 @@ class MazeMode extends GameMode {
   String get name => 'Maze Hunter';
 
   @override
-  String get description => 'Pac-Man meets Snake';
+  String get description => 'Maze chase with ghosts';
 
   @override
   Color get backgroundColor => NagaPalette.lagoonTeal; // sunlit lagoon floor

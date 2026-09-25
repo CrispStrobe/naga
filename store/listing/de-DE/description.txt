@@ -1,0 +1,28 @@
+Naga ist nicht ein Snake-Spiel mit 27 Anstrichen. Es sind 27 verschiedene Spiele, die mit derselben Idee beginnen (steuere eine wachsende Schlange) und dann die Regeln ändern.
+
+REGELN, DIE KEIN ANDERES SNAKE-SPIEL HAT
+• Ouroboros: Glühwürmchen kann man nicht fressen. Fange sie, indem du eine Schlinge aus deinem eigenen Körper um sie schließt. Mehr Glühwürmchen in einer Schlinge bringen weit mehr Punkte.
+• Echo: dein letzter Lauf kehrt als Geist zurück und wiederholt jeden Zug. Überlebe deine eigene Vergangenheit.
+• Häutung: bei jeder vierten Mahlzeit bleibt deine alte Haut als feste Wand zurück. Lege sie entlang einer Reihe, um sie zu räumen.
+• Revier: verlasse dein Land, ziehe eine Spur, kehre heim und hole dir alles, was sie umschließt. Wer erobert zuerst den halben Dschungel, du oder zwei KI-Rivalen?
+• Tagesschlange: ein Spielfeld pro Tag, identisch auf jedem Handy, Tablet, Mac und im Browser. Spiele es immer wieder und baue eine Serie auf.
+• Einbruch der Nacht: nur eine Laterne erhellt das Spielfeld, und sie wird schwächer, je höher dein Punktestand.
+• Portale: ein verbundenes Portalpaar, das nach jeder Mahlzeit an einen neuen Ort springt.
+
+GANZE GENRES, NEU GEBAUT UM EINE SCHLANGE
+• Ein rundenbasierter Roguelike-Dungeon mit Monstern, Fallen, Pfeilen, Hämmern und Schilden
+• Eine Bomben-Kampagne mit Kettenreaktionen über fünf Level
+• Ein Blockbrecher, in dem deine Schlange der Schläger ist
+• Eine Labyrinth-Jagd gegen Geister, die ihren Weg selbst finden
+• Eine Lichtspur-Arena, ein Unterwasser-Tauchgang, ein Tierrennen auf fünf Spuren und ein Überlebenskampf, bis nur eine Schlange übrig ist
+
+ECHTES RETRO
+Ein Klassiker im Stil alter LCD-Handys, ein grün-schwarzes Terminal aus echtem ASCII, Vierfarben-CGA, ein DOS-Klassiker von 1991 mit seinen Labyrinth-Leveln und mehr.
+
+ZU ZWEIT ODER GEGEN DIE MASCHINE
+Duelliere dich mit einem Freund auf einem Gerät oder tritt gegen KI-Gegner in vier Schwierigkeitsstufen an, gesteuert von echter Wegfindung statt Zufallszügen.
+
+MIT RESPEKT FÜR DICH GEMACHT
+Kostenlos. Keine Werbung, keine In-App-Käufe, keine Konten, kein Tracking und keine Datenerfassung. Funktioniert komplett offline. Der vollständige Quellcode ist offen auf github.com/CrispStrobe/naga.
+
+Verfügbar auf Deutsch und Englisch.

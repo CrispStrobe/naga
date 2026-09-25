@@ -190,7 +190,7 @@ abstract class S {
   /// No description provided for @shedDesc.
   ///
   /// In en, this message translates to:
-  /// **'Tetris meets Snake'**
+  /// **'Shed your skin, clear rows'**
   String get shedDesc;
 
   /// No description provided for @daily.
@@ -244,7 +244,7 @@ abstract class S {
   /// No description provided for @mazeHunterDesc.
   ///
   /// In en, this message translates to:
-  /// **'Pac-Man meets Snake'**
+  /// **'Maze chase with ghosts'**
   String get mazeHunterDesc;
 
   /// No description provided for @trail.
@@ -256,7 +256,7 @@ abstract class S {
   /// No description provided for @trailDesc.
   ///
   /// In en, this message translates to:
-  /// **'Tron light cycles'**
+  /// **'Light-cycle arena'**
   String get trailDesc;
 
   /// No description provided for @fangs.
@@ -268,7 +268,7 @@ abstract class S {
   /// No description provided for @fangsDesc.
   ///
   /// In en, this message translates to:
-  /// **'Breakout with a bite'**
+  /// **'Brick breaker with a bite'**
   String get fangsDesc;
 
   /// No description provided for @venom.
@@ -364,7 +364,7 @@ abstract class S {
   /// No description provided for @nibblesDesc.
   ///
   /// In en, this message translates to:
-  /// **'QBasic classic'**
+  /// **'1991 DOS classic'**
   String get nibblesDesc;
 
   /// No description provided for @score.

@@ -8,7 +8,7 @@ class FangsMode extends GameMode {
   String get name => 'Fangs';
 
   @override
-  String get description => 'Breakout with a bite';
+  String get description => 'Brick breaker with a bite';
 
   @override
   Color get backgroundColor => NagaPalette.orchidPurple; // orchid grove

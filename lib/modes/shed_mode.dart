@@ -9,7 +9,7 @@ class ShedMode extends GameMode {
   String get name => 'Shed';
 
   @override
-  String get description => 'Tetris meets Snake';
+  String get description => 'Shed your skin, clear rows';
 
   @override
   Color get backgroundColor => const Color(0xFF263238); // slate den

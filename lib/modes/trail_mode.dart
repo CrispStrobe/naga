@@ -8,7 +8,7 @@ class TrailMode extends GameMode {
   String get name => 'Trail';
 
   @override
-  String get description => 'Tron light cycles';
+  String get description => 'Light-cycle arena';
 
   @override
   Color get backgroundColor => NagaPalette.deepLagoon; // brighter lagoon arena

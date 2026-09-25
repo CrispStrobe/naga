@@ -1,0 +1,28 @@
+Naga is not one Snake game with 27 skins. It is 27 different games that start from the same idea (steer a growing serpent) and then change the rules.
+
+RULES NO OTHER SNAKE GAME HAS
+• Ouroboros: fireflies can't be eaten. Catch them by closing a loop of your own body around them. More fireflies in one loop score far more.
+• Echo: your last run comes back as a ghost that retraces every move. Outlast your own past.
+• Shed: every fourth meal, your old skin stays behind as solid wall. Lay it along a row to clear it.
+• Territory: leave your land to draw a trail, come home to claim everything it encloses, and race two AI rivals to half the jungle.
+• Daily Serpent: one board per day, identical on every phone, tablet, Mac and browser. Play it again and again and build a streak.
+• Nightfall: only a lantern lights the board, and it dims as your score climbs.
+• Portals: a linked pair of portals that jumps somewhere new after every meal.
+
+WHOLE GENRES, REBUILT AROUND A SNAKE
+• A turn-based roguelike dungeon with monsters, traps, arrows, hammers and shields
+• A bomb-and-blast campaign with chain reactions across five levels
+• A brick breaker where your snake is the paddle
+• A maze chase against pathfinding ghosts
+• A light-cycle arena, an underwater swim, a five-lane animal race and last-snake-standing survival
+
+FAITHFUL RETRO
+An LCD-phone classic, a green-on-black terminal drawn in real ASCII, four-colour CGA, a 1991 DOS classic with its maze levels, and more.
+
+TOGETHER OR AGAINST THE MACHINE
+Duel a friend on one device, or take on AI opponents at four difficulty levels, driven by real pathfinding rather than random moves.
+
+MADE WITH RESPECT FOR YOU
+Free. No ads, no in-app purchases, no accounts, no tracking and no data collection. Works fully offline. The complete source code is open at github.com/CrispStrobe/naga.
+
+Available in English and German.
