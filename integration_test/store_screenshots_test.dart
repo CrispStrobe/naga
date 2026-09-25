@@ -135,7 +135,9 @@ void main() {
           await tester.ensureVisible(entry);
           await hold(tester, const Duration(milliseconds: 300));
           await tester.tap(entry);
-          await hold(tester, const Duration(milliseconds: 1200));
+          // Enough for the route transition. Snakes start moving at once and
+          // reach the wall about 10 moves out, so scenes keep runs short.
+          await hold(tester, const Duration(milliseconds: 500));
         }
 
         const up = LogicalKeyboardKey.arrowUp, left = LogicalKeyboardKey.arrowLeft;
@@ -150,7 +152,7 @@ void main() {
         // clear, so a short straight run is safe.
         s = await launch();
         await open(s.daily);
-        await hold(tester, const Duration(milliseconds: 900));
+        await hold(tester, const Duration(milliseconds: 600));
         await capture(tester, device, shot('daily'));
 
         // 3. Territory: two claims against the AI rivals. Timed key presses
@@ -212,7 +214,7 @@ void main() {
         // 8. Classic: the LCD-phone original.
         s = await launch();
         await open(s.classic);
-        await hold(tester, const Duration(milliseconds: 1000));
+        await hold(tester, const Duration(milliseconds: 600));
         await capture(tester, device, shot('classic'));
       }
     }
