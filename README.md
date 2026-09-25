@@ -1,34 +1,34 @@
 # Naga — The Snake Game
 
-Naga is a cross-platform Snake game built with Flutter and Flame. It packs 19 distinct game modes into one app — from a faithful retro Nokia-style classic to a turn-based roguelike dungeon crawler — with local high scores, achievements, AI opponents, and full English/German localization.
+Naga is a cross-platform Snake game built with Flutter and Flame. It is not one Snake game with many skins: its 27 modes each start from "steer a growing snake" and then change the rules, from a faithful LCD-phone classic to a turn-based roguelike, a land-claiming game against AI rivals, and a mode where you catch fireflies by closing a loop of your own body. Local high scores, achievements, AI opponents, and full English/German localization.
 
 🌐 Play it in the browser: **https://naga-game.vercel.app**
 📦 Prebuilt Android/iOS/web builds: [GitHub Releases](https://github.com/CrispStrobe/naga/releases) (tag pushes of the form `vX.Y.Z` trigger a build; Android and iOS builds are **unsigned** — Android is debug-signed for sideloading, iOS requires resigning before it will run on a device)
 
 ## Game modes
 
-| Category | Modes | Notes |
+| Section | Modes | Notes |
 |---|---|---|
-| Classic | Classic, Arcade, Zen | Classic — retro phone legacy, authentic rules; Arcade — neon speed run; Zen — no death, just vibes |
-| Crossover | Maze Hunter, Trail, Fangs, Venom | Pac-Man meets Snake · Tron light cycles · Breakout with a bite · bomb-and-blast |
-| Action | Pit, Swarm, Rush | Last snake standing · eat the invaders · endless auto-scroll |
-| Legacy | Snake II, ASCII, CGA, Nibbles | Maze levels & wrap-around · terminal text mode · 4-color retro PC · QBasic-accurate classic |
-| Minigames | Stampede, Naga Dive | Animal race track · underwater Flappy-Bird-style swim |
+| Daily | Daily Serpent | One seeded board per day, identical on every platform; best score and streak |
+| Classic | Classic, Arcade, Zen, Nightfall, Portals | LCD-phone classic · neon speed run · no death · lantern-lit board · a portal pair that moves after every meal |
+| Crossover | Maze Hunter, Trail, Fangs, Venom, Shed | Maze chase with pathfinding ghosts · light-cycle arena · brick breaker with the snake as paddle · bomb-and-blast campaign · shed skin becomes wall, full rows clear |
+| Action | Pit, Swarm, Rush, Ouroboros, Echo, Territory | Last snake standing · eat the invaders · endless auto-scroll · catch fireflies by enclosing them · your last run returns as a ghost · claim land against AI rivals |
+| Legacy | Snake II, ASCII, CGA, Nibbles | Maze levels & wrap-around · terminal text mode · 4-color retro PC · a 1991 DOS classic |
+| Minigames | Stampede, Naga Dive | Five-lane animal race · underwater swim |
 | Adventure | Dungeon | Turn-based roguelike crawler |
-| Multiplayer | Duel, VS AI | Local 2-player on one device · challenge AI bots (4 difficulty levels) |
+| Multiplayer | Duel, VS AI, VS AI Split | Local 2-player on one device · AI opponents at 4 difficulty levels (BFS pathfinding) |
 
 ## Features
 
-- 19 game modes, each with its own rules, palette, and music
+- 27 game modes, each with its own rules, palette, and music
 - Configurable grid size, wall behavior, lives, controls, difficulty, and starting speed
 - Power-up system: Speed, Shield, Magnet, Slow, Shrink
-- Local high scores and 10 achievements (SharedPreferences, no accounts, no ads)
+- Local high scores, a daily-challenge streak, and achievements (no accounts, no ads, no tracking)
 - AI opponents using BFS pathfinding with tail-reachability checks
-- D-pad and swipe controls, direction input queue, pause (Esc/P)
+- D-pad, swipe and full keyboard controls, direction input queue, pause (Esc/P)
 - Per-mode OGG music and SFX, toggleable
-- Haptic feedback on eat/death
 - English and German localization (Flutter gen-l10n)
-- Runs on iOS, Android, and Web (including WASM builds)
+- Runs on iOS, macOS, Android, and Web (including WASM builds)
 
 ## Tech stack
 
