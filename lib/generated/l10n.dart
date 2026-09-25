@@ -121,6 +121,54 @@ abstract class S {
   /// **'Retro phone legacy'**
   String get classicDesc;
 
+  /// No description provided for @sectionDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'DAILY'**
+  String get sectionDaily;
+
+  /// No description provided for @sectionClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'CLASSIC'**
+  String get sectionClassic;
+
+  /// No description provided for @sectionCrossover.
+  ///
+  /// In en, this message translates to:
+  /// **'CROSSOVER'**
+  String get sectionCrossover;
+
+  /// No description provided for @sectionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTION'**
+  String get sectionAction;
+
+  /// No description provided for @sectionLegacy.
+  ///
+  /// In en, this message translates to:
+  /// **'LEGACY'**
+  String get sectionLegacy;
+
+  /// No description provided for @sectionMinigames.
+  ///
+  /// In en, this message translates to:
+  /// **'MINIGAMES'**
+  String get sectionMinigames;
+
+  /// No description provided for @sectionAdventure.
+  ///
+  /// In en, this message translates to:
+  /// **'ADVENTURE'**
+  String get sectionAdventure;
+
+  /// No description provided for @sectionMultiplayer.
+  ///
+  /// In en, this message translates to:
+  /// **'MULTIPLAYER'**
+  String get sectionMultiplayer;
+
   /// No description provided for @territory.
   ///
   /// In en, this message translates to:

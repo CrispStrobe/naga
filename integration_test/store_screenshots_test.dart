@@ -12,11 +12,14 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:naga/game/snake_game.dart' show Direction;
+import 'package:naga/game/territory_game.dart';
 import 'package:naga/generated/l10n.dart';
 import 'package:naga/main.dart';
 import 'package:naga/services/achievements_service.dart';
@@ -63,6 +66,9 @@ Future<void> steer(WidgetTester tester, List<(LogicalKeyboardKey, int)> moves) a
 
 Future<void> capture(WidgetTester tester, Device device, String path) async {
   await tester.pump();
+  // A screenshot must show play, never the game-over screen.
+  expect(find.textContaining(RegExp('PLAY AGAIN|NOCHMAL SPIELEN', caseSensitive: false)),
+      findsNothing, reason: '$path would show a game over');
   final boundary = _frame.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final image = await boundary.toImage(pixelRatio: device.ratio);
   final png = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -114,7 +120,8 @@ void main() {
           return S.of(tester.element(find.byType(HomeScreen)))!;
         }
 
-        // Opens a mode from the menu by its label, expanding its section.
+        // Opens a mode from the menu by its label, expanding its section
+        // (given by its visible, localized name).
         Future<void> open(String label, {String? section}) async {
           if (section != null) {
             final header = find.text(section);
@@ -129,39 +136,52 @@ void main() {
           await hold(tester, const Duration(milliseconds: 1200));
         }
 
-        const up = LogicalKeyboardKey.arrowUp, down = LogicalKeyboardKey.arrowDown;
-        const left = LogicalKeyboardKey.arrowLeft, right = LogicalKeyboardKey.arrowRight;
+        const up = LogicalKeyboardKey.arrowUp, left = LogicalKeyboardKey.arrowLeft;
 
         // 1. The menu: sections, counts, the daily challenge first.
         var s = await launch();
-        await tester.tap(find.text('CROSSOVER'));
+        await tester.tap(find.text(s.sectionCrossover));
         await hold(tester, const Duration(milliseconds: 600));
         await capture(tester, device, shot('menu'));
 
-        // 2. Daily Serpent: today's rock layout.
+        // 2. Daily Serpent: today's rock layout. The start lane is always
+        // clear, so a short straight run is safe.
         s = await launch();
         await open(s.daily);
-        await steer(tester, [(up, 700), (left, 500)]);
+        await hold(tester, const Duration(milliseconds: 900));
         await capture(tester, device, shot('daily'));
 
-        // 3. Territory: claim land against two AI rivals.
+        // 3. Territory: two claims against the AI rivals. Timed key presses
+        // are too imprecise here, so the game's own clock is paused and it
+        // is stepped move by move with the moves a player would make.
         s = await launch();
-        await open(s.territory, section: 'ACTION');
-        await steer(tester, [(up, 700), (right, 700), (down, 700), (left, 500), (up, 1800)]);
+        await open(s.territory, section: s.sectionAction);
+        final territory = tester.widget<GameWidget>(find.byType(GameWidget)).game! as TerritoryGame;
+        territory.pauseEngine();
+        const loops = [
+          (Direction.up, 5), (Direction.right, 4), (Direction.down, 5), (Direction.left, 3),
+          (Direction.left, 5), (Direction.up, 7), (Direction.right, 5), (Direction.down, 2),
+        ];
+        for (final (direction, steps) in loops) {
+          for (var i = 0; i < steps; i++) {
+            territory.changeDirection(direction);
+            territory.tick();
+          }
+        }
+        territory.resumeEngine();
+        await tester.pump(const Duration(milliseconds: 50));
         await capture(tester, device, shot('territory'));
 
         // 4. Ouroboros: fireflies you can only catch with a loop.
         s = await launch();
-        await open(s.ouroboros, section: 'ACTION');
-        await steer(tester, [(up, 600), (left, 600), (down, 400)]);
+        await open(s.ouroboros, section: s.sectionAction);
+        await steer(tester, [(up, 600), (left, 600)]);
         await capture(tester, device, shot('ouroboros'));
 
-        // 5. Dungeon: the turn-based roguelike.
+        // 5. Dungeon: the turn-based roguelike (it waits for the player).
         s = await launch();
-        await open(s.dungeon, section: 'ADVENTURE');
-        for (final key in [right, right, up, up, right, down]) {
-          await steer(tester, [(key, 250)]);
-        }
+        await open(s.dungeon, section: s.sectionAdventure);
+        await hold(tester, const Duration(milliseconds: 600));
         await capture(tester, device, shot('dungeon'));
 
         // 6. Nightfall: only the lantern lights the board.
@@ -172,15 +192,15 @@ void main() {
 
         // 7. Maze Hunter: a maze chase with ghosts.
         s = await launch();
-        await open(s.mazeHunter, section: 'CROSSOVER');
+        await open(s.mazeHunter, section: s.sectionCrossover);
         await steer(tester, [(up, 900)]);
         await capture(tester, device, shot('maze_hunter'));
 
-        // 8. ASCII: a terminal drawn in real text.
+        // 8. Classic: the LCD-phone original.
         s = await launch();
-        await open(s.ascii, section: 'LEGACY');
-        await steer(tester, [(up, 800), (left, 500)]);
-        await capture(tester, device, shot('ascii'));
+        await open(s.classic);
+        await hold(tester, const Duration(milliseconds: 1000));
+        await capture(tester, device, shot('classic'));
       }
     }
     tester.view.reset();

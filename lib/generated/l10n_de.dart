@@ -21,6 +21,30 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get sectionDaily => 'TÄGLICH';
+
+  @override
+  String get sectionClassic => 'KLASSISCH';
+
+  @override
+  String get sectionCrossover => 'CROSSOVER';
+
+  @override
+  String get sectionAction => 'ACTION';
+
+  @override
+  String get sectionLegacy => 'RETRO';
+
+  @override
+  String get sectionMinigames => 'MINISPIELE';
+
+  @override
+  String get sectionAdventure => 'ABENTEUER';
+
+  @override
+  String get sectionMultiplayer => 'MEHRSPIELER';
+
+  @override
   String get territory => 'Revier';
 
   @override

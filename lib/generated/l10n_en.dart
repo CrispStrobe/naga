@@ -21,6 +21,30 @@ class SEn extends S {
   String get classicDesc => 'Retro phone legacy';
 
   @override
+  String get sectionDaily => 'DAILY';
+
+  @override
+  String get sectionClassic => 'CLASSIC';
+
+  @override
+  String get sectionCrossover => 'CROSSOVER';
+
+  @override
+  String get sectionAction => 'ACTION';
+
+  @override
+  String get sectionLegacy => 'LEGACY';
+
+  @override
+  String get sectionMinigames => 'MINIGAMES';
+
+  @override
+  String get sectionAdventure => 'ADVENTURE';
+
+  @override
+  String get sectionMultiplayer => 'MULTIPLAYER';
+
+  @override
   String get territory => 'Territory';
 
   @override
