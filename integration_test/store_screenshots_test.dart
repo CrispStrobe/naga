@@ -156,7 +156,8 @@ void main() {
         // is stepped move by move with the moves a player would make.
         s = await launch();
         await open(s.territory, section: s.sectionAction);
-        final territory = tester.widget<GameWidget>(find.byType(GameWidget)).game! as TerritoryGame;
+        final territory = tester.widget<GameWidget>(find.byWidgetPredicate((w) => w is GameWidget)).game!
+            as TerritoryGame;
         territory.pauseEngine();
         const loops = [
           (Direction.up, 5), (Direction.right, 4), (Direction.down, 5), (Direction.left, 3),
