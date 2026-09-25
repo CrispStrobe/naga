@@ -5,6 +5,7 @@ name: App Store Connect
 # branch's version of the scripts.
 #
 #   asc_inspect read-only snapshot of builds, TestFlight groups and versions
+#   asc_listing read-only dump of the App Store listing
 #   testflight  newest build to internal + external TestFlight (Beta App Review)
 
 on:
@@ -13,7 +14,7 @@ on:
       task:
         description: 'Task to run'
         type: choice
-        options: [asc_inspect, testflight]
+        options: [asc_inspect, asc_listing, testflight]
         default: asc_inspect
 
 jobs:
