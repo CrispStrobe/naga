@@ -4,7 +4,7 @@ name: App Store Connect
 # secrets (the key itself never leaves GitHub). Dispatch with --ref to run a
 # branch's version of the scripts.
 #
-#   inspect     read-only snapshot of builds, TestFlight groups and versions
+#   asc_inspect read-only snapshot of builds, TestFlight groups and versions
 
 on:
   workflow_dispatch:
@@ -12,8 +12,8 @@ on:
       task:
         description: 'Task to run'
         type: choice
-        options: [inspect]
-        default: inspect
+        options: [asc_inspect]
+        default: asc_inspect
 
 jobs:
   asc:
