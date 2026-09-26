@@ -44,11 +44,23 @@ print(f"mode: {'APPLY' if APPLY else 'dry run'}; version {VERSION}; screenshots 
 
 # App info: subtitle and subcategories.
 info = get(f"/v1/apps/{APP_ID}/appInfos")[1]["data"][0]
-write(patch, f"/v1/appInfos/{info['id']}", {"data": {
-    "type": "appInfos", "id": info["id"], "relationships": {
-        "primarySubcategoryOne": {"data": {"type": "appCategories", "id": "GAMES_ARCADE"}},
-        "primarySubcategoryTwo": {"data": {"type": "appCategories", "id": "GAMES_PUZZLE"}}}}},
-    "categories: Games > Arcade, Puzzle")
+# Subcategories must be sent with their primary category. They are a
+# nice-to-have: fall back from two to one to none rather than block.
+category = lambda cid: {"data": {"type": "appCategories", "id": cid}}
+for subs in (("GAMES_ARCADE", "GAMES_PUZZLE"), ("GAMES_ARCADE",), ()):
+    rel = {"primaryCategory": category("GAMES")}
+    for key, cid in zip(("primarySubcategoryOne", "primarySubcategoryTwo"), subs):
+        rel[key] = category(cid)
+    label = f"categories: Games > {', '.join(subs) or '(no subcategory)'}"
+    if not APPLY:
+        print(f"DRY {label}")
+        break
+    status, resp = patch(f"/v1/appInfos/{info['id']}", {"data": {
+        "type": "appInfos", "id": info["id"], "relationships": rel}})
+    if status < 400:
+        print(f"ok  {label}")
+        break
+    print(f"warn {label}: {errors(resp)}")
 for loc in get(f"/v1/appInfos/{info['id']}/appInfoLocalizations")[1]["data"]:
     locale = loc["attributes"]["locale"]
     if locale in LANG:
