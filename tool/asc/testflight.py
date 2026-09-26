@@ -79,16 +79,25 @@ for b in targets:
                 "relationships": {"build": {"data": {"type": "builds", "id": b["id"]}}}}}),
                 f"what-to-test {b['platform']} {locale}")
 
-# External: Beta App Review.
+# External: Beta App Review. The build's own state says whether it is
+# already submitted; a refusal is reported, never counted as done (Apple
+# reviews one build at a time, so a newer build waits for the previous one).
+SUBMITTED = {"WAITING_FOR_BETA_REVIEW", "IN_BETA_REVIEW", "BETA_APPROVED", "IN_BETA_TESTING"}
 for b in targets:
+    detail = get(f"/v1/builds/{b['id']}/buildBetaDetail")[1]["data"]["attributes"]
+    state = detail.get("externalBuildState")
+    if state in SUBMITTED:
+        print(f"ok  beta review {b['platform']}: {state}")
+        continue
     status, resp = post("/v1/betaAppReviewSubmissions", {"data": {
         "type": "betaAppReviewSubmissions",
         "relationships": {"build": {"data": {"type": "builds", "id": b["id"]}}}}})
-    if already(status, resp):
-        print(f"ok  beta review {b['platform']} (already submitted)")
+    if status < 400:
+        print(f"ok  beta review submitted {b['platform']}: "
+              f"{resp['data']['attributes'].get('betaReviewState')}")
     else:
-        resp = check(status, resp, f"beta review submitted {b['platform']}")
-        print(f"    state: {resp['data']['attributes'].get('betaReviewState')}")
+        print(f"WAIT beta review {b['platform']} not submitted ({state}): {errors(resp)}. "
+              f"Re-run this task once the build in review is approved.")
 
 link = external["attributes"].get("publicLink")
 print(f"external public link: {'enabled ' + link if external['attributes'].get('publicLinkEnabled') and link else 'disabled'}")
