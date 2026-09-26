@@ -46,11 +46,12 @@ gh workflow run app-store.yml -f task=asc_inspect              # builds, TestFli
 gh workflow run app-store.yml -f task=testflight               # newest build -> internal + external review
 gh workflow run app-store.yml -f task=listing                  # dry run of the listing changes
 gh workflow run app-store.yml -f task=listing -f apply=true    # apply copy, screenshots, build
+gh workflow run app-store.yml -f task=submit -f apply=true     # submit for App Review (deliberate step)
 gh workflow run ios-release.yml -f dry_run=false               # upload (bump version: x.y.z+BUILD first)
 ```
 
 - Listing copy: `store/listing/<locale>/`, reviewer notes: `store/review_notes.txt`.
-- `listing` never submits for review, and the App Privacy label can't be set by API; both are done by hand in App Store Connect.
+- `listing` never submits; `submit` does, only with `apply`. The App Privacy label can't be set by API (App Store Connect website).
 - Apple beta-reviews one build per version at a time: a newer build's external submission waits (`ANOTHER_BUILD_IN_REVIEW`); re-run `testflight` after approval.
 - Keep store text free of other companies' trademarks (guideline 2.3.7); 1.0 was rejected under 4.3(a), so the copy leads with what is unique.
 
