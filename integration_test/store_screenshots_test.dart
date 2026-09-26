@@ -163,8 +163,6 @@ void main() {
         final territory = tester.widget<GameWidget>(find.byWidgetPredicate((w) => w is GameWidget)).game!
             as TerritoryGame;
         territory.pauseEngine();
-        debugPrint('TERRITORY before: state=${territory.gameState} '
-            'head=${territory.player.head} overlay=${find.textContaining(RegExp('PLAY AGAIN|NOCHMAL', caseSensitive: false)).evaluate().length}');
         // The game ran in real time while the screen opened; start over.
         const loops = [
           (Direction.up, 5), (Direction.right, 4), (Direction.down, 5), (Direction.left, 3),
