@@ -9,6 +9,7 @@ name: App Store Connect
 #   testflight  newest build to internal + external TestFlight (Beta App Review)
 #   listing     prepare the App Store version: copy, screenshots, build.
 #               Dry run unless `apply` is checked. Never submits for review.
+#   submit      submit the prepared versions for App Review (only with `apply`)
 
 on:
   workflow_dispatch:
@@ -16,7 +17,7 @@ on:
       task:
         description: 'Task to run'
         type: choice
-        options: [asc_inspect, asc_listing, testflight, listing]
+        options: [asc_inspect, asc_listing, testflight, listing, submit]
         default: asc_inspect
       apply:
         description: 'listing: write changes (otherwise a dry run)'
