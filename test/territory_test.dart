@@ -60,7 +60,7 @@ void main() {
         expect(game.ownerAt(Point(x, y)), TerritoryGame.playerId, reason: '($x, $y)');
       }
     }
-    expect(game.score, (game.playerShare * 100).floor());
+    expect(game.score, (game.playerShare * 100).round());
   });
 
   test('walls help enclose: a loop against the wall claims its pocket',

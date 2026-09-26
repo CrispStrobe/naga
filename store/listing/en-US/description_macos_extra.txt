@@ -1,0 +1,2 @@
+BUILT FOR THE KEYBOARD
+Arrow keys or WASD to steer, P or Esc to pause, and the whole menu works from the keyboard. In Duel, two players share one keyboard.

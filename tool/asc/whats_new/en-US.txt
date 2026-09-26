@@ -1,0 +1,13 @@
+Naga 1.1: seven new modes and a lot of polish. Please try:
+
+• Daily Serpent: one board per day, the same for everyone. Replay it and build a streak.
+• Shed: every 4th meal your skin stays behind as wall. Fill a row with skin to clear it.
+• Ouroboros: fireflies can't be eaten, only caught by closing a loop of your body around them.
+• Echo: your last run comes back as a ghost. Don't steer into it.
+• Territory: leave your land to draw a trail, come home to claim what it encloses. Beat two AI rivals to half the board.
+• Nightfall: only a lantern lights the board.
+• Portals: step into one, come out of the other.
+
+Also new: collapsible menu sections, a countdown before Duel starts, and smoother rendering.
+
+Tell us which modes feel too easy or too hard, and anything that looks wrong on your device.

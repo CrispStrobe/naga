@@ -1,0 +1,17 @@
+Resubmission of Naga after the 4.3(a) review of version 1.0. Thank you for taking another look.
+
+Naga is an original app, written from scratch. Its full source code and history are public at https://github.com/CrispStrobe/naga, where every claim below can be checked. It uses no template, purchased code, or white-label SDK.
+
+Since 1.0 we have added seven game modes with rules we believe no other snake game on the App Store has, each a separate game class:
+- Ouroboros: fireflies can only be caught by enclosing them in a loop of your own body (a flood fill decides what is enclosed; walls never count).
+- Echo: your previous run replays as a ghost snake you must avoid.
+- Shed: every fourth meal the body behind the head becomes permanent wall; full rows of it clear.
+- Territory: a land-claiming game against two AI rivals.
+- Daily Serpent: one seeded board per day, identical on every platform.
+- Nightfall and Portals: a lantern-lit board, and a portal pair that moves after every meal.
+
+The other 20 modes include a turn-based roguelike, a bomb campaign, a brick breaker and a maze chase with pathfinding ghosts. The screenshots show eight different modes.
+
+How to test: no account or login is needed and the app works fully offline. From the home screen, tap any section header to expand it, then tap a mode. The (i) button in a game explains its rules.
+
+The app has no ads, in-app purchases, accounts, analytics or data collection, and makes no network requests.

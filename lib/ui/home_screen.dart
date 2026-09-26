@@ -162,6 +162,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Inserts a header entry at each section start and hides the modes of
   /// collapsed sections.
+  /// Display name of a section. The id stays English: it is what the
+  /// collapsed state is saved under.
+  String _sectionName(String id) {
+    final s = _strings;
+    if (s == null) return id;
+    return switch (id) {
+      'DAILY' => s.sectionDaily,
+      'CLASSIC' => s.sectionClassic,
+      'CROSSOVER' => s.sectionCrossover,
+      'ACTION' => s.sectionAction,
+      'LEGACY' => s.sectionLegacy,
+      'MINIGAMES' => s.sectionMinigames,
+      'ADVENTURE' => s.sectionAdventure,
+      'MULTIPLAYER' => s.sectionMultiplayer,
+      _ => id,
+    };
+  }
+
+  S? _strings;
+
   List<_MenuEntry> _withSections(List<_MenuEntry> raw) {
     final modes = raw.where((e) => !e.isBottomBar).toList();
     final sections = [for (final e in modes) if (e.section != null) e.section!];
@@ -177,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
         current = e.section;
         final section = e.section!;
         out.add(_MenuEntry(
-          label: section,
+          label: _sectionName(section),
           icon: Icons.expand_more,
           accentColor: const Color(0xFFE65100),
           isHeader: true,
@@ -500,6 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
+    _strings = s;
     _rawEntries = _buildEntries(s);
     _entries = _withSections(_rawEntries);
     if (_itemKeys.length != _entries.length) {

@@ -4,7 +4,11 @@ name: App Store Connect
 # secrets (the key itself never leaves GitHub). Dispatch with --ref to run a
 # branch's version of the scripts.
 #
-#   inspect     read-only snapshot of builds, TestFlight groups and versions
+#   asc_inspect read-only snapshot of builds, TestFlight groups and versions
+#   asc_listing read-only dump of the App Store listing
+#   testflight  newest build to internal + external TestFlight (Beta App Review)
+#   listing     prepare the App Store version: copy, screenshots, build.
+#               Dry run unless `apply` is checked. Never submits for review.
 
 on:
   workflow_dispatch:
@@ -12,20 +16,40 @@ on:
       task:
         description: 'Task to run'
         type: choice
-        options: [inspect]
-        default: inspect
+        options: [asc_inspect, asc_listing, testflight, listing]
+        default: asc_inspect
+      apply:
+        description: 'listing: write changes (otherwise a dry run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   asc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch the newest store screenshots
+        if: inputs.task == 'listing'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN=$(gh run list --workflow store-screenshots.yml --status success --limit 1 \
+                --json databaseId --jq '.[0].databaseId')
+          echo "screenshots from run $RUN"
+          gh run download "$RUN" -n store-screenshots -D artifact
+          ls artifact/store-screenshots
       - name: Run ${{ inputs.task }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+          ASC_APPLY: ${{ inputs.apply && '1' || '0' }}
+          SHOTS_DIR: ${{ github.workspace }}/artifact/store-screenshots
         working-directory: tool/asc
         run: |
           pip install --quiet cryptography

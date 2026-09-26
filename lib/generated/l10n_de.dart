@@ -21,6 +21,30 @@ class SDe extends S {
   String get classicDesc => 'Retro-Handy-Modus';
 
   @override
+  String get sectionDaily => 'TÄGLICH';
+
+  @override
+  String get sectionClassic => 'KLASSISCH';
+
+  @override
+  String get sectionCrossover => 'CROSSOVER';
+
+  @override
+  String get sectionAction => 'ACTION';
+
+  @override
+  String get sectionLegacy => 'RETRO';
+
+  @override
+  String get sectionMinigames => 'MINISPIELE';
+
+  @override
+  String get sectionAdventure => 'ABENTEUER';
+
+  @override
+  String get sectionMultiplayer => 'MEHRSPIELER';
+
+  @override
   String get territory => 'Revier';
 
   @override
@@ -54,7 +78,7 @@ class SDe extends S {
   String get shed => 'Häutung';
 
   @override
-  String get shedDesc => 'Tetris trifft Snake';
+  String get shedDesc => 'Häuten und Reihen räumen';
 
   @override
   String get daily => 'Tagesschlange';
@@ -83,19 +107,19 @@ class SDe extends S {
   String get mazeHunter => 'Labyrinth-Jäger';
 
   @override
-  String get mazeHunterDesc => 'Pac-Man trifft Snake';
+  String get mazeHunterDesc => 'Labyrinth-Jagd mit Geistern';
 
   @override
   String get trail => 'Lichtspur';
 
   @override
-  String get trailDesc => 'Tron Lichtrennen';
+  String get trailDesc => 'Lichtspur-Arena';
 
   @override
   String get fangs => 'Fangzähne';
 
   @override
-  String get fangsDesc => 'Breakout mit Biss';
+  String get fangsDesc => 'Blockbrecher mit Biss';
 
   @override
   String get venom => 'Gift';
@@ -143,7 +167,7 @@ class SDe extends S {
   String get nibbles => 'Nibbles';
 
   @override
-  String get nibblesDesc => 'QBasic-Klassiker';
+  String get nibblesDesc => 'DOS-Klassiker von 1991';
 
   @override
   String get score => 'Punkte';

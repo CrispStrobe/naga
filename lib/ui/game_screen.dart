@@ -168,7 +168,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             'Play as often as you like; your best run of the day counts. '
             'Play on consecutive days to build a streak.';
       case 'Shed':
-        return 'Tetris meets Snake!\n\n'
+        return 'Shed your skin, clear rows!\n\n'
             'Each meal grows you by three. Every 4th meal you shed your skin: '
             'everything behind your neck stays behind as solid wall.\n'
             'Fill a whole row with shed skin to clear it for a big bonus. '
@@ -219,11 +219,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         return 'Your trail is your weapon.\n\n'
             'Leave a trail behind you. Enemies that cross it are destroyed.';
       case 'Fangs':
-        return 'Breakout meets Snake!\n\n'
+        return 'A brick breaker with a snake for a paddle!\n\n'
             'Your snake is the paddle. Bounce the ball to break blocks.\n'
             'Move fast — the snake is quick in this mode!';
       case 'Venom':
-        return 'Bomberman meets Snake!\n\n'
+        return 'Bomb and blast your way through!\n\n'
             'Drop venom bombs from your tail: press SPACE, the BOMB button,\n'
             'or simply TAP the board when using swipe controls.\n'
             'After 3 seconds the venom bursts in a circular cloud that\n'
@@ -269,8 +269,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         return 'CGA graphics throwback.\n\n'
             '4-color palette with scanline effects. Pure nostalgia.';
       case 'Nibbles':
-        return 'QBasic NIBBLES.BAS!\n\n'
-            'Faithful recreation of the classic QBasic snake game.';
+        return 'A 1991 DOS classic!\n\n'
+            'A faithful recreation of the classic DOS-era snake game.';
       case 'Duel':
         return 'Local 2-player!\n\n'
             'Player 1: WASD. Player 2: Arrow keys.\n'

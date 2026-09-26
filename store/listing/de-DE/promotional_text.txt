@@ -1,0 +1,1 @@
+Neu in 1.1: die Tagesschlange, ein Spielfeld pro Tag, für alle gleich. Dazu sechs neue Spielideen: Häutung, Echo, Ouroboros, Revier, Portale und Einbruch der Nacht.

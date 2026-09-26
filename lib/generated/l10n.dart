@@ -121,6 +121,54 @@ abstract class S {
   /// **'Retro phone legacy'**
   String get classicDesc;
 
+  /// No description provided for @sectionDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'DAILY'**
+  String get sectionDaily;
+
+  /// No description provided for @sectionClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'CLASSIC'**
+  String get sectionClassic;
+
+  /// No description provided for @sectionCrossover.
+  ///
+  /// In en, this message translates to:
+  /// **'CROSSOVER'**
+  String get sectionCrossover;
+
+  /// No description provided for @sectionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTION'**
+  String get sectionAction;
+
+  /// No description provided for @sectionLegacy.
+  ///
+  /// In en, this message translates to:
+  /// **'LEGACY'**
+  String get sectionLegacy;
+
+  /// No description provided for @sectionMinigames.
+  ///
+  /// In en, this message translates to:
+  /// **'MINIGAMES'**
+  String get sectionMinigames;
+
+  /// No description provided for @sectionAdventure.
+  ///
+  /// In en, this message translates to:
+  /// **'ADVENTURE'**
+  String get sectionAdventure;
+
+  /// No description provided for @sectionMultiplayer.
+  ///
+  /// In en, this message translates to:
+  /// **'MULTIPLAYER'**
+  String get sectionMultiplayer;
+
   /// No description provided for @territory.
   ///
   /// In en, this message translates to:
@@ -190,7 +238,7 @@ abstract class S {
   /// No description provided for @shedDesc.
   ///
   /// In en, this message translates to:
-  /// **'Tetris meets Snake'**
+  /// **'Shed your skin, clear rows'**
   String get shedDesc;
 
   /// No description provided for @daily.
@@ -244,7 +292,7 @@ abstract class S {
   /// No description provided for @mazeHunterDesc.
   ///
   /// In en, this message translates to:
-  /// **'Pac-Man meets Snake'**
+  /// **'Maze chase with ghosts'**
   String get mazeHunterDesc;
 
   /// No description provided for @trail.
@@ -256,7 +304,7 @@ abstract class S {
   /// No description provided for @trailDesc.
   ///
   /// In en, this message translates to:
-  /// **'Tron light cycles'**
+  /// **'Light-cycle arena'**
   String get trailDesc;
 
   /// No description provided for @fangs.
@@ -268,7 +316,7 @@ abstract class S {
   /// No description provided for @fangsDesc.
   ///
   /// In en, this message translates to:
-  /// **'Breakout with a bite'**
+  /// **'Brick breaker with a bite'**
   String get fangsDesc;
 
   /// No description provided for @venom.
@@ -364,7 +412,7 @@ abstract class S {
   /// No description provided for @nibblesDesc.
   ///
   /// In en, this message translates to:
-  /// **'QBasic classic'**
+  /// **'1991 DOS classic'**
   String get nibblesDesc;
 
   /// No description provided for @score.

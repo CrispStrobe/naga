@@ -12,7 +12,7 @@ class NibblesMode extends GameMode {
   String get name => 'Nibbles';
 
   @override
-  String get description => 'QBasic classic';
+  String get description => '1991 DOS classic';
 
   @override
   Color get backgroundColor => _black;

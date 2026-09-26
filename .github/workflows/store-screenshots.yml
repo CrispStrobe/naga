@@ -1,0 +1,59 @@
+name: Store screenshots
+
+# Renders App Store screenshots from the real app (integration_test/
+# store_screenshots_test.dart) for iPhone 6.9", iPad 13" and Mac, in English
+# and German, and uploads them as the `store-screenshots` artifact. The
+# App Store Connect `listing` task uploads the newest successful set.
+
+on:
+  workflow_dispatch:
+  # Iterate on a store/** branch without merging each attempt.
+  push:
+    branches: ['store/**']
+    paths:
+      - integration_test/**
+      - .github/workflows/store-screenshots.yml
+
+jobs:
+  screenshots:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Render screenshots
+        run: |
+          set -o pipefail
+          flutter test integration_test/store_screenshots_test.dart -d macos 2>&1 | tee render.log
+      - name: Collect and check sizes
+        run: |
+          # The sandboxed debug app writes into its own container's tmp dir.
+          SRC=$(grep -o 'SHOTS_DIR=.*' render.log | head -1 | cut -d= -f2-)
+          echo "source: $SRC"
+          mkdir -p store-screenshots && cp -R "$SRC"/. store-screenshots/
+          fail=0
+          while IFS= read -r f; do
+            w=$(sips -g pixelWidth "$f" | awk '/pixelWidth/{print $2}')
+            h=$(sips -g pixelHeight "$f" | awk '/pixelHeight/{print $2}')
+            case "$f" in
+              */iphone_69/*) want=1320x2868 ;;
+              */ipad_13/*) want=2064x2752 ;;
+              */mac/*) want=2880x1800 ;;
+            esac
+            [ "${w}x${h}" = "$want" ] || { echo "WRONG SIZE $f ${w}x${h} (want $want)"; fail=1; }
+          done < <(find store-screenshots -name '*.png' | sort)
+          echo "$(find store-screenshots -name '*.png' | wc -l) screenshots"
+          exit $fail
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: store-screenshots
+          path: |
+            store-screenshots
+            render.log
+          retention-days: 30

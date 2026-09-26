@@ -21,6 +21,30 @@ class SEn extends S {
   String get classicDesc => 'Retro phone legacy';
 
   @override
+  String get sectionDaily => 'DAILY';
+
+  @override
+  String get sectionClassic => 'CLASSIC';
+
+  @override
+  String get sectionCrossover => 'CROSSOVER';
+
+  @override
+  String get sectionAction => 'ACTION';
+
+  @override
+  String get sectionLegacy => 'LEGACY';
+
+  @override
+  String get sectionMinigames => 'MINIGAMES';
+
+  @override
+  String get sectionAdventure => 'ADVENTURE';
+
+  @override
+  String get sectionMultiplayer => 'MULTIPLAYER';
+
+  @override
   String get territory => 'Territory';
 
   @override
@@ -54,7 +78,7 @@ class SEn extends S {
   String get shed => 'Shed';
 
   @override
-  String get shedDesc => 'Tetris meets Snake';
+  String get shedDesc => 'Shed your skin, clear rows';
 
   @override
   String get daily => 'Daily Serpent';
@@ -83,19 +107,19 @@ class SEn extends S {
   String get mazeHunter => 'Maze Hunter';
 
   @override
-  String get mazeHunterDesc => 'Pac-Man meets Snake';
+  String get mazeHunterDesc => 'Maze chase with ghosts';
 
   @override
   String get trail => 'Trail';
 
   @override
-  String get trailDesc => 'Tron light cycles';
+  String get trailDesc => 'Light-cycle arena';
 
   @override
   String get fangs => 'Fangs';
 
   @override
-  String get fangsDesc => 'Breakout with a bite';
+  String get fangsDesc => 'Brick breaker with a bite';
 
   @override
   String get venom => 'Venom';
@@ -143,7 +167,7 @@ class SEn extends S {
   String get nibbles => 'Nibbles';
 
   @override
-  String get nibblesDesc => 'QBasic classic';
+  String get nibblesDesc => '1991 DOS classic';
 
   @override
   String get score => 'Score';

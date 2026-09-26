@@ -156,7 +156,8 @@ class TerritoryGame extends FlameGame with KeyboardEvents {
   /// same number the LAND HUD shows (a raw cell count read as nonsense next
   /// to it).
   void _updateScore() {
-    final percent = (playerShare * 100).floor();
+    // Rounded like the HUD, so 8.98% reads 9 in both places.
+    final percent = (playerShare * 100).round();
     if (percent != score) {
       score = percent;
       onScoreChanged(score);
