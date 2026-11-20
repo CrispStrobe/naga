@@ -52,7 +52,10 @@ env:
   PROFILE_NAME: Naga MacAppStore CI
   APP_CERT_SHA1: 56D3B7D782F2CEF0BBEFEEE30D98C6BA0F31C632
   INSTALLER_CERT_SHA1: 36D3723E1FEC754A6037463F19035E988080A67F
-  FLUTTER_VERSION: '3.44.2'
+  # 3.44.8+ carries the Xcode 27 fix for release_unpack_macos ("FlutterMacOS
+  # does not contain architectures arm64 x86_64": Xcode 27's lipo -verify_arch
+  # rejects several archs at once, flutter/flutter#188346).
+  FLUTTER_VERSION: '3.44.9'
 
 jobs:
   build-upload:
